@@ -8,12 +8,12 @@ clear all;
 % $$$ base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag_nipoall/mat_data/';
 % $$$ model = 'MOM025_nipoall';
 % $$$ outputs = [19];
-% $$$ base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag/mat_data/';
-% $$$ model = 'MOM025';
-% $$$ outputs = [2 3 4 5 6];
-base = '/srv/ccrc/data03/z3500785/MOM_wombat/mat_data/';
+base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag/mat_data/';
 model = 'MOM025';
-outputs = [1978];
+outputs = [2 3 4 5 6];
+% $$$ base = '/srv/ccrc/data03/z3500785/MOM_wombat/mat_data/';
+% $$$ model = 'MOM025';
+% $$$ outputs = [1978];
 % $$$ outputs = [2];
 % $$$ base = '/srv/ccrc/data03/z3500785/MOM01_HeatDiag/mat_data/';
 % $$$ model = 'MOM01';
@@ -32,6 +32,7 @@ for i=1:length(outputs)
 P(:,:,i) = PME+RMX; % PME effective heat flux (W)
 F(:,:,i) = SWH+VDS+FRZ+ETS; % Surface heat flux (W)
 M(:,:,i) = VDF+KNL; % Vertical mixing flux (W)
+CNV(:,:,i) = KNL; % KPP Non-local, convection (W)
 if (exist('RED'))
     R(:,:,i) = RED+K33; % Redi diffusion (W)
     GM(:,:,i) = NGM; % GM (W)
@@ -346,62 +347,27 @@ set(gca,'FontSize',25);
 grid on;box on;
 LabelAxes(gca,2,25,0.003,0.925);
 
-%%% Spatial Integrated Mixing
+%%% Spatial Structure:
 
-% $$$ % Load Variable and calculate mean:
-% $$$ Tl = 22.5;
-% $$$ load([base model sprintf('_output%03d',outputs(1)) '_VertInt_T' strrep(num2str(Tl),'.','p') 'C.mat']);
-% $$$ FlM(isnan(FlM)) = 0.0;
-% $$$ FlMa = FlM;
-% $$$ for i=2:length(outputs)
-% $$$     load([base model sprintf('_output%03d',outputs(i)) '_VertInt_T' strrep(num2str(Tl),'.','p') 'C.mat']);
-% $$$     FlM(isnan(FlM)) = 0.0;
-% $$$     FlMa = FlMa+FlM;
-% $$$ end
-% $$$ FlM = FlMa/length(outputs);
-% $$$ FlM(FlM==0) = NaN;
-
-% $$$ % Instead do SW redistribution:
-% $$$ Tl = 15;
-% $$$ load([base model sprintf('_output%03d',outputs(1)) '_SWP_VertInt_T' strrep(num2str(Tl),'.','p') 'C.mat']);
-% $$$ FlSP(isnan(FlSP)) = 0.0;
-% $$$ FlSPa = FlSP;
-% $$$ for i=2:length(outputs)
-% $$$     load([base model sprintf('_output%03d',outputs(i)) '_SWP_VertInt_T' strrep(num2str(Tl),'.','p') 'C.mat']);
-% $$$     FlSP(isnan(FlSP)) = 0.0;
-% $$$     FlSPa = FlSPa+FlSP;
-% $$$ end
-% $$$ FlSP = FlSPa/length(outputs);
-% $$$ FlSP(FlSP==0) = NaN;
-% $$$ FlM = FlSP;
-
-% Instead do Redi/K33/GM:
-Tl = 5;
-load([base model sprintf('_output%03d',outputs(1)) '_VertInt_T' strrep(num2str(Tl),'.','p') 'C.mat']);
-FlR(isnan(FlR)) = 0.0;
-FlK(isnan(FlK)) = 0.0;
-FlG(isnan(FlG)) = 0.0;
-FlRa = FlR;
-FlKa = FlK;
-FlGa = FlG;
+% Do vertical mixing:
+% $$$ VAR = 'FlM';
+% $$$ VAR = 'FlSP';
+VAR = 'WMTP';
+% $$$ TYPE = 'VertInt';
+TYPE = 'WMT';
+Tl = 22.25;
+load([base model sprintf('_output%03d',outputs(1)) '_' TYPE '_T' strrep(num2str(Tl),'.','p') 'C.mat']);
+eval([VAR '(isnan(' VAR ')) = 0.0;']);
+eval([VAR 'a = ' VAR ';']);
 for i=2:length(outputs)
-    load([base model sprintf('_output%03d',outputs(i)) '_VertInt_T' strrep(num2str(Tl),'.','p') 'C.mat']);
-    FlR(isnan(FlR)) = 0.0;
-    FlRa = FlRa+FlR;
-    FlK(isnan(FlK)) = 0.0;
-    FlKa = FlKa+FlK;
-    FlG(isnan(FlG)) = 0.0;
-    FlGa = FlGa+FlG;
+    load([base model sprintf('_output%03d',outputs(i)) '_' TYPE '_T' strrep(num2str(Tl),'.','p') 'C.mat']);
+    eval([VAR '(isnan(' VAR ')) = 0.0;']);
+    eval([VAR 'a = ' VAR 'a + ' VAR ';']);
 end
-FlR = FlRa/length(outputs);
-FlR(FlR==0) = NaN;
-FlK = FlKa/length(outputs);
-FlK(FlK==0) = NaN;
-FlG = FlGa/length(outputs);
-FlG(FlG==0) = NaN;
-FlM = FlG;
-
-
+eval([VAR ' = ' VAR 'a/length(outputs);']);
+eval([VAR '(' VAR '==0) = NaN;']);
+eval(['FlM = ' VAR ';']);
+FlM = -FlM;
 % $$$ %%% Regional time series 
 % $$$ 
 % $$$ months = [1:12];
@@ -602,8 +568,8 @@ if (strfind(model,'01'))
 end
 
 [xL,yL] = size(lon);
-xvec = 1:3:xL;
-yvec = 1:3:yL;
+xvec = 1:1:xL;
+yvec = 1:1:yL;
 txtmonth = {'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'};
 
 months = {[1:12], ...
@@ -616,45 +582,27 @@ labels = {'(a) Annual', ...
           '(d) November'};
 
 %Colormap and continents:
-% $$$ clim = [-150 0];
 % $$$ clim = [-100 0];
 % $$$ sp = 10;
-clim = [-100 100];
-sp = 10;
 % $$$ clim = [-30 0]; % FOR SWP
 % $$$ sp = 0.5; % FOR SWP
+clim = [-1 1]*(1e-5)*86400; % FOR WMT
+clim = [-0.3 0.3]*(1e-5)*86400; % FOR WMT
+sp = (1e-6)*86400;
+
+doWMT = 1; % plot WMT instead of flux
+
 cpts = [-1e10 clim(1):sp:clim(2) 1e10];
 npts = length(cpts)
 
-% $$$ cmap = flipud(lbmap(2*(npts-3),'RedBlue'));
-% $$$ cmap = cmap(1:(npts-3),:);
-% $$$ cmap = redblue(2*(npts-3));
-% $$$ cmap = cmap(1:(npts-3),:);
-%cmap = summer(npts-3);
-cmap = parula(npts-3);
-
-%Custom parula:
-cmap = parula(npts-3);
-cmap(end,:) = [0.97 0.97 0.8];
-cmap(end-1,:) = (cmap(end-1,:)+cmap(end,:))/2;
-% $$$ mid = round((npts-3)/2);
-% $$$ cmap(2:(mid-1),1) = interp1([1 mid],[cmap(1,1) cmap(mid,1)],2:(mid-1),'linear');
-% $$$ cmap(2:(mid-1),2) = interp1([1 mid],[cmap(1,2) cmap(mid,2)],2:(mid-1),'linear');
-% $$$ cmap(2:(mid-1),3) = interp1([1 mid],[cmap(1,3) cmap(mid,3)],2:(mid-1),'linear');
-% $$$ cmap((mid+1):(end-1),1) = interp1([mid npts-3],[cmap(mid,1) cmap(end,1)],(mid+1):(npts-4),'linear');
-% $$$ cmap((mid+1):(end-1),2) = interp1([mid npts-3],[cmap(mid,2) cmap(end,2)],(mid+1):(npts-4),'linear');
-% $$$ cmap((mid+1):(end-1),3) = interp1([mid npts-3],[cmap(mid,3) cmap(end,3)],(mid+1):(npts-4),'linear');
-
-
-% $$$ %Custom:
-% $$$ cmap = zeros(npts-3,3);
-% $$$ cmap(1,:) = [0 0 1];
-% $$$ cmap(end,:) = [0.9359 0.9323 0.7947];
-% $$$ %cmap(end,:) = [1 1 0.85];
-% $$$ %cmap(end,:) = [0.97 0.97 0.8];
-% $$$ cmap(2:(end-1),1) = interp1([1 npts-3],[cmap(1,1) cmap(end,1)],2:(npts-4),'linear');
-% $$$ cmap(2:(end-1),2) = interp1([1 npts-3],[cmap(1,2) cmap(end,2)],2:(npts-4),'linear');
-% $$$ cmap(2:(end-1),3) = interp1([1 npts-3],[cmap(1,3) cmap(end,3)],2:(npts-4),'linear');
+if (doWMT)
+    cmap = flipud(lbmap(npts-3,'RedBlue'));
+else
+    cmap = parula(npts-3);
+    cmap = parula(npts-3);
+    cmap(end,:) = [0.97 0.97 0.8];
+    cmap(end-1,:) = (cmap(end-1,:)+cmap(end,:))/2;
+end
 
 tmp = LAND;
 tmp(isnan(LAND)) = clim(1)-sp/2;
@@ -691,6 +639,9 @@ for i=1:length(months)
         Z = FlM(:,:,months{i});
     end
     Z = Z(xvec,yvec);
+    if (doWMT)
+        Z = Z*86400;
+    end
     
     Z(Z<clim(1)) = clim(1);
     contourf(X,Y,Z.*cos(Y/180*pi),cpts,'linestyle','none');
@@ -699,7 +650,11 @@ for i=1:length(months)
     caxis(climn);
     if (i==1)
         cb = colorbar;
-        ylabel(cb,'Wm$^{-2}$');
+        if (~doWMT)
+            ylabel(cb,'Wm$^{-2}$');
+        else
+            ylabel(cb,'m/day');
+        end            
         ylim(cb,clim);
     end
     hold on;
@@ -724,10 +679,10 @@ for i=1:length(months)
         set(gca,'xtick',[-270:30:60]);
     end        
     set(gca,'Position',[poss(i,:)]);
-% $$$     ylim([-45 45]);
-% $$$     set(gca,'ytick',[-45:15:45]);
-    ylim([-60 60]);
-    set(gca,'ytick',[-75:15:75]);
+    ylim([-45 45]);
+    set(gca,'ytick',[-45:15:45]);
+% $$$     ylim([-60 60]);
+% $$$     set(gca,'ytick',[-75:15:75]);
 end 
 colormap(cmap);
 %colormap(parula);%flipud(lbmap(50,'RedBlue')));
