@@ -12,7 +12,7 @@ haveGM = 1; % 1 = GM is on, 0 = off;
 output=1978
 restart = output-1;
 
-%% file-names and grid properties:
+% file-names -----------------------------------------
 base = [baseD sprintf('output%03d/',output)];
 basem1 = [baseD sprintf('output%03d/',output-1)];
 baser = [rstbaseD sprintf('restart%03d/',restart)];
@@ -37,12 +37,17 @@ else
     rnametime = [basem1 'ocean_snap.nc'];
 end    
          
-lon = ncread(hname,'geolon_t');lat = ncread(hname,'geolat_t');
-lonu = ncread(hname,'geolon_c');latu = ncread(hname,'geolat_c');
+% Horizontal Grid  -----------------------------------------
+lon = ncread(gname,'geolon_t');lat = ncread(gname,'geolat_t');
+lonu = ncread(gname,'geolon_c');latu = ncread(gname,'geolat_c');
 area = ncread(gname,'area_t');[xL,yL] = size(lon);
+lonv_t = ncread(gname,'xt_ocean');lonv_u = ncread(gname,'xu_ocean');
+latv_t = ncread(gname,'yt_ocean');latv_u = ncread(gname,'yu_ocean');
 
+% Vertical grid  -----------------------------------------
 z = ncread(hname,'st_ocean');zL = length(z);
 
+% Time  -----------------------------------------
 time = ncread(hname,'time');
 
 if (found_rst)
