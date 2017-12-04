@@ -232,16 +232,23 @@ ETS    = zeros(TL+1,tL); % W due to eta_smoothing.
 SUB    = zeros(TL+1,tL); % W due to submesoscale.
 VDF    = zeros(TL+1,tL); % W due to vdiffusion
 KNL    = zeros(TL+1,tL); % W due to KPP non-local
+if (haveRedi)
+    K33    = zeros(TL+1,tL); % W due to K33
+    RED    = zeros(TL+1,tL); % W due to Redi diffusion
+end
+if (haveGM)
+    NGM    = zeros(TL+1,tL); % W due to GM
+end
 ADV    = zeros(TL+1,tL); % W due to advection
 TEN    = zeros(TL+1,tL); % W due to tendency
 SFW    = zeros(TL+1,tL); % surface volume flux into ocean (m3s-1)
 TENMON = zeros(TL+1,tL); % W due to tendency from Offline Monthly
 JBS    = zeros(TL+1,tL);  % m3s-1 out of Pacific North
 JSP    = zeros(TL+1,tL);  % m3s-1 out of Pacific South
-JITF  = zeros(TL+1,tL);  % m3s-1 out of Pacific West
+JITF   = zeros(TL+1,tL);  % m3s-1 out of Pacific West
 QBS    = zeros(TL+1,tL);  % W out of Pacific North
 QSP    = zeros(TL+1,tL);  % W out of Pacific South
-QITF    = zeros(TL+1,tL);  % W out of Pacific West
+QITF   = zeros(TL+1,tL);  % W out of Pacific West
 
 %Do IC for Vsnap and Hsnap:
 for zi = 1:zL
@@ -341,12 +348,25 @@ for ti=1:tL
     SWH(ii,ti) = nansum(nansum(mask_t.*area.*ncread(wname,'sw_heat_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     VDF(ii,ti) = nansum(nansum(mask_t.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     KNL(ii,ti) = nansum(nansum(mask_t.*area.*ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    if (haveRedi)
+    K33(ii,ti) = nansum(nansum(mask_t.*area.*ncread(wname,'temp_vdiffuse_k33_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    RED(ii,ti) = nansum(nansum(mask_t.*area.*ncread(wname,'neutral_diffusion_on_nrho_temp',[1 1 ii ti],[xL yL 1 1]),1),2);
+    end
+    if (haveGM)
+    NGM(ii,ti) = nansum(nansum(mask_t.*area.*ncread(wname,'neutral_gm_on_nrho_temp',[1 1 ii ti],[xL yL 1 1]),1),2);
+    end
     FRZ(ii,ti) = nansum(nansum(mask_t.*area.*ncread(wname,'frazil_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     ETS(ii,ti) = nansum(nansum(mask_t.*area.*ncread(wname,'temp_eta_smooth_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     SFW(ii,ti) = nansum(nansum(mask_t.*ncread(wname,'mass_pmepr_on_nrho',[1 1 ii ti],[xL yL 1 1])/rho0,1),2);
     
     txtrans = ncread(wname,'tx_trans_nrho',[1 1 ii ti],[xL yL 1 1])*1e9/rho0;
     tytrans = ncread(wname,'ty_trans_nrho',[1 1 ii ti],[xL yL 1 1])*1e9/rho0;
+    txtrans = txtrans+ncread(wname,'tx_trans_nrho_submeso',[1 1 ii ti],[xL yL 1 1])*1e9/rho0;
+    tytrans = tytrans+ncread(wname,'ty_trans_nrho_submeso',[1 1 ii ti],[xL yL 1 1])*1e9/rho0;
+    if (haveGM)
+    txtrans = txtrans+ncread(wname,'tx_trans_nrho_gm',[1 1 ii ti],[xL yL 1 1])*1e9/rho0;
+    tytrans = tytrans+ncread(wname,'ty_trans_nrho_gm',[1 1 ii ti],[xL yL 1 1])*1e9/rho0;
+    end
     
     JBS(ii,ti) = nansum(tytrans(mask_Ny==1));
     JSP(ii,ti) = -nansum(tytrans(mask_Sy==1)) - nansum(txtrans(mask_Sx==1));
@@ -366,12 +386,25 @@ for ii=TL-1:-1:1
     SWH(ii,ti) = SWH(ii+1,ti) + nansum(nansum(mask_t.*area.*ncread(wname,'sw_heat_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     VDF(ii,ti) = VDF(ii+1,ti) + nansum(nansum(mask_t.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     KNL(ii,ti) = KNL(ii+1,ti) + nansum(nansum(mask_t.*area.*ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    if (haveRedi)
+    K33(ii,ti) = K33(ii+1,ti) + nansum(nansum(mask_t.*area.*ncread(wname,'temp_vdiffuse_k33_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    RED(ii,ti) = RED(ii+1,ti) + nansum(nansum(mask_t.*area.*ncread(wname,'neutral_diffusion_on_nrho_temp',[1 1 ii ti],[xL yL 1 1]),1),2);
+    end
+    if (haveGM)
+    NGM(ii,ti) = NGM(ii+1,ti) + nansum(nansum(mask_t.*area.*ncread(wname,'neutral_gm_on_nrho_temp',[1 1 ii ti],[xL yL 1 1]),1),2);
+    end
     FRZ(ii,ti) = FRZ(ii+1,ti) + nansum(nansum(mask_t.*area.*ncread(wname,'frazil_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     ETS(ii,ti) = ETS(ii+1,ti) + nansum(nansum(mask_t.*area.*ncread(wname,'temp_eta_smooth_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     SFW(ii,ti) = SFW(ii+1,ti) + nansum(nansum(mask_t.*ncread(wname,'mass_pmepr_on_nrho',[1 1 ii ti],[xL yL 1 1])/rho0,1),2);
 
     txtrans = ncread(wname,'tx_trans_nrho',[1 1 ii ti],[xL yL 1 1])*1e9/rho0;
     tytrans = ncread(wname,'ty_trans_nrho',[1 1 ii ti],[xL yL 1 1])*1e9/rho0;
+    txtrans = txtrans+ncread(wname,'tx_trans_nrho_submeso',[1 1 ii ti],[xL yL 1 1])*1e9/rho0;
+    tytrans = tytrans+ncread(wname,'ty_trans_nrho_submeso',[1 1 ii ti],[xL yL 1 1])*1e9/rho0;
+    if (haveGM)
+    txtrans = txtrans+ncread(wname,'tx_trans_nrho_gm',[1 1 ii ti],[xL yL 1 1])*1e9/rho0;
+    tytrans = tytrans+ncread(wname,'ty_trans_nrho_gm',[1 1 ii ti],[xL yL 1 1])*1e9/rho0;
+    end
     
     JBS(ii,ti) = JBS(ii+1,ti) + nansum(tytrans(mask_Ny==1));
     JSP(ii,ti) = JSP(ii+1,ti) - nansum(tytrans(mask_Sy==1)) - nansum(txtrans(mask_Sx==1));
@@ -384,52 +417,10 @@ end
 
 save([outD model sprintf('_output%03d',output) '_PacificHBud.mat'],'SWH','VDS','RMX','PME','FRZ', ...
      'ETS','SUB','VDF','KNL','ADV','TEN','SFW','JBS','JSP','JITF','QBS','QSP','QITF','-append');
-% $$$ save([outD model sprintf('_output%03d',output) '_PacificHBud.mat'],'JBS','JSP','JITF','QBS','QSP','QITF','-append');
-
-% $$$ 
-% $$$ %% Save isotherm depths -------------------------------------------------------------------------------------
-% $$$ % $$$ Tl = 22.5; %Temperature surface
-% $$$ 
-% $$$ Tls = [22 22.5 23];
-% $$$ 
-% $$$ for ii = 1:length(Tls)
-% $$$     Tl = Tls(ii);
-% $$$ 
-% $$$     ziso = NaN*zeros(xL,yL,tL);
-% $$$ 
-% $$$     for ti=1:tL
-% $$$         sprintf('Calculating isotherm depth temp %03d of %03d, time %03d of %03d',ti,tL,ii,length(Tls))
-% $$$         temp = reshape(ncread(fname,'temp',[1 1 1 ti],[xL yL zL 1]),[xL*yL zL 1]);
-% $$$         tmax = max(temp,[],2);
-% $$$         inds = tmax >= Tl;
-% $$$         temp = temp(inds,:);
-% $$$         temp(isnan(temp)) = -1000;
-% $$$         temp = temp -0.001*repmat(1:zL,[length(temp(:,1)) 1]);
-% $$$         zisot = zeros(length(temp(:,1)),1);
-% $$$         for jj=1:length(temp(:,1))
-% $$$             zisot(jj) = interp1(temp(jj,:),z,Tl,'linear');
-% $$$         end
-% $$$     end
-% $$$     save([outD model sprintf('_output%03d',output) '_PacificZiso_T' strrep(num2str(Tl),'.','p') 'C.mat'],'ziso');
-% $$$ end
-
-% $$$ %% Save surface heat flux, wind stress and SST:
-% $$$ shflux = ncread(fname,'net_sfc_heating',[1 1 1],[xL yL tL]);
-% $$$ SST = squeeze(ncread(fname,'temp',[1 1 1 1],[xL yL 1 tL]));
-% $$$ taux = ncread(fname,'tau_x',[1 1 1],[xL yL tL]);
-% $$$ tauy = ncread(fname,'tau_y',[1 1 1],[xL yL tL]);
-% $$$ 
-% $$$ save([outD model sprintf('_output%03d',output) '_PacificSurfaceVars.mat'],'shflux','SST','taux','tauy');
-
-%% Latitude-depth overturning:
-PSI = zeros(yL,TL,tL);
-
-% Ignoring tri-polar (wrong >60N).
-for ti=1:tL
-    tytrans = ncread(wname,'ty_trans_nrho',[1 1 1 ti],[xL yL TL 1])*1e9/rho0;
-    tytrans(~mask_u) = NaN;
-    PSI(:,:,ti) = squeeze(nansum(tytrans,1));
+if (haveRedi)
+    save([outD model sprintf('_output%03d',output) '_PacificHBud.mat'],'K33','RED','-append');
 end
-save([outD model sprintf('_output%03d',output) '_PacificTpsi.mat'],'PSI');
-
+if (haveGM)
+    save([outD model sprintf('_output%03d',output) '_PacificHBud.mat'],'NGM','-append');
 end
+
