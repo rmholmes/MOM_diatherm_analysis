@@ -352,7 +352,8 @@ LabelAxes(gca,2,25,0.003,0.925);
 % Do vertical mixing:
 % $$$ VAR = 'FlM';
 % $$$ VAR = 'FlSP';
-VAR = 'WMTP';
+% $$$ VAR = 'WMTP';
+VAR = 'WMTSP';
 % $$$ TYPE = 'VertInt';
 TYPE = 'WMT';
 Tl = 22.25;
@@ -368,6 +369,7 @@ eval([VAR ' = ' VAR 'a/length(outputs);']);
 eval([VAR '(' VAR '==0) = NaN;']);
 eval(['FlM = ' VAR ';']);
 FlM = -FlM;
+
 % $$$ %%% Regional time series 
 % $$$ 
 % $$$ months = [1:12];
@@ -588,7 +590,7 @@ labels = {'(a) Annual', ...
 % $$$ sp = 0.5; % FOR SWP
 clim = [-1 1]*(1e-5)*86400; % FOR WMT
 clim = [-0.3 0.3]*(1e-5)*86400; % FOR WMT
-sp = (1e-6)*86400;
+sp = (0.3e-6)*86400;
 
 doWMT = 1; % plot WMT instead of flux
 
@@ -1279,7 +1281,7 @@ ndays = diff(time_snap);
 % Load Variable and calculate mean:
 lonsl = 110;
 load([base model sprintf(['_output%03d_varsat_' num2str(lonsl) 'W.mat'],outputs(1))]);
-vars = {'temp','u','v','kappa','taux','tauy','mld','vdif','vnlc'};
+vars = {'temp','u','v','kappa','taux','tauy','mld','vdif','vnlc','pmer','sufc','swrd'};
 for i=1:length(vars)
     eval([vars{i} 'a = ' vars{i} ';']);
 end
@@ -1297,10 +1299,6 @@ end
 [yL,zL,tL] = size(temp);
 TL = length(T);
 
-
-% $$$ % buoyancy flux from average values:
-% $$$ Bf = avg(kappa,2).*diff(temp,[],2)./diff(repmat(-Zt,[1 1 tL]),[],2);
-
 % Depth of isotherms:
 Zi = zeros(yL,TL,tL);
 for ti=1:tL
@@ -1315,23 +1313,33 @@ for ti=1:tL
     end
 end
 Yi = repmat(Yt(:,1),[1 TL]);
-% $$$ vdif(isnan(vdif)) = 0;
-vdif = cumsum(vdif,2,'reverse');
+
+% $$$ var = cumsum(vdif,2,'reverse'); % Vertical Mixing Flux
+% $$$ clim = [-250 0];
+% $$$ sp = 5;
+% $$$ doWMT = 0;
+
+var = (vdif+vnlc)/rho0/Cp*86400; % Vertical Mixing Transformation
+var = (pmer+sufc)/rho0/Cp*86400; % Surface Forcing Transformation
+clim = [-1 1]*1e-5*86400; % FOR WMT
+sp = 0.1*1e-5*86400;
+doWMT = 1;
 
 months = {[1:12],[3],[7],[11]};
 monthsu01 = {[1:4],[1],[3],[4]};
 labels = {'Annual','March','July','November'};
 
 %Colormap:
-clim = [-150 0];
-sp = 5;
 cpts = [-1e10 clim(1):sp:clim(2) 1e10];
 npts = length(cpts)
-cmap = parula(npts-3);
-cmap = parula(npts-3);
-% $$$ cmap(end,:) = [0.97 0.97 0.8];
-cmap(end,:) = [1 1 1];
-cmap(end-1,:) = (cmap(end-1,:)+cmap(end,:))/2;
+
+if (doWMT)
+    cmap = redblue(npts-3);
+else
+    cmap = parula(npts-3);
+    cmap(end,:) = [1 1 1];
+    cmap(end-1,:) = (cmap(end-1,:)+cmap(end,:))/2;
+end
 
 % $$$ %Save for schematic:
 % $$$ Xl = Yi;
@@ -1350,8 +1358,7 @@ figure;
 set(gcf,'Position',[1          36        1920         970]);
 for i=1:length(months)
 subplot(2,2,i);
-contourf(Yi,nanmonmean(Zi(:,:,months{i}),3,ndays(months{i})),nanmonmean(vdif(:,:,months{i}),3,ndays(months{i})),cpts,'linestyle','none');
-%pcolPlot(Yi,nanmonmean(Zi(:,:,months{i}),3ndays(months{i})),nanmonmean(vdif(:,:,months{i}),3,ndays(months{i})));%,cpts,'linestyle','none');
+contourf(Yi,nanmonmean(Zi(:,:,months{i}),3,ndays(months{i})),nanmonmean(var(:,:,months{i}),3,ndays(months{i})),cpts,'linestyle','none');
 hold on;
 [c,h] = contour(Yt,-Zt,monmean(temp(:,:,months{i}),3,ndays(months{i})),[0:1:35],'-k');
 clabel(c,h,[0:2:35]);
@@ -1361,21 +1368,22 @@ if (strcmp(model,'MOM01'))
 else
     mnu = months{i};
 end
-% $$$ ucol = 0.7*[1 1 1];
 ucol = [0.8706    0.4902         0];
 [c,h] = contour(Yu,-Zu,mean(u(:,:,mnu),3),[-2:0.2:-0.2],'--', ...
                 'color',ucol);
 [c,h] = contour(Yu,-Zu,mean(u(:,:,mnu),3),[0.2:0.2:2],'-', ...
                 'color',ucol);
 plot(Yu(:,1),-monmean(mld(:,months{i}),2,ndays(months{i})),'--','color',[0 0.5 0],'linewidth',3);
-% $$$ clabel(c,h,'color','w');
 ylim([-200 0]);
 xlim([-10 10]);
 cb = colorbar;
-ylabel(cb,'Wm$^{-2}$');
+if (doWMT)
+    ylabel(cb,'m/day');
+else
+    ylabel(cb,'Wm$^{-2}$');
+end
 xlabel('Latitude ($^\circ$N)');
 ylabel('Depth (m)');
-% $$$ title(labels{i});
 caxis(clim);
 text(-9.6,-188,labels{i},'Backgroundcolor','w','FontSize',20);
 text(9.6,-188,[num2str(lonsl) '$^\circ$W'],'Backgroundcolor','w','FontSize',20,'HorizontalAlignment','Right');
@@ -1410,7 +1418,7 @@ ndays = diff(time_snap);
 
 % Load Variable and calculate mean:
 load([base model sprintf(['_output%03d_varsat_Eq.mat'],outputs(1))]);
-vars = {'temp','u','v','kappa','taux','tauy','mld','vdif','vnlc'};
+vars = {'temp','u','v','kappa','taux','tauy','mld','vdif','vnlc','pmer','sufc','swrd'};
 for i=1:length(vars)
     eval([vars{i} 'a = ' vars{i} ';']);
 end
@@ -1427,9 +1435,6 @@ end
 [xL,zL,tL] = size(temp);
 TL = length(T);
 
-% $$$ % buoyancy flux from average values:
-% $$$ Bf = avg(kappa,2).*diff(temp,[],2)./diff(repmat(-Z,[1 1 tL]),[],2);
-
 % Depth of isotherms:
 Zi = zeros(xL,TL,tL);
 for ti=1:tL
@@ -1444,23 +1449,33 @@ for ti=1:tL
     end
 end
 Xi = repmat(X(:,1),[1 TL]);
-% $$$ vdif(isnan(vdif)) = 0;
-vdif = cumsum(vdif,2,'reverse');
+
+% $$$ var = cumsum(vdif,2,'reverse'); % Vertical Mixing Flux
+% $$$ clim = [-250 0];
+% $$$ sp = 5;
+% $$$ doWMT = 0;
+
+% $$$ var = (vdif+vnlc)/rho0/Cp*86400; % Vertical Mixing Transformation
+var = (pmer+sufc)/rho0/Cp*86400; % Surface Forcing Transformation
+clim = [-1 1]*1e-5*86400; % FOR WMT
+sp = 0.1*1e-5*86400;
+doWMT = 1;
 
 months = {[1:12],[3],[7],[11]};
 monthsu01 = {[1:4],[1],[3],[4]};
 labels = {'Annual','March','July','November'};
 
 %Colormap:
-clim = [-250 0];
-sp = 5;
 cpts = [-1e10 clim(1):sp:clim(2) 1e10];
 npts = length(cpts)
-cmap = parula(npts-3);
-cmap = parula(npts-3);
-% $$$ cmap(end,:) = [0.97 0.97 0.8];
-cmap(end,:) = [1 1 1];
-cmap(end-1,:) = (cmap(end-1,:)+cmap(end,:))/2;
+
+if (doWMT)
+    cmap = redblue(npts-3);
+else
+    cmap = parula(npts-3);
+    cmap(end,:) = [1 1 1];
+    cmap(end-1,:) = (cmap(end-1,:)+cmap(end,:))/2;
+end
 
 % $$$ %Save for schematic:
 % $$$ Xe = Xi;
@@ -1479,8 +1494,7 @@ figure;
 set(gcf,'Position',[1          36        1920         970]);
 for i=1:length(months)
 subplot(2,2,i);
-contourf(Xi,nanmonmean(Zi(:,:,months{i}),3,ndays(months{i})),nanmonmean(vdif(:,:,months{i}),3,ndays(months{i})),cpts,'linestyle','none');
-%pcolPlot(Xi,nanmonmean(Zi(:,:,months{i}),3ndays(months{i})),nanmonmean(vdif(:,:,months{i}),3,ndays(months{i})));%,cpts,'linestyle','none');
+contourf(Xi,nanmonmean(Zi(:,:,months{i}),3,ndays(months{i})),nanmonmean(var(:,:,months{i}),3,ndays(months{i})),cpts,'linestyle','none');
 hold on;
 [c,h] = contour(X,-Z,monmean(temp(:,:,months{i}),3,ndays(months{i})),[0:1:35],'-k');
 clabel(c,h,[0:2:35]);
@@ -1490,7 +1504,7 @@ if (strcmp(model,'MOM01'))
 else
     mnu = months{i};
 end
-ucol = 0.7*[1 1 1];
+ucol = [0.8706    0.4902         0];
 [c,h] = contour(Xu,-Zu,mean(u(:,:,mnu),3),[-2:0.2:-0.2],'--', ...
                 'color',ucol);
 [c,h] = contour(Xu,-Zu,mean(u(:,:,mnu),3),[0.2:0.2:2],'-', ...
@@ -1500,28 +1514,17 @@ plot(Xu(:,1),-monmean(mld(:,months{i}),2,ndays(months{i})),'--','color',[0 0.5 0
 ylim([-300 0]);
 xlim([-220 -80]);
 cb = colorbar;
-ylabel(cb,'Wm$^{-2}$');
+if (doWMT)
+    ylabel(cb,'m/day');
+else
+    ylabel(cb,'Wm$^{-2}$');
+end
 xlabel('Longitude ($^\circ$E)');
 ylabel('Depth (m)');
-% $$$ title(labels{i});
 caxis(clim);
 text(-218,-288,labels{i},'Backgroundcolor','w','FontSize',20);
-% $$$ text(9.6,-188,[num2str(lonsl) '$^\circ$W'],'Backgroundcolor','w','FontSize',20,'HorizontalAlignment','Right');
 
-% $$$ %Add wind-stress vectors:
-% $$$ pos = get(gca,'Position')
-% $$$ wsh = axes('Position',[pos(1) pos(2)+pos(4)+0.005 pos(3) 0.03]);
-% $$$ % $$$ for ii=1:sp:length(yvec)
-% $$$     plot(0,0,'o','MarkerSize',abs(mean(mean(taux(yvec>=-10 & yvec<=10,months{i}),2),1))*200);
-% $$$     hold on;
-% $$$ % $$$ end
-% $$$ %quiver(yvec,zeros(size(yvec)),mean(taux(1:sp:end,months{i}),2),mean(tauy(1:sp:end,months{i}),2));
-% $$$ xlim([-10 10]);
-% $$$ ylim([-1 1]);
-% $$$ box off;axis off;
-% $$$ set(wsh,'Position',[[pos(1) pos(2)+pos(4)+0.005 pos(3) 0.03]]);
-
-LabelAxes(gca,i,15,0.008,0.95);
+LabelAxes(gca,i,20,0.008,0.95);
 end
 colormap(cmap);
 

@@ -3,8 +3,8 @@
 % saves only the Pacific region and transports/fluxes into and out of
 % this region.
 
-% $$$ baseL = '/short/e14/rmh561/mom/archive/';
-baseL = '/srv/ccrc/data03/z3500785/';
+baseL = '/short/e14/rmh561/mom/archive/';
+% $$$ baseL = '/srv/ccrc/data03/z3500785/';
 
 % $$$ model = 'MOM01';
 % $$$ baseD = [baseL 'MOM01_HeatDiag/'];
@@ -18,8 +18,10 @@ baseD = [baseL 'MOM_HeatDiag/'];
 rstbaseD = baseD;
 outD = [baseD 'mat_data/'];
 
+haveRedi = 0;
+haveGM = 0;
 % $$$ for output=[19:-1:1]
-    output = 7;
+    output = 8;
 % $$$     output = 19;
     restart = output-1;
 
