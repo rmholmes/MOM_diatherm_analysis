@@ -4,9 +4,12 @@ close all;
 clear all;
 
 % Load Base Variables:
-base = '/srv/ccrc/data03/z3500785/MOM_wombat/mat_data/';
-model = 'MOM025';
-outputs = [1978];
+% $$$ base = '/srv/ccrc/data03/z3500785/MOM_wombat/mat_data/';
+% $$$ model = 'MOM025';
+% $$$ outputs = [1978];
+base = '/short/e14/rmh561/access-om2/control/1deg_jra55_ryf/archive/mat_data/';
+model = 'ACCESS-OM2_1deg_jra55_ryf';
+outputs = [1];
 
 load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
 ndays = diff(time_snap);
@@ -16,7 +19,8 @@ haveRedi = 1;
 haveGM = 1;
 
 %Eulerian budget:
-hname = '/srv/ccrc/data03/z3500785/MOM_wombat/output1978/ocean_heat.nc';
+% $$$ hname = '/srv/ccrc/data03/z3500785/MOM_wombat/output1978/ocean_heat.nc';
+hname = '/short/e14/rmh561/access-om2/control/1deg_jra55_ryf/archive/output001/ocean/ocean_heat.nc';
 zi = 1;
 ti = 1;
 residual = ...
@@ -45,12 +49,14 @@ residual = ...
     end
             
 figure;
-pcolPlot(lon,lat,residual);
+% $$$ pcolPlot(lon,lat,residual);
+pcolPlot(lon,lat,ncread(hname,'temp_vdiffuse_sbc',[1 1 zi ti],[xL yL 1 1]));
 
 %T-binned budget:
-wname = '/srv/ccrc/data03/z3500785/MOM_wombat/output1978/ocean_wmass.nc';
+% $$$ wname = '/srv/ccrc/data03/z3500785/MOM_wombat/output1978/ocean_wmass.nc';
+wname = '/short/e14/rmh561/access-om2/control/1deg_jra55_ryf/archive/output001/ocean/ocean_wmass.nc';
 [tmp ii] = min(abs(Te - 22.5))
-ti = 12;
+ti = 1;
 residual = ...
     ncread(wname,'temp_tendency_on_nrho',[1 1 ii ti],[xL yL 1 1]) - ...
     ncread(wname,'temp_advection_on_nrho',[1 1 ii ti],[xL yL 1 1]) - ...

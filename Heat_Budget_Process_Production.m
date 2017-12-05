@@ -1,26 +1,39 @@
-% This script processes the heat budget and associated variables in
+ % This script processes the heat budget and associated variables in
 % MOM025 or MOM01 simulations and save's into .mat files
 
 % $$$ baseD = '/short/e14/rmh561/mom/archive/MOM_wombat/'; %Data Directory.
+% $$$ baseD = '/srv/ccrc/data03/z3500785/MOM_wombat/'; %Data Directory.
+% $$$ model = 'MOM025';
+% $$$ outD = '/srv/ccrc/data03/z3500785/MOM_wombat/mat_data/'; %Data
+% $$$ rstbaseD = baseD;%'/short/e14/rmh561/mom/archive/MOM_HeatDiag/'; %Data
+% $$$ baseD = '/srv/ccrc/data03/z3500785/MOM_HeatDiag/'; %Data Directory.
 % $$$ model = 'MOM025';
 % $$$ rstbaseD = baseD;%'/short/e14/rmh561/mom/archive/MOM_HeatDiag/'; %Data
-% $$$ outD = '/short/e14/rmh561/mom/archive/MOM_wombat/mat_data/'; %Data
-baseD = '/srv/ccrc/data03/z3500785/MOM_HeatDiag/'; %Data Directory.
-model = 'MOM025';
+% $$$ outD = '/srv/ccrc/data03/z3500785/MOM_HeatDiag/mat_data/'; %Data
+baseD = '/short/e14/rmh561/access-om2/control/1deg_jra55_ryf/archive/'; %Data Directory.
+model = 'ACCESS-OM2_1deg_jra55_ryf';
+outD = '/short/e14/rmh561/access-om2/control/1deg_jra55_ryf/archive/mat_data/';
+% $$$ rstbaseD = baseD;%'/short/e14/rmh561/mom/archive/MOM_HeatDiag/'; %Data
+% $$$ baseD = '/srv/ccrc/data03/z3500785/MOM_HeatDiag/'; %Data Directory.
+% $$$ model = 'MOM025';
 rstbaseD = baseD;%'/short/e14/rmh561/mom/archive/MOM_HeatDiag/'; %Data
-outD = '/srv/ccrc/data03/z3500785/MOM_HeatDiag/mat_data/'; %Data
 
-haveRedi = 0; % 1 = Redi diffusion is on, 0 = off
-haveGM = 0; % 1 = GM is on, 0 = off;
+post = 'ocean/'; % For ACCESS-OM2 output coulpled;
+% $$$ post = ''; % For MOM-SIS.
 
-for output = 2:5
+haveRedi = 1; % 1 = Redi diffusion is on, 0 = off
+haveGM = 1; % 1 = GM is on, 0 = off;
+
+% $$$ for output = 2:5
+% $$$     output=1978;
+output = 1;
 % $$$ output=6
 restart = output-1;
 
 % file-names -----------------------------------------
-base = [baseD sprintf('output%03d/',output)];
-basem1 = [baseD sprintf('output%03d/',output-1)];
-baser = [rstbaseD sprintf('restart%03d/',restart)];
+base = [baseD sprintf('output%03d/',output) post];
+basem1 = [baseD sprintf('output%03d/',output-1) post];
+baser = [rstbaseD sprintf('restart%03d/',restart) post];
 hname = [base 'ocean_heat.nc'];
 if (strfind(baseD,'01'))
     fname = [base 'ocean_month.nc'];
@@ -35,6 +48,9 @@ if (exist(baser))
     rnameT = [baser 'ocean_temp_salt.res.nc'];
     rnameZ = [baser 'ocean_thickness.res.nc'];
     rnametime = [baser 'coupler.res'];
+    if (~exist(rnametime))
+        rnametime = [baser 'ocean_solo.res'];
+    end
 else
     found_rst = 0;rstti = 12;
     rnameT = [basem1 'ocean_snap.nc'];
@@ -83,10 +99,10 @@ TL = length(T);dT = T(2)-T(1);
 latv = max(lat,[],1);
 late = [-90 (latv(2:end)+latv(1:(end-1)))/2 90];
 
-% $$$ save([outD model sprintf('_output%03d',output) '_BaseVars.mat'], ...
-% $$$      'T','Te','TL','dT','Cp','rho0','time','time_snap','tL', ...
-% $$$      'z','zL','lon','lat','area','xL','yL','latv','late', ...
-% $$$      'lonu','latu');
+save([outD model sprintf('_output%03d',output) '_BaseVars.mat'], ...
+     'T','Te','TL','dT','Cp','rho0','time','time_snap','tL', ...
+     'z','zL','lon','lat','area','xL','yL','latv','late', ...
+     'lonu','latu');
 
 % $$$ %% Calculate volume integrated budget from online T-binned values -----------------------------------------------------------------------------------------------------------
 % $$$ V      = zeros(TL+1,tL); % Volume of water (m3) above temperature T
@@ -326,7 +342,7 @@ late = [-90 (latv(2:end)+latv(1:(end-1)))/2 90];
 % $$$ end
 
 %% Calculate WMT due to different (resolved) terms %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-Tls = [16.25 18.25 20.25 22.25 24.25 26.25 28.25]; %These are on T points, not Te points
+Tls = [2.25 5.25 7.25 12.25 16.25 18.25 20.25 22.25 24.25 26.25 28.25]; %These are on T points, not Te points
 
 for ii = 1:length(Tls)
     Tl = Tls(ii);
