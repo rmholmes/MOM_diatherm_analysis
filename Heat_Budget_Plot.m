@@ -11,6 +11,7 @@ clear all;
 base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag/mat_data/';
 model = 'MOM025';
 outputs = [2 3 4 5 6];
+% $$$ outputs = 8;
 % $$$ base = '/srv/ccrc/data03/z3500785/MOM_wombat/mat_data/';
 % $$$ model = 'MOM025';
 % $$$ outputs = [1978];
@@ -22,6 +23,7 @@ outputs = [2 3 4 5 6];
 load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
 ndays = diff(time_snap);
 region = 'Global';
+% $$$ region = 'Pacific';
 
 %% Global Calculations:
 for i=1:length(outputs)
@@ -32,7 +34,6 @@ for i=1:length(outputs)
 P(:,:,i) = PME+RMX; % PME effective heat flux (W)
 F(:,:,i) = SWH+VDS+FRZ+ETS; % Surface heat flux (W)
 M(:,:,i) = VDF+KNL; % Vertical mixing flux (W)
-CNV(:,:,i) = KNL; % KPP Non-local, convection (W)
 if (exist('RED'))
     R(:,:,i) = RED+K33; % Redi diffusion (W)
     GM(:,:,i) = NGM; % GM (W)
@@ -42,13 +43,23 @@ else
 end
 D(:,:,i) = TEN-ADV-SUB-GM(:,:,i); % Material derivative of T (W)
 SW(:,:,i) = SWH; % Short-wave heat
+JS(:,:,i) = SFW; % Surface Volume Flux
+
+% Pacific Interior fluxes:
+if (strcmp(region,'Pacific'))
+    JI(:,:,i) = JBS+JSP+JITF; %Combined volume flux out
+    QI(:,:,i) = QBS+QSP+QITF; %Combined heat flux out
+else
+    QI(:,:,i) = zeros(size(JS));
+    JI(:,:,i) = zeros(size(JS));
+end
 
 % Snapshot fields:
 dVdt(:,:,i) = diff(Vsnap,[],2)./repmat(diff(time_snap)'*86400,[TL+1 1]); % V Change (m3s-1)
 dHdt(:,:,i) = diff(Hsnap,[],2)./repmat(diff(time_snap)'*86400,[TL+1 1]); % H Change (W)
 
 % Water-mass transformation:
-G(:,:,i) = dVdt(:,:,i) - SFW; %Water-mass transformation (m3s-1)
+G(:,:,i) = dVdt(:,:,i) - JS(:,:,i) + JI(:,:,i); %Water-mass transformation (m3s-1)
 
 % Across-isotherm advective heat flux:
 CIA(:,:,i) = G(:,:,i).*repmat(Te,[1 tL])*rho0*Cp;
@@ -57,25 +68,30 @@ CIA(:,:,i) = G(:,:,i).*repmat(Te,[1 tL])*rho0*Cp;
 VCT(:,:,i) = dVdt(:,:,i).*repmat(Te,[1 tL])*rho0*Cp;
 
 % Implicit mixing by residual:
-I(:,:,i) = dHdt(:,:,i)-D(:,:,i)-CIA(:,:,i);
+I(:,:,i) = dHdt(:,:,i)-D(:,:,i)-CIA(:,:,i) + QI(:,:,i);
 
 % Non-advective flux into volume:
 B(:,:,i) = F(:,:,i)+M(:,:,i)+I(:,:,i)+R(:,:,i);
 
 % Interior heat source P:
-PI(:,:,i) = P(:,:,i) - SFW.*repmat(Te,[1 tL])*rho0*Cp;
+PI(:,:,i) = P(:,:,i) - JS(:,:,i).*repmat(Te,[1 tL])*rho0*Cp;
+
+% Interior heat source Q:
+QII(:,:,i) = QI(:,:,i) - JI(:,:,i).*repmat(Te,[1 tL])*rho0*Cp;
 
 % Total flux:
-N(:,:,i) = B(:,:,i) + PI(:,:,i);
+N(:,:,i) = B(:,:,i) + PI(:,:,i) - QII(:,:,i);
 
 % Monthly binned total flux:
 Nmon(:,:,i) = TENMON;
 
 % Checks:
-% $$$ tmp = -diff(B(:,:,i),[],1)/dT.*repmat(T,[1 tL]);
-% $$$ CIAch(:,:,i) = zeros(size(B(:,:,i)));
-% $$$ CIAch(2:end-1,:,i) = avg(tmp,1);
-% $$$ CIAch(:,:,i) = -diff(B(:,:,i),[],1)/dT.*repmat(T,[1 tL]);
+% WMT from B:
+tmp = -diff(M(:,:,i),[],1)/dT/rho0/Cp;WMTM(:,:,i) = zeros(size(G(:,:,i)));WMTM(2:(end-1),:,i) = avg(tmp,1);
+tmp = -diff(F(:,:,i),[],1)/dT/rho0/Cp;WMTF(:,:,i) = zeros(size(G(:,:,i)));WMTF(2:(end-1),:,i) = avg(tmp,1);
+tmp = -diff(I(:,:,i),[],1)/dT/rho0/Cp;WMTI(:,:,i) = zeros(size(G(:,:,i)));WMTI(2:(end-1),:,i) = avg(tmp,1);
+tmp = -diff(R(:,:,i),[],1)/dT/rho0/Cp;WMTR(:,:,i) = zeros(size(G(:,:,i)));WMTR(2:(end-1),:,i) = avg(tmp,1);
+WMT(:,:,i) = WMTM(:,:,i)+WMTF(:,:,i)+WMTI(:,:,i)+WMTR(:,:,i);
 end
 
 %%%%Global flux, Annual Average:
@@ -95,23 +111,29 @@ label = 'January';
 % $$$ % $$$           {PI(:,months,:), 'P-E+R Interior Heat Source',0.5*[1 1 1],2,':'}, ...
 % $$$           };
 
-% Wombat fields:
 fields = { ...
-          {F(:,months,:)+PI(:,months,:), 'Surface Forcing $\mathcal{F}$','k',2,'-'}, ...
+          {F(:,months,:), 'Surface Forcing $\mathcal{F}$','k',2,'-'}, ...
+% $$$           {F(:,months,:)+PI(:,months,:), 'Surface Forcing $\mathcal{F}$','k',2,'-'}, ...
           {M(:,months,:), 'Vertical Mixing $\mathcal{M}$','r',2,'-'}, ...
 % $$$           {R(:,months,:), 'Redi Mixing $\mathcal{R}$',[0.5 0 0.5],2,'-'}, ...
 % $$$           {GM(:,months,:), 'GM Transport $\mathcal{GM}$',[0.5 0 0.5],2,'-'}, ...
+          {P(:,months,:), 'P-E+R $\mathcal{P}$',0.5*[1 1 1],2,'-'}, ...
           {I(:,months,:), 'Implicit Mixing $\mathcal{I}$','b',2,'-'}, ...
           {N(:,months,:), 'Total $\mathcal{N}$','m',2,'-'}, ...
-          {M(:,months,:)+I(:,months,:)+R(:,months,:), 'Total Mixing $\mathcal{M}+\mathcal{I}$',[0 0.5 0],2,'--'}, ...
-          {Nmon(:,months,:), 'Monthly-Binned Total','m',2,'--'}, ...
-          {SW(:,months,:), 'Shortwave Redistribution',0.5*[1 1 1],2,'--'}, ...
+% $$$           {M(:,months,:)+I(:,months,:)+R(:,months,:), 'Total Mixing $\mathcal{M}+\mathcal{I}$',[0 0.5 0],2,'--'}, ...
+% $$$           {Nmon(:,months,:), 'Monthly-Binned Total','m',2,'--'}, ...
+% $$$           {SW(:,months,:), 'Shortwave Redistribution',0.5*[1 1 1],2,'--'}, ...
+          {-QI(:,months,:), 'ITF + SF + BS Heat Loss $-\mathcal{Q_I}$',0.75*[0 1 1],2,'-'}, ...
+          {-QITF(:,months,:), 'ITF Heat Loss',0.75*[0 1 1],2,'--'}, ...
+          {-QSP(:,months,:), 'SP Heat Loss',0.75*[0 1 1],2,'-.'}, ...
+          {CIA(:,months,:)-VCT(:,months,:), 'Interior WMT $\left(\mathcal{G}-\frac{\partial\mathcal{V}}{\partial t}\right)\Theta\rho_0 C_p$',0.75*[1 0 1],2,'-'}, ...
+          {CIA(:,months,:), 'Interior WMT $\mathcal{G}\Theta\rho_0 C_p$',0.75*[1 0 1],2,'--'}, ...
+% $$$           {-QBS(:,months,:), 'BS Heat Loss',0.75*[0 1 1],2,':'}, ...
 % $$$           {P(:,months,:), 'P-E+R Effective Heat Flux $\mathcal{P}$',0.5*[1 1 1],2,':'}, ...
 % $$$           {PI(:,months,:), 'P-E+R Interior Heat Source',0.5*[1 1 1],2,':'}, ...
           };
 
 Fscale = 1/1e15;
-Escale = 1/Cp/rho0/1e6;
 
 %Fluxes only:
 figure;
@@ -130,7 +152,7 @@ for i=1:length(fields)
 end
 ylim([-1.5 1.5]);
 xlim([-3 31]);
-box on;
+box on; 
 grid on;
 ylabel('Heat flux into fluid warmer than $\Theta$ (PW)');
 % $$$ title(['MOM025 Global Heat Budget ' label]);
@@ -142,22 +164,28 @@ set(lg,'Position',[0.5881    0.5500    0.2041    0.2588]);
 months = [1:12];
 label = 'January';
 
-% Wombat fields:
 fields = { ...
-          {F(:,months,:)+PI(:,months,:), 'Surface Forcing $\mathcal{F}$','k',2,'-'}, ...
+          {F(:,months,:), 'Surface Forcing $\mathcal{F}$','k',2,'-'}, ...
+% $$$           {F(:,months,:)+PI(:,months,:), 'Surface Forcing $\mathcal{F}$','k',2,'-'}, ...
           {M(:,months,:), 'Vertical Mixing $\mathcal{M}$','r',2,'-'}, ...
-% $$$           {R(:,months,:), 'Redi Mixing $\mathcal{R}$',[0 0.75 0.75],2,'-'}, ...
-% $$$           {GM(:,months,:), 'GM Transport $\mathcal{GM}$',[0 0.25 0.25],2,'-'}, ...
+% $$$           {R(:,months,:), 'Redi Mixing $\mathcal{R}$',[0.5 0 0.5],2,'-'}, ...
+% $$$           {GM(:,months,:), 'GM Transport $\mathcal{GM}$',[0.5 0 0.5],2,'-'}, ...
+          {P(:,months,:), 'P-E+R $\mathcal{P}$',0.5*[1 1 1],2,'-'}, ...
           {I(:,months,:), 'Implicit Mixing $\mathcal{I}$','b',2,'-'}, ...
           {N(:,months,:), 'Total $\mathcal{N}$','m',2,'-'}, ...
-          {M(:,months,:)+I(:,months,:)+R(:,months,:), 'Total Mixing $\mathcal{M}+\mathcal{I}$',[0 0.5 0],2,'--'}, ...
-          {Nmon(:,months,:), 'Monthly-Binned Total','m',2,'--'}, ...
-          {SW(:,months,:), 'Shortwave Redistribution',0.5*[1 1 1],2,'--'}, ...
+% $$$           {M(:,months,:)+I(:,months,:)+R(:,months,:), 'Total Mixing $\mathcal{M}+\mathcal{I}$',[0 0.5 0],2,'--'}, ...
+% $$$           {Nmon(:,months,:), 'Monthly-Binned Total','m',2,'--'}, ...
+% $$$           {SW(:,months,:), 'Shortwave Redistribution',0.5*[1 1 1],2,'--'}, ...
+          {-QI(:,months,:), 'ITF + SF + BS Heat Loss $-\mathcal{Q_I}$',0.75*[0 1 1],2,'-'}, ...
+          {-QITF(:,months,:), 'ITF Heat Loss',0.75*[0 1 1],2,'--'}, ...
+          {-QSP(:,months,:), 'SP Heat Loss',0.75*[0 1 1],2,'-.'}, ...
+          {CIA(:,months,:)-VCT(:,months,:), 'Interior WMT $\left(\mathcal{G}-\frac{\partial\mathcal{V}}{\partial t}\right)\Theta\rho_0 C_p$',0.75*[1 0 1],2,'-'}, ...
+          {CIA(:,months,:), 'Interior WMT $\mathcal{G}\Theta\rho_0 C_p$',0.75*[1 0 1],2,'--'}, ...
+% $$$           {-QBS(:,months,:), 'BS Heat Loss',0.75*[0 1 1],2,':'}, ...
 % $$$           {P(:,months,:), 'P-E+R Effective Heat Flux $\mathcal{P}$',0.5*[1 1 1],2,':'}, ...
 % $$$           {PI(:,months,:), 'P-E+R Interior Heat Source',0.5*[1 1 1],2,':'}, ...
           };
 
-Fscale = 1/1e15;
 Escale = 1/Cp/rho0/1e6;
 
 %Fluxes only:
@@ -167,10 +195,6 @@ leg = {};
 legh = [];
 for i=1:length(fields)
     hold on;
-% $$$     for j=1:length(P(1,1,:));
-% $$$         h = plot(Te,monmean(fields{i}{1}(:,:,j),2,ndays(months))*Fscale,fields{i}{5}, 'color',0.7*[1 1 1] ...
-% $$$              ,'linewidth',0.5);
-% $$$     end
     legh(i) = plot(T,-mean(monmean(diff(fields{i}{1},[],1)/dT,2,ndays(months))*Escale,3),fields{i}{5}, 'color',fields{i}{3} ...
          ,'linewidth',fields{i}{4});
     leg{i} = fields{i}{2};
@@ -181,6 +205,51 @@ box on;
 grid on;
 ylabel('Water Mass Transformation (Sv)');
 % $$$ title(['MOM025 Global Heat Budget ' label]);
+xlabel('Temperature $\Theta$ ($^\circ$C)');
+lg = legend(legh,leg);
+set(lg,'Position',[0.5881    0.5500    0.2041    0.2588]);
+
+%%%%Volume Budget Pacific:
+% 05-12-17 Note: The volume budget of the Pacific now closes
+% satisfactorily, after fixing masks and including submeso transport.
+% I.e. the WMT term G (calculated via residual) is now 0.0046 Sv at
+% -3C, whereas before it was 0.5Sv (it should be zero).
+months = [1:12];
+label = 'January';
+
+fields = { ...
+          {dVdt(:,months,:), 'Tendency $\frac{\partial\mathcal{V}}{\partial t}$','m',2,'-'}, ...
+          {-JI(:,months,:), 'ITF + SF + BS $-\mathcal{J_I}$',[0 0.5 0],2,'-'}, ...
+          {JS(:,months,:), 'Surface Volume Flux $\mathcal{J}_S$','k',2,'-'}, ...
+          {G(:,months,:), 'Interior WMT $\mathcal{G}=\frac{\partial\mathcal{V}}{\partial t}-\mathcal{J}_I+\mathcal{J}_S$','b',2,'-'}, ...
+          {-JITF(:,months,:), 'ITF Volume Loss',[0 0.5 0],2,'--'}, ...
+          {-JSP(:,months,:), 'South Pacific Volume Loss',[0 0.5 0],2,'-.'}, ...
+          {-JBS(:,months,:), 'Bering Strait Volume Loss',[0 0.5 0],2,':'}, ...
+          {WMT(:,months,:), 'Interior WMT $\mathcal{G}$ from $\mathcal{B}$','b',2,'--'}, ...
+          {WMTM(:,months,:), 'Interior WMT $\mathcal{G}$ from $\mathcal{M}$','r',1,'--'}, ...
+          {WMTF(:,months,:), 'Interior WMT $\mathcal{G}$ from $\mathcal{F}$','k',1,'--'}, ...
+          {WMTI(:,months,:), 'Interior WMT $\mathcal{G}$ from $\mathcal{I}$','c',1,'--'}, ...
+% $$$           {WMTR(:,months,:), 'Interior WMT $\mathcal{G}$ from Heat Fluxes','b',2,'--'}, ...
+          };
+
+Mscale = 1/1e6;
+
+%Fluxes only:
+figure;
+set(gcf,'Position',[207          97        1609         815]);
+leg = {};
+legh = [];
+for i=1:length(fields)
+    hold on;
+   legh(i) = plot(Te,mean(monmean(fields{i}{1},2,ndays(months))*Mscale,3),fields{i}{5}, 'color',fields{i}{3} ...
+         ,'linewidth',fields{i}{4});
+    leg{i} = fields{i}{2};
+end
+ylim([-20 20]);
+xlim([-3 31]);
+box on;
+grid on;
+ylabel('Volume Flux (Sv)');
 xlabel('Temperature $\Theta$ ($^\circ$C)');
 lg = legend(legh,leg);
 set(lg,'Position',[0.5881    0.5500    0.2041    0.2588]);
@@ -353,10 +422,10 @@ LabelAxes(gca,2,25,0.003,0.925);
 % $$$ VAR = 'FlM';
 % $$$ VAR = 'FlSP';
 % $$$ VAR = 'WMTP';
-VAR = 'WMTSP';
+VAR = 'WMTM';
 % $$$ TYPE = 'VertInt';
 TYPE = 'WMT';
-Tl = 22.25;
+Tl = 18.25;
 load([base model sprintf('_output%03d',outputs(1)) '_' TYPE '_T' strrep(num2str(Tl),'.','p') 'C.mat']);
 eval([VAR '(isnan(' VAR ')) = 0.0;']);
 eval([VAR 'a = ' VAR ';']);
