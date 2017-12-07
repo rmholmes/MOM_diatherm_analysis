@@ -11,7 +11,7 @@ clear all;
 base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag/mat_data/';
 model = 'MOM025';
 outputs = [2 3 4 5 6];
-% $$$ outputs = 8;
+outputs = 8;
 % $$$ base = '/srv/ccrc/data03/z3500785/MOM_wombat/mat_data/';
 % $$$ model = 'MOM025';
 % $$$ outputs = [1978];
@@ -22,8 +22,8 @@ outputs = [2 3 4 5 6];
 
 load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
 ndays = diff(time_snap);
-region = 'Global';
-% $$$ region = 'Pacific';
+% $$$ region = 'Global';
+region = 'Pacific';
 
 %% Global Calculations:
 for i=1:length(outputs)
@@ -50,8 +50,8 @@ if (strcmp(region,'Pacific'))
     JI(:,:,i) = JBS+JSP+JITF; %Combined volume flux out
     QI(:,:,i) = QBS+QSP+QITF; %Combined heat flux out
 else
-    QI(:,:,i) = zeros(size(JS));
-    JI(:,:,i) = zeros(size(JS));
+    QI(:,:,i) = zeros(size(PME));
+    JI(:,:,i) = zeros(size(PME));
 end
 
 % Snapshot fields:
@@ -261,8 +261,8 @@ fields = {
 % $$$           {F(:,months,:), 'Surface Forcing $\mathcal{F}$','k',2,'-'}, ...
 % $$$           {M(:,months,:), 'Vertical Mixing $\mathcal{M}$','r',2,'-'}, ...
 % $$$           {I(:,months,:), 'Implicit Mixing $\mathcal{I}$','b',2,'-'}, ...
-          {R(:,months,:), 'Redi Mixing $\mathcal{R}$','b',2,'-'}, ...
-          {GM(:,months,:), 'GM $\mathcal{GM}$',[0.5 0 0.5],2,'-'}, ...
+% $$$           {R(:,months,:), 'Redi Mixing $\mathcal{R}$','b',2,'-'}, ...
+% $$$           {GM(:,months,:), 'GM $\mathcal{GM}$',[0.5 0 0.5],2,'-'}, ...
 % $$$           {I(:,months,:), 'Implicit Mixing $\mathcal{I}$','b',2,'-'}, ...
 % $$$           {M(:,months,:)+I(:,months,:), 'Total Mixing $\mathcal{M}+\mathcal{I}$',[0 0.5 0],2,'--'}, ...
 % $$$           {SW(:,months,:), 'Shortwave Penetration',[0 0.5 0],2,'--'}, ...
@@ -273,16 +273,41 @@ fields = {
 % $$$           {Nmon(:,months,:), 'Monthly-Binned Tendency','m',2,'--'}, ...
 % $$$           {Nsnap(:,months,:), 'Calculated Tendency',0.3*[1 1 1],2,':'}, ...
 % $$$          {N2(:,months,:), 'Calculated Tendency 2',0.3*[1 1 1],2,'--'}, ...
+% $$$           {-diff(F(:,months,:)+PI(:,months,:),[],1)/dT, 'Surface Forcing $\mathcal{F}$','r',2,'-'}, ...
+% $$$           {-diff(M(:,months,:),[],1)/dT, 'Vertical Mixing $\mathcal{M}$','r',2,'-'}, ...
+% $$$           {-diff(I(:,months,:)+M(:,months,:),[],1)/dT, 'Total Mixing $\mathcal{I}$','b',2,'-'}, ...
+% $$$           {-diff(N(:,months,:),[],1)/dT, 'Total Transformation $\mathcal{N}$','b',2,'-'}, ...
+% $$$           {dVdt(:,months,:), 'Tendency $\frac{\partial\mathcal{V}}{\partial t}$','m',2,'-'}, ...
+          {-JI(:,months,:), 'ITF + SF + BS $-\mathcal{J_I}$',[0 0.5 0],2,'-'}, ...
+% $$$           {JS(:,months,:), 'Surface Volume Flux $\mathcal{J}_S$','k',2,'-'}, ...
+          {-JITF(:,months,:), 'ITF Volume Loss',[0 0.5 0],2,'--'}, ...
+          {-JSP(:,months,:), 'South Pacific Volume Loss',[0 0.5 0],2,'-.'}, ...
+% $$$           {-JBS(:,months,:), 'Bering Strait Volume Loss',[0 0.5 0],2,':'}, ...
+% $$$           {WMT(:,months,:), 'Interior WMT $\mathcal{G}$ from $\mathcal{B}$','b',2,'--'}, ...
+% $$$           {WMTM(:,months,:), 'Interior WMT $\mathcal{G}$ from $\mathcal{M}$','r',1,'--'}, ...
+% $$$           {WMTF(:,months,:), 'Interior WMT $\mathcal{G}$ from $\mathcal{F}$','k',1,'--'}, ...
+% $$$           {WMTI(:,months,:), 'Interior WMT $\mathcal{G}$ from $\mathcal{I}$','c',1,'--'}, ...
           };
 
 % Fluxes:
-scale = 1/1e15;label = '(PW)';
-% $$$ caxs = [-1 0];x = Te;
-% $$$ sp = 0.05;
-caxs = [-0.2 0];x = Te;
-sp = 0.005;
+scale = 1/1e15;label = '(PW)';x = Te;
+caxs = [-0.8 0];
+sp = 0.05;
+% $$$ caxs = [-0.2 0];x = Te;
+% $$$ sp = 0.005;
 % $$$ caxs = [-0.8 0];x = Te;
 % $$$ sp = 0.05;
+
+% Transformations:
+scale = 1/1e6/rho0/Cp;label = '(Sv)';x = T;
+caxs = [-150 150];
+sp = 15;
+
+% Volume Fluxes:
+scale = 1/1e6;label = '(Sv)';x = Te;
+caxs = [-20 20];
+sp = 2;
+
 cint = [-1e10 caxs(1):sp:caxs(2) 1e10];
 
 figure;
@@ -291,32 +316,28 @@ set(gcf,'Position',[3    40   956   963]);
 for ii=1:length(fields)
     subplot(1,length(fields),ii);
     V = mean(fields{ii}{1},3)'*scale;
-    [X,Y] = ndgrid(1:tL,Te);
+    [X,Y] = ndgrid(1:tL,x);
     contourf(X,Y,V,cint);%,'linestyle','none');
     cb = colorbar('Location','NorthOutside','FontSize',25);    
-% $$$     set(gca,'xtick',0.5:1:11.5);
-% $$$     set(gca,'xticklabel',[1:12]);
     set(gca,'ytick',-5:5:35);
     set(gca,'xtick',[1:tL]);
     ylim([-3 31]);
     grid on;
     caxis(caxs);
-% $$$     caxis([-0.8 0]);
     xlabel('Month');
     ylabel('Temperature ($^\circ$C)');
-    xlabel(cb,['MOM025-WOMBAT' fields{ii}{2} ' ' ...
+% $$$     xlabel(cb,['MOM025-WOMBAT' fields{ii}{2} ' ' ...
+% $$$                label],'FontSize',20);
+% $$$     xlabel(cb,['MOM025 Pacific ' fields{ii}{2} ' ' ...
+% $$$                label],'FontSize',20);
+    xlabel(cb,['MOM025 ' fields{ii}{2} ' ' ...
                label],'FontSize',20);
-% $$$     xlabel(cb,'PW','FontSize',25);
     set(gca,'FontSize',25);
 end
-% $$$ colormap(redblue);
-cmap = redblue((length(cint)-3)*2);
-cmap = cmap(1:(length(cint)-3),:);
-colormap(cmap);
-% $$$ caxis([-0.8 0]);
-% $$$ hold on;
-% $$$ plot([1 tL],[22.5 22.5],'--k','linewidth',2);
-% $$$ LabelAxes(gca,3,25,0.008,0.965);
+% $$$ cmap = redblue((length(cint)-3)*2);
+% $$$ cmap = cmap(1:(length(cint)-3),:);
+% $$$ colormap(cmap);
+colormap(redblue);
 
 %% Global Seasonal Cycle TS
 months = 1:12;
