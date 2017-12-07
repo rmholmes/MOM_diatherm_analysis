@@ -69,6 +69,11 @@ latv_t = ncread(gname,'yt_ocean');latv_u = ncread(gname,'yu_ocean');
 % Vertical grid  -----------------------------------------
 z = ncread(hname,'st_ocean');zL = length(z);
 
+% 3D mask ------------------------------------------------
+mask = ncread(fname,'temp',[1 1 1 rstti],[xL yL zL 1]);
+mask(~isnan(mask)) = 1; mask(isnan(mask)) = 0;
+mask = mask == 1;
+
 % Time  -----------------------------------------
 time = ncread(hname,'time');
 
@@ -140,9 +145,9 @@ for zi = 1:zL
     sprintf('Doing snapshot IC, depth %02d of %02d',zi,zL)
     %Temperature snapshot:
     tempsnap = ncread(rnameT,'temp',[1 1 zi rstti],[xL yL 1 1]);
-    tempsnap(tempsnap==0) = NaN; %This is included because the
-                                 %restarts don't have any NaNs in
-                                 %temp, just lots of 0s. 
+    tempsnap(~mask(:,:,zi)) = NaN;
+    if (max(max(tempsnap))>120);tempsnap = tempsnap-273.15;end;
+
     if (found_rst)
         Volsnap = ncread(rnameZ,'rho_dzt',[1 1 zi rstti],[xL yL 1 1]).*area/rho0;
     else
@@ -168,7 +173,11 @@ for ti=1:tL
         sprintf('Doing Eul Bud. time %03d of %03d, depth %02d of %02d',ti,tL,zi,zL)
 
         temp = ncread(fname,'temp',[1 1 zi ti],[xL yL 1 1]);
+        temp(~mask(:,:,zi)) = NaN;
         tempsnap = ncread(sname,'temp',[1 1 zi ti],[xL yL 1 1]);
+        tempsnap(~mask(:,:,zi)) = NaN;
+        if (max(max(temp))>120);temp = temp-273.15;end;
+        if (max(max(tempsnap))>120);tempsnap = tempsnap-273.15;end;
         Vol = ncread(fname,'dzt',[1 1 zi ti],[xL yL 1 1]).*area;
         Volsnap = ncread(sname,'dzt',[1 1 zi ti],[xL yL 1 1]).*area;
 
