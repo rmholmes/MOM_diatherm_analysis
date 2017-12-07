@@ -23,10 +23,11 @@ post = 'ocean/'; % For ACCESS-OM2 output coulpled;
 
 haveRedi = 1; % 1 = Redi diffusion is on, 0 = off
 haveGM = 1; % 1 = GM is on, 0 = off;
+haveMDS = 1; % 1 = MDS is on, 0 = off;
 
 % $$$ for output = 2:5
 % $$$     output=1978;
-output = 1;
+output = 5;
 % $$$ output=6
 restart = output-1;
 
@@ -104,161 +105,173 @@ save([outD model sprintf('_output%03d',output) '_BaseVars.mat'], ...
      'z','zL','lon','lat','area','xL','yL','latv','late', ...
      'lonu','latu');
 
-% $$$ %% Calculate volume integrated budget from online T-binned values -----------------------------------------------------------------------------------------------------------
-% $$$ V      = zeros(TL+1,tL); % Volume of water (m3) above temperature T
-% $$$ H      = zeros(TL+1,tL); % Heat content (J) above temperature T
-% $$$ Vsnap  = zeros(TL+1,tL+1); % Volume from snapshots (m3)
-% $$$ Hsnap  = zeros(TL+1,tL+1); % Heat content from snapshots (J)
-% $$$ Temp   = zeros(zL,tL); % Temperature as a function of depth (degC)
-% $$$ SWH    = zeros(TL+1,tL); % W due to SW redistribution
-% $$$ VDS    = zeros(TL+1,tL); % W due to vdiffuse_sbc.
-% $$$ RMX    = zeros(TL+1,tL); % W due to rivermix.
-% $$$ PME    = zeros(TL+1,tL); % W due to P-E.
-% $$$ FRZ    = zeros(TL+1,tL); % W due to frazil.
-% $$$ ETS    = zeros(TL+1,tL); % W due to eta_smoothing.
-% $$$ SUB    = zeros(TL+1,tL); % W due to submesoscale.
-% $$$ VDF    = zeros(TL+1,tL); % W due to vdiffusion
-% $$$ KNL    = zeros(TL+1,tL); % W due to KPP non-local
-% $$$ if (haveRedi)
-% $$$     K33    = zeros(TL+1,tL); % W due to K33
-% $$$     RED    = zeros(TL+1,tL); % W due to Redi diffusion
-% $$$ end
-% $$$ if (haveGM)
-% $$$     NGM    = zeros(TL+1,tL); % W due to GM
-% $$$ end
-% $$$ ADV    = zeros(TL+1,tL); % W due to advection
-% $$$ TEN    = zeros(TL+1,tL); % W due to tendency
-% $$$ SFW    = zeros(TL+1,tL); % surface volume flux into ocean (m3s-1)
-% $$$ TENMON = zeros(TL+1,tL); % W due to tendency from Offline Monthly
-% $$$ 
-% $$$ %Do IC for Vsnap and Hsnap:
-% $$$ for zi = 1:zL
-% $$$     sprintf('Doing snapshot IC, depth %02d of %02d',zi,zL)
-% $$$     %Temperature snapshot:
-% $$$     tempsnap = ncread(rnameT,'temp',[1 1 zi rstti],[xL yL 1 1]);
-% $$$     tempsnap(tempsnap==0) = NaN; %This is included because the
-% $$$                                  %restarts don't have any NaNs in
-% $$$                                  %temp, just lots of 0s. 
-% $$$     if (found_rst)
-% $$$         Volsnap = ncread(rnameZ,'rho_dzt',[1 1 zi rstti],[xL yL 1 1]).*area/rho0;
-% $$$     else
-% $$$         Volsnap = ncread(rnameT,'dzt',[1 1 zi rstti],[xL yL 1 1]).*area;
-% $$$     end
-% $$$     %Accumulate sums:
-% $$$     for Ti=1:TL
-% $$$         inds = find(tempsnap>=Te(Ti) & tempsnap<Te(Ti+1));
-% $$$         Vsnap(Ti,1) = Vsnap(Ti,1)+nansum(Volsnap(inds));
-% $$$         Hsnap(Ti,1) = Hsnap(Ti,1)+nansum(Volsnap(inds).*tempsnap(inds)*rho0*Cp);
-% $$$     end
-% $$$     inds = find(tempsnap>=Te(TL+1));
-% $$$     Vsnap(TL+1,1) = Vsnap(TL+1,1)+nansum(Volsnap(inds));
-% $$$     Hsnap(TL+1,1) = Hsnap(TL+1,1)+nansum(Volsnap(inds).*tempsnap(inds)*rho0*Cp);
-% $$$ end
-% $$$ %Integrate to get to T'>T:
-% $$$ Vsnap(:,1) = flipud(cumsum(flipud(Vsnap(:,1))));
-% $$$ Hsnap(:,1) = flipud(cumsum(flipud(Hsnap(:,1))));
-% $$$ 
-% $$$ %Do Eulerian budget calculations:
-% $$$ for ti=1:tL
-% $$$     for zi=1:zL
-% $$$         sprintf('Doing Eul Bud. time %03d of %03d, depth %02d of %02d',ti,tL,zi,zL)
-% $$$ 
-% $$$         temp = ncread(fname,'temp',[1 1 zi ti],[xL yL 1 1]);
-% $$$         tempsnap = ncread(sname,'temp',[1 1 zi ti],[xL yL 1 1]);
-% $$$         Vol = ncread(fname,'dzt',[1 1 zi ti],[xL yL 1 1]).*area;
-% $$$         Volsnap = ncread(sname,'dzt',[1 1 zi ti],[xL yL 1 1]).*area;
-% $$$ 
-% $$$         %Calculate T(z):
-% $$$         areaNaN = area;
-% $$$         areaNaN(isnan(temp)) = NaN;
-% $$$         Temp(zi,ti) = squeeze(nansum(nansum(temp.*area,1),2)./nansum(nansum(areaNaN,1),2));
-% $$$ 
-% $$$         %Tendency from Monthly snapshots:
-% $$$         TENf = area.*ncread(hname,'temp_tendency',[1 1 zi ti],[xL yL 1 1]);
-% $$$ 
-% $$$         %Accumulate sums:
-% $$$         for Ti=1:TL
-% $$$             inds = find(tempsnap>=Te(Ti) & tempsnap<Te(Ti+1));
-% $$$             Vsnap(Ti,ti+1) = Vsnap(Ti,ti+1)+nansum(Volsnap(inds));
-% $$$             Hsnap(Ti,ti+1) = Hsnap(Ti,ti+1)+nansum(Volsnap(inds).*tempsnap(inds)*rho0*Cp);
-% $$$             inds = find(temp>=Te(Ti) & temp<Te(Ti+1));
-% $$$             V(Ti,ti) = V(Ti,ti)+nansum(Vol(inds));
-% $$$             H(Ti,ti) = H(Ti,ti)+nansum(Vol(inds).*temp(inds)*rho0*Cp);
-% $$$             TENMON(Ti,ti) = TENMON(Ti,ti)+nansum(TENf(inds));            
-% $$$         end
-% $$$         inds = find(tempsnap>=Te(TL+1));
-% $$$         Vsnap(TL+1,ti+1) = Vsnap(TL+1,ti+1)+nansum(Volsnap(inds));
-% $$$         Hsnap(TL+1,ti+1) = Hsnap(TL+1,ti+1)+nansum(Volsnap(inds).*tempsnap(inds)*rho0*Cp);
-% $$$         inds = find(temp>=Te(TL+1));
-% $$$         V(TL+1,ti) = V(TL+1,ti)+nansum(Vol(inds));
-% $$$         H(TL+1,ti) = H(TL+1,ti)+nansum(Vol(inds).*temp(inds)*rho0*Cp);
-% $$$         TENMON(TL+1,ti) = TENMON(TL+1,ti)+nansum(TENf(inds));            
-% $$$     end
-% $$$     %Integrate to get to T'>T:
-% $$$     Vsnap(:,ti+1) = flipud(cumsum(flipud(Vsnap(:,ti+1))));
-% $$$     V(:,ti) = flipud(cumsum(flipud(V(:,ti))));
-% $$$     Hsnap(:,ti+1) = flipud(cumsum(flipud(Hsnap(:,ti+1))));
-% $$$     H(:,ti) = flipud(cumsum(flipud(H(:,ti))));
-% $$$     TENMON(:,ti) = flipud(cumsum(flipud(TENMON(:,ti))));
-% $$$ end
-% $$$ 
-% $$$ save([outD model sprintf('_output%03d',output) '_GlobalHBud.mat'], ...
-% $$$      'Vsnap','Hsnap','V','H','Temp','TENMON');
-% $$$ 
-% $$$ for ti=1:tL
-% $$$     ii = TL;
-% $$$     sprintf('Calculating water-mass heat budget time %03d of %03d, temp %03d of %03d',ti,tL,ii,TL)
-% $$$     TEN(ii,ti) = nansum(nansum(area.*ncread(wname,'temp_tendency_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-% $$$     ADV(ii,ti) = nansum(nansum(area.*ncread(wname,'temp_advection_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-% $$$     SUB(ii,ti) = nansum(nansum(area.*ncread(wname,'temp_submeso_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-% $$$     PME(ii,ti) = nansum(nansum(area.*ncread(wname,'sfc_hflux_pme_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-% $$$     RMX(ii,ti) = nansum(nansum(area.*ncread(wname,'temp_rivermix_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-% $$$     VDS(ii,ti) = nansum(nansum(area.*ncread(wname,'temp_vdiffuse_sbc_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-% $$$     SWH(ii,ti) = nansum(nansum(area.*ncread(wname,'sw_heat_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-% $$$     VDF(ii,ti) = nansum(nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-% $$$     KNL(ii,ti) = nansum(nansum(area.*ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-% $$$     if (haveRedi)
-% $$$     K33(ii,ti) = nansum(nansum(area.*ncread(wname,'temp_vdiffuse_k33_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-% $$$     RED(ii,ti) = nansum(nansum(area.*ncread(wname,'neutral_diffusion_on_nrho_temp',[1 1 ii ti],[xL yL 1 1]),1),2);
-% $$$     end
-% $$$     if (haveGM)
-% $$$     NGM(ii,ti) = nansum(nansum(area.*ncread(wname,'neutral_gm_on_nrho_temp',[1 1 ii ti],[xL yL 1 1]),1),2);
-% $$$     end
-% $$$     FRZ(ii,ti) = nansum(nansum(area.*ncread(wname,'frazil_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-% $$$     ETS(ii,ti) = nansum(nansum(area.*ncread(wname,'temp_eta_smooth_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-% $$$     SFW(ii,ti) = nansum(nansum(ncread(wname,'mass_pmepr_on_nrho',[1 1 ii ti],[xL yL 1 1])/rho0,1),2);
-% $$$ for ii=TL-1:-1:1
-% $$$     sprintf('Calculating water-mass heat budget time %03d of %03d, temp %03d of %03d',ti,tL,ii,TL)
-% $$$     TEN(ii,ti) = TEN(ii+1,ti) + nansum(nansum(area.*ncread(wname,'temp_tendency_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-% $$$     ADV(ii,ti) = ADV(ii+1,ti) + nansum(nansum(area.*ncread(wname,'temp_advection_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-% $$$     SUB(ii,ti) = SUB(ii+1,ti) + nansum(nansum(area.*ncread(wname,'temp_submeso_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-% $$$     PME(ii,ti) = PME(ii+1,ti) + nansum(nansum(area.*ncread(wname,'sfc_hflux_pme_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-% $$$     RMX(ii,ti) = RMX(ii+1,ti) + nansum(nansum(area.*ncread(wname,'temp_rivermix_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-% $$$     VDS(ii,ti) = VDS(ii+1,ti) + nansum(nansum(area.*ncread(wname,'temp_vdiffuse_sbc_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-% $$$     SWH(ii,ti) = SWH(ii+1,ti) + nansum(nansum(area.*ncread(wname,'sw_heat_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-% $$$     VDF(ii,ti) = VDF(ii+1,ti) + nansum(nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-% $$$     KNL(ii,ti) = KNL(ii+1,ti) + nansum(nansum(area.*ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-% $$$     if (haveRedi)
-% $$$     K33(ii,ti) = K33(ii+1,ti) + nansum(nansum(area.*ncread(wname,'temp_vdiffuse_k33_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-% $$$     RED(ii,ti) = RED(ii+1,ti) + nansum(nansum(area.*ncread(wname,'neutral_diffusion_on_nrho_temp',[1 1 ii ti],[xL yL 1 1]),1),2);
-% $$$     end
-% $$$     if (haveGM)
-% $$$     NGM(ii,ti) = NGM(ii+1,ti) + nansum(nansum(area.*ncread(wname,'neutral_gm_on_nrho_temp',[1 1 ii ti],[xL yL 1 1]),1),2);
-% $$$     end
-% $$$     FRZ(ii,ti) = FRZ(ii+1,ti) + nansum(nansum(area.*ncread(wname,'frazil_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-% $$$     ETS(ii,ti) = ETS(ii+1,ti) + nansum(nansum(area.*ncread(wname,'temp_eta_smooth_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-% $$$     SFW(ii,ti) = SFW(ii+1,ti) + nansum(nansum(ncread(wname,'mass_pmepr_on_nrho',[1 1 ii ti],[xL yL 1 1])/rho0,1),2);
-% $$$ end
-% $$$ end
-% $$$ 
-% $$$ save([outD model sprintf('_output%03d',output) '_GlobalHBud.mat'],'SWH','VDS','RMX','PME','FRZ', ...
-% $$$      'ETS','SUB','VDF','KNL','ADV','TEN','SFW','-append');
-% $$$ if (haveRedi)
-% $$$ save([outD model sprintf('_output%03d',output) '_GlobalHBud.mat'],'K33','RED','-append');
-% $$$ end
-% $$$ if (haveGM)
-% $$$     save([outD model sprintf('_output%03d',output) '_GlobalHBud.mat'],'NGM','-append');
-% $$$ end
+%% Calculate volume integrated budget from online T-binned values -----------------------------------------------------------------------------------------------------------
+V      = zeros(TL+1,tL); % Volume of water (m3) above temperature T
+H      = zeros(TL+1,tL); % Heat content (J) above temperature T
+Vsnap  = zeros(TL+1,tL+1); % Volume from snapshots (m3)
+Hsnap  = zeros(TL+1,tL+1); % Heat content from snapshots (J)
+Temp   = zeros(zL,tL); % Temperature as a function of depth (degC)
+SWH    = zeros(TL+1,tL); % W due to SW redistribution
+VDS    = zeros(TL+1,tL); % W due to vdiffuse_sbc.
+RMX    = zeros(TL+1,tL); % W due to rivermix.
+PME    = zeros(TL+1,tL); % W due to P-E.
+FRZ    = zeros(TL+1,tL); % W due to frazil.
+ETS    = zeros(TL+1,tL); % W due to eta_smoothing.
+SUB    = zeros(TL+1,tL); % W due to submesoscale.
+VDF    = zeros(TL+1,tL); % W due to vdiffusion
+KNL    = zeros(TL+1,tL); % W due to KPP non-local
+if (haveRedi)
+    K33    = zeros(TL+1,tL); % W due to K33
+    RED    = zeros(TL+1,tL); % W due to Redi diffusion
+end
+if (haveGM)
+    NGM    = zeros(TL+1,tL); % W due to GM
+end
+if (haveMDS)
+    MDS    = zeros(TL+1,tL); % W due to mixdownslope
+end
+ADV    = zeros(TL+1,tL); % W due to advection
+TEN    = zeros(TL+1,tL); % W due to tendency
+SFW    = zeros(TL+1,tL); % surface volume flux into ocean (m3s-1)
+TENMON = zeros(TL+1,tL); % W due to tendency from Offline Monthly
+
+%Do IC for Vsnap and Hsnap:
+for zi = 1:zL
+    sprintf('Doing snapshot IC, depth %02d of %02d',zi,zL)
+    %Temperature snapshot:
+    tempsnap = ncread(rnameT,'temp',[1 1 zi rstti],[xL yL 1 1]);
+    tempsnap(tempsnap==0) = NaN; %This is included because the
+                                 %restarts don't have any NaNs in
+                                 %temp, just lots of 0s. 
+    if (found_rst)
+        Volsnap = ncread(rnameZ,'rho_dzt',[1 1 zi rstti],[xL yL 1 1]).*area/rho0;
+    else
+        Volsnap = ncread(rnameT,'dzt',[1 1 zi rstti],[xL yL 1 1]).*area;
+    end
+    %Accumulate sums:
+    for Ti=1:TL
+        inds = find(tempsnap>=Te(Ti) & tempsnap<Te(Ti+1));
+        Vsnap(Ti,1) = Vsnap(Ti,1)+nansum(Volsnap(inds));
+        Hsnap(Ti,1) = Hsnap(Ti,1)+nansum(Volsnap(inds).*tempsnap(inds)*rho0*Cp);
+    end
+    inds = find(tempsnap>=Te(TL+1));
+    Vsnap(TL+1,1) = Vsnap(TL+1,1)+nansum(Volsnap(inds));
+    Hsnap(TL+1,1) = Hsnap(TL+1,1)+nansum(Volsnap(inds).*tempsnap(inds)*rho0*Cp);
+end
+%Integrate to get to T'>T:
+Vsnap(:,1) = flipud(cumsum(flipud(Vsnap(:,1))));
+Hsnap(:,1) = flipud(cumsum(flipud(Hsnap(:,1))));
+
+%Do Eulerian budget calculations:
+for ti=1:tL
+    for zi=1:zL
+        sprintf('Doing Eul Bud. time %03d of %03d, depth %02d of %02d',ti,tL,zi,zL)
+
+        temp = ncread(fname,'temp',[1 1 zi ti],[xL yL 1 1]);
+        tempsnap = ncread(sname,'temp',[1 1 zi ti],[xL yL 1 1]);
+        Vol = ncread(fname,'dzt',[1 1 zi ti],[xL yL 1 1]).*area;
+        Volsnap = ncread(sname,'dzt',[1 1 zi ti],[xL yL 1 1]).*area;
+
+        %Calculate T(z):
+        areaNaN = area;
+        areaNaN(isnan(temp)) = NaN;
+        Temp(zi,ti) = squeeze(nansum(nansum(temp.*area,1),2)./nansum(nansum(areaNaN,1),2));
+
+        %Tendency from Monthly snapshots:
+        TENf = area.*ncread(hname,'temp_tendency',[1 1 zi ti],[xL yL 1 1]);
+
+        %Accumulate sums:
+        for Ti=1:TL
+            inds = find(tempsnap>=Te(Ti) & tempsnap<Te(Ti+1));
+            Vsnap(Ti,ti+1) = Vsnap(Ti,ti+1)+nansum(Volsnap(inds));
+            Hsnap(Ti,ti+1) = Hsnap(Ti,ti+1)+nansum(Volsnap(inds).*tempsnap(inds)*rho0*Cp);
+            inds = find(temp>=Te(Ti) & temp<Te(Ti+1));
+            V(Ti,ti) = V(Ti,ti)+nansum(Vol(inds));
+            H(Ti,ti) = H(Ti,ti)+nansum(Vol(inds).*temp(inds)*rho0*Cp);
+            TENMON(Ti,ti) = TENMON(Ti,ti)+nansum(TENf(inds));            
+        end
+        inds = find(tempsnap>=Te(TL+1));
+        Vsnap(TL+1,ti+1) = Vsnap(TL+1,ti+1)+nansum(Volsnap(inds));
+        Hsnap(TL+1,ti+1) = Hsnap(TL+1,ti+1)+nansum(Volsnap(inds).*tempsnap(inds)*rho0*Cp);
+        inds = find(temp>=Te(TL+1));
+        V(TL+1,ti) = V(TL+1,ti)+nansum(Vol(inds));
+        H(TL+1,ti) = H(TL+1,ti)+nansum(Vol(inds).*temp(inds)*rho0*Cp);
+        TENMON(TL+1,ti) = TENMON(TL+1,ti)+nansum(TENf(inds));            
+    end
+    %Integrate to get to T'>T:
+    Vsnap(:,ti+1) = flipud(cumsum(flipud(Vsnap(:,ti+1))));
+    V(:,ti) = flipud(cumsum(flipud(V(:,ti))));
+    Hsnap(:,ti+1) = flipud(cumsum(flipud(Hsnap(:,ti+1))));
+    H(:,ti) = flipud(cumsum(flipud(H(:,ti))));
+    TENMON(:,ti) = flipud(cumsum(flipud(TENMON(:,ti))));
+end
+
+save([outD model sprintf('_output%03d',output) '_GlobalHBud.mat'], ...
+     'Vsnap','Hsnap','V','H','Temp','TENMON');
+
+for ti=1:tL
+    ii = TL;
+    sprintf('Calculating water-mass heat budget time %03d of %03d, temp %03d of %03d',ti,tL,ii,TL)
+    TEN(ii,ti) = nansum(nansum(area.*ncread(wname,'temp_tendency_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    ADV(ii,ti) = nansum(nansum(area.*ncread(wname,'temp_advection_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    SUB(ii,ti) = nansum(nansum(area.*ncread(wname,'temp_submeso_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    PME(ii,ti) = nansum(nansum(area.*ncread(wname,'sfc_hflux_pme_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    RMX(ii,ti) = nansum(nansum(area.*ncread(wname,'temp_rivermix_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    VDS(ii,ti) = nansum(nansum(area.*ncread(wname,'temp_vdiffuse_sbc_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    SWH(ii,ti) = nansum(nansum(area.*ncread(wname,'sw_heat_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    VDF(ii,ti) = nansum(nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    KNL(ii,ti) = nansum(nansum(area.*ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    if (haveRedi)
+    K33(ii,ti) = nansum(nansum(area.*ncread(wname,'temp_vdiffuse_k33_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    RED(ii,ti) = nansum(nansum(area.*ncread(wname,'neutral_diffusion_on_nrho_temp',[1 1 ii ti],[xL yL 1 1]),1),2);
+    end
+    if (haveGM)
+    NGM(ii,ti) = nansum(nansum(area.*ncread(wname,'neutral_gm_on_nrho_temp',[1 1 ii ti],[xL yL 1 1]),1),2);
+    end
+    if (haveMDS)
+    MDS(ii,ti) = nansum(nansum(area.*ncread(wname,'mixdownslope_temp_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    end
+    FRZ(ii,ti) = nansum(nansum(area.*ncread(wname,'frazil_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    ETS(ii,ti) = nansum(nansum(area.*ncread(wname,'temp_eta_smooth_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    SFW(ii,ti) = nansum(nansum(ncread(wname,'mass_pmepr_on_nrho',[1 1 ii ti],[xL yL 1 1])/rho0,1),2);
+for ii=TL-1:-1:1
+    sprintf('Calculating water-mass heat budget time %03d of %03d, temp %03d of %03d',ti,tL,ii,TL)
+    TEN(ii,ti) = TEN(ii+1,ti) + nansum(nansum(area.*ncread(wname,'temp_tendency_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    ADV(ii,ti) = ADV(ii+1,ti) + nansum(nansum(area.*ncread(wname,'temp_advection_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    SUB(ii,ti) = SUB(ii+1,ti) + nansum(nansum(area.*ncread(wname,'temp_submeso_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    PME(ii,ti) = PME(ii+1,ti) + nansum(nansum(area.*ncread(wname,'sfc_hflux_pme_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    RMX(ii,ti) = RMX(ii+1,ti) + nansum(nansum(area.*ncread(wname,'temp_rivermix_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    VDS(ii,ti) = VDS(ii+1,ti) + nansum(nansum(area.*ncread(wname,'temp_vdiffuse_sbc_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    SWH(ii,ti) = SWH(ii+1,ti) + nansum(nansum(area.*ncread(wname,'sw_heat_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    VDF(ii,ti) = VDF(ii+1,ti) + nansum(nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    KNL(ii,ti) = KNL(ii+1,ti) + nansum(nansum(area.*ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    if (haveRedi)
+    K33(ii,ti) = K33(ii+1,ti) + nansum(nansum(area.*ncread(wname,'temp_vdiffuse_k33_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    RED(ii,ti) = RED(ii+1,ti) + nansum(nansum(area.*ncread(wname,'neutral_diffusion_on_nrho_temp',[1 1 ii ti],[xL yL 1 1]),1),2);
+    end
+    if (haveGM)
+    NGM(ii,ti) = NGM(ii+1,ti) + nansum(nansum(area.*ncread(wname,'neutral_gm_on_nrho_temp',[1 1 ii ti],[xL yL 1 1]),1),2);
+    end
+    if (haveMDS)
+    MDS(ii,ti) = MDS(ii+1,ti) + nansum(nansum(area.*ncread(wname,'mixdownslope_temp_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    end
+    FRZ(ii,ti) = FRZ(ii+1,ti) + nansum(nansum(area.*ncread(wname,'frazil_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    ETS(ii,ti) = ETS(ii+1,ti) + nansum(nansum(area.*ncread(wname,'temp_eta_smooth_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    SFW(ii,ti) = SFW(ii+1,ti) + nansum(nansum(ncread(wname,'mass_pmepr_on_nrho',[1 1 ii ti],[xL yL 1 1])/rho0,1),2);
+end
+end
+
+save([outD model sprintf('_output%03d',output) '_GlobalHBud.mat'],'SWH','VDS','RMX','PME','FRZ', ...
+     'ETS','SUB','VDF','KNL','ADV','TEN','SFW','-append');
+if (haveRedi)
+save([outD model sprintf('_output%03d',output) '_GlobalHBud.mat'],'K33','RED','-append');
+end
+if (haveGM)
+    save([outD model sprintf('_output%03d',output) '_GlobalHBud.mat'],'NGM','-append');
+end
+if (haveMDS)
+    save([outD model sprintf('_output%03d',output) '_GlobalHBud.mat'],'MDS','-append');
+end
 
 % $$$ %% Vertical Integrate down to level from online T-binned values -----------------------------------------------------------------------------------------------------------
 % $$$ Tls = [5 10 15 17.5 20 22.5 25 27.5];
