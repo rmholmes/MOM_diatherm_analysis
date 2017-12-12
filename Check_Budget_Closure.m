@@ -7,22 +7,25 @@ clear all;
 % $$$ base = '/srv/ccrc/data03/z3500785/MOM_wombat/mat_data/';
 % $$$ model = 'MOM025';
 % $$$ outputs = [1978];
-base = '/short/e14/rmh561/access-om2/control/1deg_jra55_ryf/archive/mat_data/';
-model = 'ACCESS-OM2_1deg_jra55_ryf';
-outputs = [4];
+% $$$ base = '/short/e14/rmh561/access-om2/control/1deg_jra55_ryf/archive/mat_data/';
+% $$$ model = 'ACCESS-OM2_1deg_jra55_ryf';
+% $$$ outputs = [4];
+base = '/short/e14/rmh561/access-om2/control/025deg_jra55_ryf8485/archive/';
+model = 'ACCESS-OM2_025deg_jra55_ryf8485';
+outputs = [078];
 
-load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
+load([base 'mat_data/' model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
 ndays = diff(time_snap);
 region = 'Global';
 
-haveRedi = 1; %Redi on
-haveGM = 1; %GM on
-haveMD = 1; %mixdownslope on
+haveRedi = 0; %Redi on
+haveGM = 0; %GM on
+haveMD = 0; %mixdownslope on
 havef3D = 1; %frazil_3d
 
 %Eulerian budget:
 % $$$ hname = '/srv/ccrc/data03/z3500785/MOM_wombat/output1978/ocean_heat.nc';
-hname = sprintf('/short/e14/rmh561/access-om2/control/1deg_jra55_ryf/archive/output%03d/ocean/ocean_heat.nc',outputs);
+hname = sprintf([base 'output%03d/ocean/ocean_heat.nc'],outputs);
 zi = 5;
 ti = 1;
 residual = ...
@@ -68,11 +71,11 @@ pcolPlot(lon,lat,ncread(hname,'frazil_3d',[1 1 zi ti],[xL yL 1 1]));
 
 %T-binned budget:
 % $$$ wname = '/srv/ccrc/data03/z3500785/MOM_wombat/output1978/ocean_wmass.nc';
-wname = sprintf('/short/e14/rmh561/access-om2/control/1deg_jra55_ryf/archive/output%03d/ocean/ocean_wmass.nc',outputs);
-[tmp ii] = min(abs(Te + 2));
+wname = sprintf([base 'output%03d/ocean/ocean_wmass.nc'],outputs);
 
 %all: 
-ii = 7;
+[tmp ii] = min(abs(Te - 22));
+% $$$ ii = ;
 TLL = 1;
 ti = 1;
 residual = ...
