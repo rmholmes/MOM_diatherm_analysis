@@ -9,9 +9,9 @@ clear all;
 % $$$ model = 'MOM025_nipoall';
 % $$$ outputs = [19];
 
-% $$$ base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag/mat_data/';
-% $$$ model = 'MOM025';
-% $$$ outputs = [2 3 4 5 6];
+base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag/mat_data/';
+model = 'MOM025';
+outputs = [8];
 
 % $$$ base = '/srv/ccrc/data03/z3500785/access-om2/1deg_jra55_ryf8485/mat_data/';
 % $$$ model = 'ACCESS-OM2_1deg_jra55_ryf8485';
@@ -21,13 +21,23 @@ clear all;
 % $$$ model = 'ACCESS-OM2_1deg_jra55_ryf';
 % $$$ outputs = 250;
 
+% $$$ base = '/srv/ccrc/data03/z3500785/access-om2/025deg_jra55_ryf8485/mat_data/';
+% $$$ model = 'ACCESS-OM2_025deg_jra55_ryf8485';
+% $$$ outputs = 78;
+% $$$ base = '/srv/ccrc/data03/z3500785/access-om2/025deg_jra55_ryf8485_redi/mat_data/';
+% $$$ model = 'ACCESS-OM2_025deg_jra55_ryf8485_redi';
+% $$$ outputs = 59;
+% $$$ base = '/srv/ccrc/data03/z3500785/access-om2/025deg_jra55_ryf8485_gmredi/mat_data/';
+% $$$ model = 'ACCESS-OM2_025deg_jra55_ryf8485_gmredi';
+% $$$ outputs = 73;
+% $$$ 
 % $$$ base = '/srv/ccrc/data03/z3500785/MOM_wombat/mat_data/';
 % $$$ model = 'MOM025';
 % $$$ outputs = [1978];
 
-base = '/srv/ccrc/data03/z3500785/MOM01_HeatDiag/mat_data/';
-model = 'MOM01';
-outputs = [333];
+% $$$ base = '/srv/ccrc/data03/z3500785/MOM01_HeatDiag/mat_data/';
+% $$$ model = 'MOM01';
+% $$$ outputs = [333];
 
 load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
 ndays = diff(time_snap);
@@ -134,7 +144,7 @@ fields = { ...
 % $$$           {F(:,months,:), 'Surface Forcing $\mathcal{F}$','k',2,'-'}, ...
           {F(:,months,:)+PI(:,months,:), 'Surface Forcing $\mathcal{F}$','k',2,'-'}, ...
           {M(:,months,:), 'Vertical Mixing $\mathcal{M}$','r',2,'-'}, ...
-% $$$           {GM(:,months,:), 'GM Transport $\mathcal{GM}$',[0.5 0 0.5],2,'-'}, ...
+          {GM(:,months,:), 'GM Transport $\mathcal{GM}$',[0.5 0 0.5],2,'-'}, ...
 % $$$           {P(:,months,:), 'P-E+R $\mathcal{P}$',0.5*[1 1 1],2,'-'}, ...
           {I(:,months,:), 'Implicit Mixing $\mathcal{I}$','b',2,'-'}, ...
           {R(:,months,:), 'Redi Mixing $\mathcal{I}$','c',2,'-'}, ...
@@ -238,12 +248,12 @@ label = 'January';
 
 fields = { ...
           {dVdt(:,months,:), 'Tendency $\frac{\partial\mathcal{V}}{\partial t}$','m',2,'-'}, ...
-          {-JI(:,months,:), 'ITF + SF + BS $-\mathcal{J_I}$',[0 0.5 0],2,'-'}, ...
+% $$$           {-JI(:,months,:), 'ITF + SF + BS $-\mathcal{J_I}$',[0 0.5 0],2,'-'}, ...
           {JS(:,months,:), 'Surface Volume Flux $\mathcal{J}_S$','k',2,'-'}, ...
-          {G(:,months,:), 'Interior WMT $\mathcal{G}=\frac{\partial\mathcal{V}}{\partial t}-\mathcal{J}_I+\mathcal{J}_S$','b',2,'-'}, ...
-          {-JITF(:,months,:), 'ITF Volume Loss',[0 0.5 0],2,'--'}, ...
-          {-JSP(:,months,:), 'South Pacific Volume Loss',[0 0.5 0],2,'-.'}, ...
-          {-JBS(:,months,:), 'Bering Strait Volume Loss',[0 0.5 0],2,':'}, ...
+          {G(:,months,:), 'Interior WMT $\mathcal{G}=\frac{\partial\mathcal{V}}{\partial t}+\mathcal{J}_I-\mathcal{J}_S$','b',2,'-'}, ...
+% $$$           {-JITF(:,months,:), 'ITF Volume Loss',[0 0.5 0],2,'--'}, ...
+% $$$           {-JSP(:,months,:), 'South Pacific Volume Loss',[0 0.5 0],2,'-.'}, ...
+% $$$           {-JBS(:,months,:), 'Bering Strait Volume Loss',[0 0.5 0],2,':'}, ...
           {WMT(:,months,:), 'Interior WMT $\mathcal{G}$ from $\mathcal{B}$','b',2,'--'}, ...
           {WMTM(:,months,:), 'Interior WMT $\mathcal{G}$ from $\mathcal{M}$','r',1,'--'}, ...
           {WMTF(:,months,:), 'Interior WMT $\mathcal{G}$ from $\mathcal{F}$','k',1,'--'}, ...
@@ -462,7 +472,8 @@ LabelAxes(gca,2,25,0.003,0.925);
 % $$$ VAR = 'FlM';
 % $$$ VAR = 'FlSP';
 % $$$ VAR = 'WMTP';
-VAR = 'WMTM';
+% $$$ VAR = 'WMTM';
+VAR = 'WMTI';
 % $$$ TYPE = 'VertInt';
 TYPE = 'WMT';
 Tl = 18.25;
@@ -479,6 +490,34 @@ eval([VAR '(' VAR '==0) = NaN;']);
 eval(['FlM = ' VAR ';']);
 FlM = -FlM;
 
+% CHECK spatial structure sums to total:
+% $$$ Tls = [2.25 5.25 7.25 12.25 16.25 18.25 20.25 22.25 24.25 26.25 28.25]; %These are on T points, not Te points
+% $$$ Tls = [16.25 18.25 20.25 22.25 24.25 26.25 28.25]; %These are on T points, not Te points
+Tls = [-2.75:0.5:33.75];
+SUM = zeros(size(Tls));
+for ii = 1:length(Tls)
+
+    Tl = Tls(ii)
+    load([base model sprintf('_output%03d',outputs(1)) '_' TYPE '_T' strrep(num2str(Tl),'.','p') 'C.mat']);
+    eval([VAR '(isnan(' VAR ')) = 0.0;']);
+    eval([VAR 'a = ' VAR ';']);
+    for i=2:length(outputs)
+        load([base model sprintf('_output%03d',outputs(i)) '_' TYPE '_T' strrep(num2str(Tl),'.','p') 'C.mat']);
+        eval([VAR '(isnan(' VAR ')) = 0.0;']);
+        eval([VAR 'a = ' VAR 'a + ' VAR ';']);
+    end
+    eval([VAR ' = ' VAR 'a/length(outputs);']);
+    eval([VAR '(' VAR '==0) = NaN;']);
+    eval(['FlM = ' VAR ';']);
+    FlM = -FlM;
+    tmp = FlM;
+    tmp(isnan(tmp)) = 0.0;
+    Z = monmean(tmp(:,:,months),3,ndays(months));
+    Z(Z == 0) = NaN;
+    SUM(ii) = nansum(nansum(area.*Z));
+end
+
+%plot(Tls,SUM/1e6,'XR','MarkerSize',25,'LineWidth',4); 
 % $$$ %%% Regional time series 
 % $$$ 
 % $$$ months = [1:12];
@@ -679,8 +718,8 @@ if (strfind(model,'01'))
 end
 
 [xL,yL] = size(lon);
-xvec = 1:1:xL;
-yvec = 1:1:yL;
+xvec = 1:5:xL;
+yvec = 1:5:yL;
 txtmonth = {'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'};
 
 months = {[1:12], ...
