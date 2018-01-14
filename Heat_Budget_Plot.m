@@ -11,7 +11,7 @@ clear all;
 
 base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag/mat_data/';
 model = 'MOM025';
-outputs = [8];
+outputs = [8:12];
 
 % $$$ base = '/srv/ccrc/data03/z3500785/access-om2/1deg_jra55_ryf8485/mat_data/';
 % $$$ model = 'ACCESS-OM2_1deg_jra55_ryf8485';
@@ -116,10 +116,14 @@ Nmon(:,:,i) = TENMON;
 
 % Checks:
 % WMT from B:
-tmp = -diff(M(:,:,i),[],1)/dT/rho0/Cp;WMTM(:,:,i) = zeros(size(G(:,:,i)));WMTM(2:(end-1),:,i) = avg(tmp,1);
-tmp = -diff(F(:,:,i),[],1)/dT/rho0/Cp;WMTF(:,:,i) = zeros(size(G(:,:,i)));WMTF(2:(end-1),:,i) = avg(tmp,1);
-tmp = -diff(I(:,:,i),[],1)/dT/rho0/Cp;WMTI(:,:,i) = zeros(size(G(:,:,i)));WMTI(2:(end-1),:,i) = avg(tmp,1);
-tmp = -diff(R(:,:,i),[],1)/dT/rho0/Cp;WMTR(:,:,i) = zeros(size(G(:,:,i)));WMTR(2:(end-1),:,i) = avg(tmp,1);
+% $$$ tmp = -diff(M(:,:,i),[],1)/dT/rho0/Cp;WMTM(:,:,i) = zeros(size(G(:,:,i)));WMTM(2:(end-1),:,i) = avg(tmp,1);
+% $$$ tmp = -diff(F(:,:,i),[],1)/dT/rho0/Cp;WMTF(:,:,i) = zeros(size(G(:,:,i)));WMTF(2:(end-1),:,i) = avg(tmp,1);
+% $$$ tmp = -diff(I(:,:,i),[],1)/dT/rho0/Cp;WMTI(:,:,i) = zeros(size(G(:,:,i)));WMTI(2:(end-1),:,i) = avg(tmp,1);
+% $$$ tmp = -diff(R(:,:,i),[],1)/dT/rho0/Cp;WMTR(:,:,i) = zeros(size(G(:,:,i)));WMTR(2:(end-1),:,i) = avg(tmp,1);
+WMTM(:,:,i) = -diff(M(:,:,i),[],1)/dT/rho0/Cp;
+WMTF(:,:,i) = -diff(F(:,:,i),[],1)/dT/rho0/Cp;
+WMTI(:,:,i) = -diff(I(:,:,i),[],1)/dT/rho0/Cp;
+WMTR(:,:,i) = -diff(R(:,:,i),[],1)/dT/rho0/Cp;
 WMT(:,:,i) = WMTM(:,:,i)+WMTF(:,:,i)+WMTI(:,:,i)+WMTR(:,:,i);
 end
 months = [1:length(P(1,:,1))];
@@ -175,7 +179,12 @@ for i=1:length(fields)
 % $$$         h = plot(Te,monmean(fields{i}{1}(:,:,j),2,ndays(months))*Fscale,fields{i}{5}, 'color',0.7*[1 1 1] ...
 % $$$              ,'linewidth',0.5);
 % $$$     end
-    legh(i) = plot(Te,mean(monmean(fields{i}{1},2,ndays(months))*Fscale,3),fields{i}{5}, 'color',fields{i}{3} ...
+    if (length(fields{i}{1}(:,1)) == length(Te))
+        x = Te;
+    else
+        x = T;
+    end
+    legh(i) = plot(x,mean(monmean(fields{i}{1},2,ndays(months))*Fscale,3),fields{i}{5}, 'color',fields{i}{3} ...
          ,'linewidth',fields{i}{4});
     leg{i} = fields{i}{2};
 end
@@ -224,6 +233,11 @@ leg = {};
 legh = [];
 for i=1:length(fields)
     hold on;
+    if (length(fields{i}{1}(:,1)) == length(Te))
+        x = Te;
+    else
+        x = T;
+    end
     legh(i) = plot(T,-mean(monmean(diff(fields{i}{1},[],1)/dT,2,ndays(months))*Escale,3),fields{i}{5}, 'color',fields{i}{3} ...
          ,'linewidth',fields{i}{4});
     leg{i} = fields{i}{2};
@@ -270,7 +284,12 @@ leg = {};
 legh = [];
 for i=1:length(fields)
     hold on;
-   legh(i) = plot(Te,mean(monmean(fields{i}{1},2,ndays(months))*Mscale,3),fields{i}{5}, 'color',fields{i}{3} ...
+    if (length(fields{i}{1}(:,1)) == length(Te))
+        x = Te;
+    else
+        x = T;
+    end
+    legh(i) = plot(x,mean(monmean(fields{i}{1},2,ndays(months))*Mscale,3),fields{i}{5}, 'color',fields{i}{3} ...
          ,'linewidth',fields{i}{4});
     leg{i} = fields{i}{2};
 end
@@ -476,48 +495,47 @@ LabelAxes(gca,2,25,0.003,0.925);
 VAR = 'WMTI';
 % $$$ TYPE = 'VertInt';
 TYPE = 'WMT';
-Tl = 18.25;
-load([base model sprintf('_output%03d',outputs(1)) '_' TYPE '_T' strrep(num2str(Tl),'.','p') 'C.mat']);
+Tl = 15.25;
+name = [base model sprintf('_output%03d',outputs(1)) '_' TYPE '_T' strrep(num2str(Tl),'.','p') 'C.mat']
+load(name);
 eval([VAR '(isnan(' VAR ')) = 0.0;']);
 eval([VAR 'a = ' VAR ';']);
 for i=2:length(outputs)
-    load([base model sprintf('_output%03d',outputs(i)) '_' TYPE '_T' strrep(num2str(Tl),'.','p') 'C.mat']);
+    name = [base model sprintf('_output%03d',outputs(i)) '_' TYPE '_T' strrep(num2str(Tl),'.','p') 'C.mat']
+    load(name)
     eval([VAR '(isnan(' VAR ')) = 0.0;']);
     eval([VAR 'a = ' VAR 'a + ' VAR ';']);
 end
 eval([VAR ' = ' VAR 'a/length(outputs);']);
 eval([VAR '(' VAR '==0) = NaN;']);
 eval(['FlM = ' VAR ';']);
-FlM = -FlM;
 
-% CHECK spatial structure sums to total:
-% $$$ Tls = [2.25 5.25 7.25 12.25 16.25 18.25 20.25 22.25 24.25 26.25 28.25]; %These are on T points, not Te points
-% $$$ Tls = [16.25 18.25 20.25 22.25 24.25 26.25 28.25]; %These are on T points, not Te points
-Tls = [-2.75:0.5:33.75];
-SUM = zeros(size(Tls));
-for ii = 1:length(Tls)
+% $$$ % CHECK spatial structure sums to total:
+% $$$ Tls = [12.75:2:30.75];
+% $$$ Tls = [-2.75:0.5:33.75];
+% $$$ SUM = zeros(size(Tls));
+% $$$ for ii = 1:length(Tls)
+% $$$ 
+% $$$     Tl = Tls(ii)
+% $$$     load([base model sprintf('_output%03d',outputs(1)) '_' TYPE '_T' strrep(num2str(Tl),'.','p') 'C.mat']);
+% $$$     eval([VAR '(isnan(' VAR ')) = 0.0;']);
+% $$$     eval([VAR 'a = ' VAR ';']);
+% $$$     for i=2:length(outputs)
+% $$$         load([base model sprintf('_output%03d',outputs(i)) '_' TYPE '_T' strrep(num2str(Tl),'.','p') 'C.mat']);
+% $$$         eval([VAR '(isnan(' VAR ')) = 0.0;']);
+% $$$         eval([VAR 'a = ' VAR 'a + ' VAR ';']);
+% $$$     end
+% $$$     eval([VAR ' = ' VAR 'a/length(outputs);']);
+% $$$     eval([VAR '(' VAR '==0) = NaN;']);
+% $$$     eval(['FlM = ' VAR ';']);
+% $$$     tmp = FlM;
+% $$$     tmp(isnan(tmp)) = 0.0;
+% $$$     Z = monmean(tmp(:,:,months),3,ndays(months));
+% $$$     Z(Z == 0) = NaN;
+% $$$     SUM(ii) = nansum(nansum(area.*Z));
+% $$$ end
+% $$$ %plot(Tls,SUM/1e6,'XR','MarkerSize',12,'LineWidth',2); 
 
-    Tl = Tls(ii)
-    load([base model sprintf('_output%03d',outputs(1)) '_' TYPE '_T' strrep(num2str(Tl),'.','p') 'C.mat']);
-    eval([VAR '(isnan(' VAR ')) = 0.0;']);
-    eval([VAR 'a = ' VAR ';']);
-    for i=2:length(outputs)
-        load([base model sprintf('_output%03d',outputs(i)) '_' TYPE '_T' strrep(num2str(Tl),'.','p') 'C.mat']);
-        eval([VAR '(isnan(' VAR ')) = 0.0;']);
-        eval([VAR 'a = ' VAR 'a + ' VAR ';']);
-    end
-    eval([VAR ' = ' VAR 'a/length(outputs);']);
-    eval([VAR '(' VAR '==0) = NaN;']);
-    eval(['FlM = ' VAR ';']);
-    FlM = -FlM;
-    tmp = FlM;
-    tmp(isnan(tmp)) = 0.0;
-    Z = monmean(tmp(:,:,months),3,ndays(months));
-    Z(Z == 0) = NaN;
-    SUM(ii) = nansum(nansum(area.*Z));
-end
-
-%plot(Tls,SUM/1e6,'XR','MarkerSize',25,'LineWidth',4); 
 % $$$ %%% Regional time series 
 % $$$ 
 % $$$ months = [1:12];
@@ -718,8 +736,8 @@ if (strfind(model,'01'))
 end
 
 [xL,yL] = size(lon);
-xvec = 1:5:xL;
-yvec = 1:5:yL;
+xvec = 1:2:xL;
+yvec = 1:2:yL;
 txtmonth = {'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'};
 
 months = {[1:12], ...
@@ -736,9 +754,10 @@ labels = {'(a) Annual', ...
 % $$$ sp = 10;
 % $$$ clim = [-30 0]; % FOR SWP
 % $$$ sp = 0.5; % FOR SWP
-clim = [-1 1]*(1e-5)*86400; % FOR WMT
-clim = [-0.3 0.3]*(1e-5)*86400; % FOR WMT
-sp = (0.3e-6)*86400;
+% $$$ clim = [-2 2]*(1e-5)*86400; % FOR WMT
+% $$$ sp = (4e-6)*86400;
+clim = [-0.5 0.5]*(1e-5)*86400; % FOR WMT
+sp = (1e-6)*86400;
 
 doWMT = 1; % plot WMT instead of flux
 
@@ -746,7 +765,8 @@ cpts = [-1e10 clim(1):sp:clim(2) 1e10];
 npts = length(cpts)
 
 if (doWMT)
-    cmap = flipud(lbmap(npts-3,'RedBlue'));
+% $$$     cmap = flipud(lbmap(npts-3,'RedBlue'));
+    cmap = redblue(npts-3);
 else
     cmap = parula(npts-3);
     cmap = parula(npts-3);
