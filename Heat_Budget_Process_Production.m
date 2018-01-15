@@ -480,10 +480,10 @@ for ii = 1:length(Tls)
                 tytrans = txtrans + ncread(wname,'ty_trans_nrho_gm',[1 1 ii ti],[xL yL 1 1])*1e9/rho0;
             end
             
-            JI(2:end,2:end,ti) = JI(2:end,2:end,ti)-txtrans(1:(end-1),2:end) + txtrans(2:end,2:end) + ...
-                                 -tytrans(2:end,1:(end-1)) + tytrans(2:end,2:end);
-            JI(1,2:end,ti) = JI(1,2:end,ti)-txtrans(end,2:end) + txtrans(1,2:end) + ...
-                             -tytrans(1,1:(end-1)) + tytrans(1,2:end);
+            JI(2:end,2:end,ti) = JI(2:end,2:end,ti)+txtrans(1:(end-1),2:end) - txtrans(2:end,2:end) ...
+                                 +tytrans(2:end,1:(end-1)) - tytrans(2:end,2:end);
+            JI(1,2:end,ti) = JI(1,2:end,ti)+txtrans(end,2:end) - txtrans(1,2:end) ...
+                             +tytrans(1,1:(end-1)) - tytrans(1,2:end);
         end
         
         % Calculate at next temperature and then average (hence the /2) to get
