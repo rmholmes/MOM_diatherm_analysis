@@ -283,83 +283,70 @@ save([outD model sprintf('_output%03d',output) '_GlobalHBud.mat'],'GWB');
 
 %% Vertical Integrate down to level from online T-binned values -----------------------------------------------------------------------------------------------------------
 Tls = [5 10 15:2.5:27.5];
+Tls = [33.5 32.5];
+Nremain = length(Tls);
+Ti = TL;
 
-for ii = 1:length(Tls)
-    Tl = Tls(ii);
+FlM = zeros(xL,yL,tL); % vdiffuse and nonlocal_KPP
+FlF = zeros(xL,yL,tL); % surface forcing
+FlP = zeros(xL,yL,tL); % P-E+R
+FlA = zeros(xL,yL,tL); % advection + submeso + GM
+if (haveRedi)
+    FlK = zeros(xL,yL,tL); % K33
+    FlR = zeros(xL,yL,tL); % Redi
+end
+if (haveGM)
+    FlG = zeros(xL,yL,tL); % GM
+end
+FlT = zeros(xL,yL,tL); % tendency
+FlSP = zeros(xL,yL,tL); % solar penetration
 
-    FlM = NaN*zeros(xL,yL,tL); % vdiffuse and nonlocal_KPP
-    FlF = NaN*zeros(xL,yL,tL); % surface forcing
-    FlP = NaN*zeros(xL,yL,tL); % P-E+R
-    FlA = NaN*zeros(xL,yL,tL); % advection + submeso + GM
-    if (haveRedi)
-        FlK = NaN*zeros(xL,yL,tL); % K33
-        FlR = NaN*zeros(xL,yL,tL); % Redi
-    end
-    if (haveGM)
-        FlG = NaN*zeros(xL,yL,tL); % GM
-    end
-    FlT = NaN*zeros(xL,yL,tL); % tendency
-    FlSP = NaN*zeros(xL,yL,tL); % solar penetration
-    T = ncread(wname,'neutral');
-    Te = ncread(wname,'neutralrho_edges');
-    [tmp Ti] = min(abs(Te-Tl));
+while (Nremain > 0 & Ti >= 1)
+    Tl = Te(Ti);
 
     for ti=1:tL
-        ii = TL;
-        sprintf('Calculating water-mass heat budget time %03d of %03d, temp %03d of %03d',ti,tL,TL-ii+1,TL-Ti+1)
-    FlT(:,:,ti) = ncread(wname,'temp_tendency_on_nrho',[1 1 ii ti],[xL yL 1 1]);
+        sprintf(['Calculating water-mass heat budget time %03d of ' ...
+                 '%03d, temp %2.2f, going down to %2.2f'],ti,tL,Te(Ti),min(Tls))
+        FlT(:,:,ti) = FlT(:,:,ti)+ncread(wname,'temp_tendency_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
         if (haveRedi)
-            FlK(:,:,ti) = ncread(wname,'temp_vdiffuse_k33_on_nrho',[1 1 ii ti],[xL yL 1 1]);
-            FlR(:,:,ti) = ncread(wname,'neutral_diffusion_on_nrho_temp',[1 1 ii ti],[xL yL 1 1]);
+            FlK(:,:,ti) = FlK(:,:,ti)+ncread(wname,'temp_vdiffuse_k33_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+            FlR(:,:,ti) = FlR(:,:,ti)+ncread(wname,'neutral_diffusion_on_nrho_temp',[1 1 Ti ti],[xL yL 1 1]);
         end
-    FlA(:,:,ti) = ncread(wname,'temp_advection_on_nrho',[1 1 ii ti],[xL yL 1 1])+...
-                  ncread(wname,'temp_submeso_on_nrho',[1 1 ii ti],[xL yL 1 1]);
+        FlA(:,:,ti) = FlA(:,:,ti)+ncread(wname,'temp_advection_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
+            ncread(wname,'temp_submeso_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
         if (haveGM)
-            FlG(:,:,ti) = ncread(wname,'neutral_gm_on_nrho_temp',[1 1 ii ti],[xL yL 1 1]);
-            FlA(:,:,ti) = FlA(:,:,ti) + FlG(:,:,ti);
+            FlG(:,:,ti) = FlG(:,:,ti)+ncread(wname,'neutral_gm_on_nrho_temp',[1 1 Ti ti],[xL yL 1 1]);
+            FlA(:,:,ti) = FlA(:,:,ti)+ncread(wname,'neutral_gm_on_nrho_temp',[1 1 Ti ti],[xL yL 1 1]);
         end
-    FlP(:,:,ti) = ncread(wname,'sfc_hflux_pme_on_nrho',[1 1 ii ti],[xL yL 1 1])+...
-                  ncread(wname,'temp_rivermix_on_nrho',[1 1 ii ti],[xL yL 1 1]);
-        FlM(:,:,ti) = ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 ii ti],[xL yL 1 1])+...
-            ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 ii ti],[xL yL 1 1]);
-    FlF(:,:,ti) = ncread(wname,'temp_vdiffuse_sbc_on_nrho',[1 1 ii ti],[xL yL 1 1])+...
-                  ncread(wname,'sw_heat_on_nrho',[1 1 ii ti],[xL yL 1 1])+...
-                  ncread(wname,'frazil_on_nrho',[1 1 ii ti],[xL yL 1 1])+...
-                  ncread(wname,'temp_eta_smooth_on_nrho',[1 1 ii ti],[xL yL 1 1]);
-        FlSP(:,:,ti) = ncread(wname,'sw_heat_on_nrho',[1 1 ii ti],[xL yL 1 1]);
-    
-        for ii=TL-1:-1:Ti
-            sprintf('Calculating water-mass heat budget time %03d of %03d, temp %03d of %03d',ti,tL,TL-ii+1,TL-Ti+1)
-    FlT(:,:,ti) = FlT(:,:,ti)+ncread(wname,'temp_tendency_on_nrho',[1 1 ii ti],[xL yL 1 1]);
-            if (haveRedi)
-                FlK(:,:,ti) = FlK(:,:,ti)+ncread(wname,'temp_vdiffuse_k33_on_nrho',[1 1 ii ti],[xL yL 1 1]);
-                FlR(:,:,ti) = FlR(:,:,ti)+ncread(wname,'neutral_diffusion_on_nrho_temp',[1 1 ii ti],[xL yL 1 1]);
-            end
-    FlA(:,:,ti) = FlA(:,:,ti)+ncread(wname,'temp_advection_on_nrho',[1 1 ii ti],[xL yL 1 1])+...
-                  ncread(wname,'temp_submeso_on_nrho',[1 1 ii ti],[xL yL 1 1]);
-            if (haveGM)
-                FlG(:,:,ti) = FlG(:,:,ti)+ncread(wname,'neutral_gm_on_nrho_temp',[1 1 ii ti],[xL yL 1 1]);
-                FlA(:,:,ti) = FlA(:,:,ti)+ncread(wname,'neutral_gm_on_nrho_temp',[1 1 ii ti],[xL yL 1 1]);
-            end
-    FlP(:,:,ti) = FlP(:,:,ti)+ncread(wname,'sfc_hflux_pme_on_nrho',[1 1 ii ti],[xL yL 1 1])+...
-                  ncread(wname,'temp_rivermix_on_nrho',[1 1 ii ti],[xL yL 1 1]);
-            FlM(:,:,ti) = FlM(:,:,ti)+ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 ii ti],[xL yL 1 1])+...
-                ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 ii ti],[xL yL 1 1]);
-    FlF(:,:,ti) = FlF(:,:,ti)+ncread(wname,'temp_vdiffuse_sbc_on_nrho',[1 1 ii ti],[xL yL 1 1])+...
-                  ncread(wname,'sw_heat_on_nrho',[1 1 ii ti],[xL yL 1 1])+...
-                  ncread(wname,'frazil_on_nrho',[1 1 ii ti],[xL yL 1 1])+...
-                  ncread(wname,'temp_eta_smooth_on_nrho',[1 1 ii ti],[xL yL 1 1]);
-            FlSP(:,:,ti) = FlSP(:,:,ti)+ncread(wname,'sw_heat_on_nrho',[1 1 ii ti],[xL yL 1 1]);
-        end
+        FlP(:,:,ti) = FlP(:,:,ti)+ncread(wname,'sfc_hflux_pme_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
+            ncread(wname,'temp_rivermix_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+        FlM(:,:,ti) = FlM(:,:,ti)+ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
+            ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+        FlF(:,:,ti) = FlF(:,:,ti)+ncread(wname,'temp_vdiffuse_sbc_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
+            ncread(wname,'sw_heat_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
+            ncread(wname,'frazil_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
+            ncread(wname,'temp_eta_smooth_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+        FlSP(:,:,ti) = FlSP(:,:,ti)+ncread(wname,'sw_heat_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
     end
 
-    save([outD model sprintf('_output%03d',output) '_VertInt_T' strrep(num2str(Tl),'.','p') 'C.mat'],'FlM','FlSP','Tl');
-    if (haveRedi)
-        save([outD model sprintf('_output%03d',output) '_VertInt_T' strrep(num2str(Tl),'.','p') 'C.mat'],'FlK','FlR','-append');
+    % Save heat flux terms:
+    [sp,ind] = min(abs(Tls-Tl));
+    if (abs(sp) <= dT/4)
+        name = [outD model sprintf('_output%03d',output) '_VertInt_T' strrep(num2str(Tls(ind)),'.','p') 'C.mat']
+
+        save(name,'FlM','FlSP','Tl');
+        if (haveRedi)
+            save(name,'FlK','FlR','-append');
+        end
+        if (haveGM)
+            save(name,'FlG','-append');
+        end
+        
+        Nremain = Nremain-1;
     end
-    if (haveGM)
-        save([outD model sprintf('_output%03d',output) '_VertInt_T' strrep(num2str(Tl),'.','p') 'C.mat'],'FlG','-append');
-    end
+
+    Ti = Ti-1;
+    
 end
 
 %% Calculate WMT due to different (resolved) terms %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
