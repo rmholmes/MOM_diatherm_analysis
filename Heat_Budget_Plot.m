@@ -50,42 +50,44 @@ for i=1:length(outputs)
     load([base model sprintf('_output%03d_',outputs(i)) region 'HBud.mat']);
 
 % Fluxes:
-P(:,:,i) = PME+RMX; % PME effective heat flux (W)
-F(:,:,i) = SWH+VDS+FRZ+ETS; % Surface heat flux (W)
-M(:,:,i) = VDF+KNL; % Vertical mixing flux (W)
+P(:,:,i) = GWB.PME+GWB.RMX; % PME effective heat flux (W)
+F(:,:,i) = GWB.SWH+GWB.VDS+GWB.FRZ+GWB.ETS; % Surface heat flux (W)
+M(:,:,i) = GWB.VDF+GWB.KNL; % Vertical mixing flux (W)
 if (exist('RED'))
-    R(:,:,i) = RED+K33; % Redi diffusion (W)
+    R(:,:,i) = GWB.RED+GWB.K33; % Redi diffusion (W)
 else
-    R(:,:,i) = zeros(size(VDF));
+    R(:,:,i) = zeros(size(GWB.VDF));
 end
 if (exist('NGM'))
-    GM(:,:,i) = NGM; % GM (W)
+    GM(:,:,i) = GWB.NGM; % GM (W)
 else
-    GM(:,:,i) = zeros(size(VDF));
+    GM(:,:,i) = zeros(size(GWB.VDF));
 end    
 if (exist('MDS'))
-    MD(:,:,i) = MDS; % GM (W)
-    M(:,:,i) = M(:,:,i) + MD(:,:,i); %ADD TO VERTICAL MIXING, but
+    MD(:,:,i) = GWB.MDS; % GM (W)
+    M(:,:,i) = M(:,:,i) + GWB.MD(:,:,i); %ADD TO VERTICAL MIXING, but
                                      %it's small...
 else
-    MD(:,:,i) = zeros(size(VDF));
+    MD(:,:,i) = zeros(size(GWB.VDF));
 end    
-D(:,:,i) = TEN-ADV-SUB-GM(:,:,i); % Material derivative of T (W)
-SW(:,:,i) = SWH; % Short-wave heat
-JS(:,:,i) = SFW; % Surface Volume Flux
+D(:,:,i) = GWB.TEN-GWB.ADV-GWB.SUB-GM(:,:,i); % Material derivative of T (W)
+SW(:,:,i) = GWB.SWH; % Short-wave heat
+JS(:,:,i) = GWB.SFW; % Surface Volume Flux
 
 % Pacific Interior fluxes:
 if (strcmp(region,'Pacific'))
-    JI(:,:,i) = JBS+JSP+JITF; %Combined volume flux out
-    QI(:,:,i) = QBS+QSP+QITF; %Combined heat flux out
+    JI(:,:,i) = GWB.JBS+GWB.JSP+GWB.JITF; %Combined volume flux out
+    QI(:,:,i) = GWB.QBS+GWB.QSP+GWB.QITF; %Combined heat flux out
 else
-    QI(:,:,i) = zeros(size(PME));
-    JI(:,:,i) = zeros(size(PME));
+    QI(:,:,i) = zeros(size(GWB.PME));
+    JI(:,:,i) = zeros(size(GWB.PME));
 end
 
-% Snapshot fields:
-dVdt(:,:,i) = diff(Vsnap,[],2)./repmat(diff(time_snap)'*86400,[TL+1 1]); % V Change (m3s-1)
-dHdt(:,:,i) = diff(Hsnap,[],2)./repmat(diff(time_snap)'*86400,[TL+1 1]); % H Change (W)
+% $$$ % Snapshot fields:
+% $$$ dVdt(:,:,i) = diff(Vsnap,[],2)./repmat(diff(time_snap)'*86400,[TL+1 1]); % V Change (m3s-1)
+% $$$ dHdt(:,:,i) = diff(Hsnap,[],2)./repmat(diff(time_snap)'*86400,[TL+1 1]); % H Change (W)
+dVdt(:,:,i) = GWB.dVdt; % V Change (m3s-1)
+dHdt(:,:,i) = GWB.dHdt; % H Change (W)
 
 % Water-mass transformation:
 G(:,:,i) = dVdt(:,:,i) - JS(:,:,i) + JI(:,:,i); %Water-mass transformation (m3s-1)
@@ -112,7 +114,7 @@ QII(:,:,i) = QI(:,:,i) - JI(:,:,i).*repmat(Te,[1 tL])*rho0*Cp;
 N(:,:,i) = B(:,:,i) + PI(:,:,i) - QII(:,:,i);
 
 % Monthly binned total flux:
-Nmon(:,:,i) = TENMON;
+Nmon(:,:,i) = GWB.TENMON;
 
 % Checks:
 % WMT from B:
@@ -767,6 +769,11 @@ npts = length(cpts)
 if (doWMT)
 % $$$     cmap = flipud(lbmap(npts-3,'RedBlue'));
     cmap = redblue(npts-3);
+    for i=1:(npts-3)
+        if (cmap(i,:) == 1.0)
+            cmap(i,:) = [0.94 0.94 0.94];
+        end
+    end
 else
     cmap = parula(npts-3);
     cmap = parula(npts-3);
