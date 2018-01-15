@@ -6,13 +6,12 @@
 % $$$ model = 'MOM025';
 % $$$ outD = '/srv/ccrc/data03/z3500785/MOM_wombat/mat_data/'; %Data
 baseD = '/short/e14/rmh561/mom/archive/MOM_HeatDiag/'; %Data Directory.
+baseD = '/srv/ccrc/data03/z3500785/MOM_HeatDiag/'; %Data Directory.
 model = 'MOM025';
-% $$$ outD = '/srv/ccrc/data03/z3500785/MOM_HeatDiag/mat_data/'; %Data
+outD = '/srv/ccrc/data03/z3500785/MOM_HeatDiag/mat_data/'; %Data
 % $$$ baseD = '/short/e14/rmh561/access-om2/control/025deg_jra55_ryf8485/archive/'; %Data Directory.
 % $$$ model = 'ACCESS-OM2_025deg_jra55_ryf8485';
 % $$$ outD = '/short/e14/rmh561/access-om2/control/025deg_jra55_ryf8485/archive/mat_data/';
-% $$$ baseD = '/srv/ccrc/data03/z3500785/MOM_HeatDiag/'; %Data Directory.
-% $$$ model = 'MOM025';
 outD = [baseD 'mat_data/'];
 rstbaseD = baseD;%'/short/e14/rmh561/mom/archive/MOM_HeatDiag/'; %Data
 
@@ -405,22 +404,27 @@ for ii = 1:length(Tls)
 end
 
 %% Add horizontally-resolved volume fluxes for implicit mixing residual:
-Tls = [5 10 15:2.5:30]+0.25;
-% $$$ Tls = [12.75:2:30.75];
-% $$$ Tls = 22.25;
+WMTTls = [15 25 30]+0.25;
+FLTls = [15 25 30];
 
-for ii = 1:length(Tls)
-    Tl = Tls(ii);
+Nremain = length(WMTTls)+length(FLTls);
+Ti = TL+1;
 
-    dVdt = zeros(xL,yL,tL);
-    JI = zeros(xL,yL,tL); % Advection gains
-    JS = zeros(xL,yL,tL); % Surface flux loses
-    T = ncread(wname,'neutral');
-    Te = ncread(wname,'neutralrho_edges');
-    [tmp Ti] = min(abs(T-Tl));
+dVdt = zeros(xL,yL,tL);
+JIM = zeros(xL,yL,tL);
+JSM = zeros(xL,yL,tL);
+FldVdt = zeros(xL,yL,tL); % rho0*Cp*\int_theta^infty dVdt dtheta
+FlJI = zeros(xL,yL,tL); % 
+FlJS = zeros(xL,yL,tL); %
 
-    VsnapP = zeros(xL,yL,tL+1);
-    VsnapM = zeros(xL,yL,tL+1);
+Vsnap = zeros(xL,yL,tL+1);
+
+VsnapP = zeros(xL,yL,tL+1);
+JSP = zeros(xL,yL,tL);
+JIP = zeros(xL,yL,tL);
+
+while (Nremain > 0 & Ti >= 1)
+    
     %Do IC for Vsnap and Hsnap:
     for zi = 1:zL
         sprintf('Doing snapshot IC, depth %02d of %02d',zi,zL)
@@ -437,10 +441,8 @@ for ii = 1:length(Tls)
         Volsnap(isnan(Volsnap)) = 0;
 
         %Accumulate sums:
-        indsM = tempsnap>=Te(Ti);
-        indsP = tempsnap>=Te(Ti+1);
-        VsnapM(:,:,1) = VsnapM(:,:,1)+Volsnap.*indsM;
-        VsnapP(:,:,1) = VsnapP(:,:,1)+Volsnap.*indsP;
+        inds = tempsnap>=Te(Ti);
+        Vsnap(:,:,1) = Vsnap(:,:,1)+Volsnap.*inds;
     end
 
     %Do other times for Vsnap and Hsnap:
@@ -455,66 +457,80 @@ for ii = 1:length(Tls)
         Volsnap(isnan(Volsnap)) = 0;
 
         %Accumulate sums:
-        indsM = tempsnap>=Te(Ti);
-        indsP = tempsnap>=Te(Ti+1);
-        VsnapM(:,:,ti+1) = VsnapM(:,:,ti+1)+Volsnap.*indsM;
-        VsnapP(:,:,ti+1) = VsnapP(:,:,ti+1)+Volsnap.*indsP;
+        inds = tempsnap>=Te(Ti);
+        Vsnap(:,:,ti+1) = Vsnap(:,:,ti+1)+Volsnap.*inds;
         end
     end
+    
+    for ti=1:tL
+        sprintf('Calculating JS and JI time %03d of %03d',ti,tL)
+        JSM(:,:,ti) = JSM(:,:,ti) + ncread(wname,'mass_pmepr_on_nrho',[1 1 Ti-1 ti],[xL yL 1 1])./area/rho0;
+        txtrans = ncread(wname,'tx_trans_nrho',[1 1 Ti-1 ti],[xL yL 1 1])*1e9/rho0 + ...
+                  ncread(wname,'tx_trans_nrho_submeso',[1 1 Ti-1 ti],[xL yL 1 1])*1e9/rho0;
+        tytrans = ncread(wname,'ty_trans_nrho',[1 1 Ti-1 ti],[xL yL 1 1])*1e9/rho0 + ...
+                  ncread(wname,'ty_trans_nrho_submeso',[1 1 Ti-1 ti],[xL yL 1 1])*1e9/rho0;
+        if (haveGM)
+            txtrans = txtrans + ncread(wname,'tx_trans_nrho_gm',[1 1 Ti-1 ti],[xL yL 1 1])*1e9/rho0;
+            tytrans = txtrans + ncread(wname,'ty_trans_nrho_gm',[1 1 Ti-1 ti],[xL yL 1 1])*1e9/rho0;
+        end
+            
+        JIM(2:end,2:end,ti) = JIM(2:end,2:end,ti)+(txtrans(1:(end-1),2:end) - txtrans(2:end,2:end) ...
+                +tytrans(2:end,1:(end-1)) - tytrans(2:end,2:end))./area(2:end,2:end);
+        JIM(1,2:end,ti) = JIM(1,2:end,ti)+(txtrans(end,2:end) - txtrans(1,2:end) ...
+            +tytrans(1,1:(end-1)) - tytrans(1,2:end))./area(1,2:end);        
+    end    
     
     dVdt = (diff(VsnapP,[],3)./repmat(permute(diff(time_snap)*86400,[3 2 1]),[xL yL 1]) + ...
-            diff(VsnapM,[],3)./repmat(permute(diff(time_snap)*86400,[3 2 1]),[xL yL 1]))/2;
-    dVdt = dVdt./repmat(area,[1 1 tL]); % Convert to velocity (Sv/area)
-    save([outD model sprintf('_output%03d',output) '_WMT_T' strrep(num2str(Tl),'.','p') 'C.mat'],'dVdt','-append');
+            diff(Vsnap,[],3)./repmat(permute(diff(time_snap)*86400,[3 2 1]),[xL yL 1]))/2;
+    JS = (JSM + JSP)/2;
+    JI = (JIM + JIP)/2;
+    
+    FldVdt = FldVdt + rho0*Cp*dVdt*dT;
+    FlJS = FlJS + rho0*Cp*JS*dT;
+    FlJI = FlJI + rho0*Cp*JI*dT;
+    
+    
+    % Save WMT terms:
+    WMT_temp = Te(Ti)-dT/2;
+    [ind, sp] = min(abs(WMT_temp-WMTTls));
+    if (sp == 0)
+        name = [outD model sprintf('_output%03d',output) '_WMT_T' strrep(num2str(WMT_temp),'.','p') 'C.mat'];
+        save(name,'dVdt','JS','JI','-append');
 
-    for ti=1:tL
-        for ii=TL:-1:(Ti+1)
-            sprintf('Calculating JS and JI time %03d of %03d, temp %03d of %03d',ti,tL,TL-ii+1,TL-Ti)
-            JS(:,:,ti) = JS(:,:,ti) + ncread(wname,'mass_pmepr_on_nrho',[1 1 ii ti],[xL yL 1 1])/rho0;
-            txtrans = ncread(wname,'tx_trans_nrho',[1 1 ii ti],[xL yL 1 1])*1e9/rho0 + ...
-                      ncread(wname,'tx_trans_nrho_submeso',[1 1 ii ti],[xL yL 1 1])*1e9/rho0;
-            tytrans = ncread(wname,'ty_trans_nrho',[1 1 ii ti],[xL yL 1 1])*1e9/rho0 + ...
-                      ncread(wname,'ty_trans_nrho_submeso',[1 1 ii ti],[xL yL 1 1])*1e9/rho0;
-            if (haveGM)
-                txtrans = txtrans + ncread(wname,'tx_trans_nrho_gm',[1 1 ii ti],[xL yL 1 1])*1e9/rho0;
-                tytrans = txtrans + ncread(wname,'ty_trans_nrho_gm',[1 1 ii ti],[xL yL 1 1])*1e9/rho0;
-            end
-            
-            JI(2:end,2:end,ti) = JI(2:end,2:end,ti)+txtrans(1:(end-1),2:end) - txtrans(2:end,2:end) ...
-                                 +tytrans(2:end,1:(end-1)) - tytrans(2:end,2:end);
-            JI(1,2:end,ti) = JI(1,2:end,ti)+txtrans(end,2:end) - txtrans(1,2:end) ...
-                             +tytrans(1,1:(end-1)) - tytrans(1,2:end);
+        % Calculate implicit mixing by residual:
+        load(name,'WMTM','WMTF');
+        WMTI = dVdt-WMTM-WMTF-JI-JS;
+        if (haveRedi)
+            load(name,'WMTK','WMTR');
+            WMTI = WMTI-WMTK-WMTR;
         end
+        save(name,'WMTI','-append');
         
-        % Calculate at next temperature and then average (hence the /2) to get
-        % mid-temperature:
-        JS(:,:,ti) = JS(:,:,ti) + (ncread(wname,'mass_pmepr_on_nrho',[1 1 Ti ti],[xL yL 1 1])/rho0)/2;
-        txtrans = ncread(wname,'tx_trans_nrho',[1 1 Ti ti],[xL yL 1 1])*1e9/rho0 + ...
-                  ncread(wname,'tx_trans_nrho_submeso',[1 1 Ti ti],[xL yL 1 1])*1e9/rho0;
-        tytrans = ncread(wname,'ty_trans_nrho',[1 1 Ti ti],[xL yL 1 1])*1e9/rho0 + ...
-                  ncread(wname,'ty_trans_nrho_submeso',[1 1 Ti ti],[xL yL 1 1])*1e9/rho0;
-        if (haveGM)
-            txtrans = txtrans + ncread(wname,'tx_trans_nrho_gm',[1 1 Ti ti],[xL yL 1 1])*1e9/rho0;
-            tytrans = txtrans + ncread(wname,'ty_trans_nrho_gm',[1 1 Ti ti],[xL yL 1 1])*1e9/rho0;
+        Nremain = Nremain-1;
+    end
+
+    % Save heat flux terms:
+    Fl_temp = Te(Ti-1);
+    [ind, sp] = min(abs(Fl_temp-FLTls));
+    if (sp == 0)
+        name = [outD model sprintf('_output%03d',output) '_VertInt_T' strrep(num2str(Fl_temp),'.','p') 'C.mat'];
+        save(name,'FldVdt','FlJS','FlJI','-append');
+
+        % Calculate implicit mixing by residual:
+        load(name,'FlM','FlF');
+        FlI = FldVdt-FlM-FlF-FlJI-FlJS;
+        if (haveRedi)
+            load(name,'FlK','FlR');
+            FlI = FlI-FlK-FlR;
         end
-            
-        JI(2:end,2:end,ti) = JI(2:end,2:end,ti)+ (txtrans(1:(end-1),2:end) - txtrans(2:end,2:end) ...
-            +tytrans(2:end,1:(end-1)) - tytrans(2:end,2:end))/2;
-        JI(1,2:end,ti) = JI(1,2:end,ti)+ (txtrans(end,2:end) - txtrans(1,2:end) ...
-            +tytrans(1,1:(end-1)) - tytrans(1,2:end))/2;
-    end
+        save(name,'FlI','-append');
     
-    JI = JI./repmat(area,[1 1 tL]); % Convert to velocity (Sv/area)
-    JS = JS./repmat(area,[1 1 tL]); % Convert to velocity (Sv/area)
-    
-    % Calculate implicit mixing by residual:
-    load([outD model sprintf('_output%03d',output) '_WMT_T' strrep(num2str(Tl),'.','p') 'C.mat'],'WMTM','WMTF');
-    WMTI = dVdt-WMTM-WMTF-JI-JS;
-    if (haveRedi)
-        load([outD model sprintf('_output%03d',output) '_WMT_T' strrep(num2str(Tl),'.','p') 'C.mat'],'WMTK','WMTR');
-        WMTI = WMTI-WMTK-WMTR;
+        Nremain = Nremain-1;
     end
-    save([outD model sprintf('_output%03d',output) '_WMT_T' strrep(num2str(Tl),'.','p') 'C.mat'],'JS','JI','WMTI','-append');
+
+    VsnapP = Vsnap;
+    JSP = JSM;
+    JIP = JIM;
 end
 
 % $$$ %% Save isotherm depths -------------------------------------------------------------------------------------
