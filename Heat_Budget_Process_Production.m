@@ -23,8 +23,8 @@ haveRedi = 0; % 1 = Redi diffusion is on, 0 = off
 haveGM = 0; % 1 = GM is on, 0 = off;
 haveMDS = 0; % 1 = MDS is on, 0 = off;
 
-%output = 8:12;
-output = 8;
+for output = 8:12;
+% $$$ output = 8;
 restart = output-1;
 
 % file-names -----------------------------------------
@@ -107,6 +107,7 @@ save([outD model sprintf('_output%03d',output) '_BaseVars.mat'], ...
      'lonu','latu');
 
 %% Calculate dVdt, dHdt and save back into wmass file:
+%% Also, calculate TENMON
 
 % Create variables:
 ncid = netcdf.open(wname,'NC_WRITE');
@@ -165,6 +166,8 @@ HsnapM = Hsnap;
 Vsnap = zeros(xL,yL,TL);
 Hsnap = zeros(xL,yL,TL);
 
+TENMON = zeros(TL+1,tL);
+
 %Do other times for Vsnap and Hsnap:
 for ti=1:tL
     for zi=1:zL
@@ -175,6 +178,9 @@ for ti=1:tL
         if (max(max(tempsnap))>120);tempsnap = tempsnap-273.15;end;
         Volsnap = ncread(sname,'dzt',[1 1 zi ti],[xL yL 1 1]).*area;
         Volsnap(isnan(Volsnap)) = 0;
+        
+        TENf = area.*ncread(hname,'temp_tendency',[1 1 zi ti],[xL ...
+                            yL 1 1]);
 
         for Ti=1:TL
             %Accumulate sums:
@@ -183,8 +189,14 @@ for ti=1:tL
             Hlay = Volsnap.*tempsnap.*inds*rho0*Cp;
             Hlay(isnan(Hlay)) = 0;
             Hsnap(:,:,Ti) = Hsnap(:,:,Ti) + Hlay;
+            TENMON(Ti,ti) = TENMON(Ti,ti)+nansum(TENf(find(inds)));
         end
+        inds = find(tempsnap>=Te(TL+1));
+        TENMON(TL+1,ti) = TENMON(TL+1,ti)+nansum(TENf(inds));
     end
+    
+    % Integrate to get to T'>T:
+    TENMON(:,ti) = flipud(cumsum(flipud(TENMON(:,ti))));
     
     netcdf.putVar(ncid,dVdtID,[0 0 0 ti-1],[xL yL TL 1],(Vsnap-VsnapM) ...
                   /(time_snap(ti+1)-time_snap(ti))/86400*rho0/1e9);
@@ -199,6 +211,8 @@ netcdf.close(ncid);
 
 %% Calculate volume integrated budget from online T-binned values -----------------------------------------------------------------------------------------------------------
 
+GWB.TENMON = TENMON; % Tendency from monthly averages (from
+                     % previous code block
 GWB.dVdt   = zeros(TL+1,tL); % Sv 
 GWB.dHdt   = zeros(TL+1,tL); % Total W
 GWB.SWH    = zeros(TL+1,tL); % W due to SW redistribution
@@ -283,7 +297,6 @@ save([outD model sprintf('_output%03d',output) '_GlobalHBud.mat'],'GWB');
 
 %% Vertical Integrate down to level from online T-binned values -----------------------------------------------------------------------------------------------------------
 Tls = [5 10 15:2.5:27.5];
-Tls = [33.5 32.5];
 Nremain = length(Tls);
 Ti = TL;
 
