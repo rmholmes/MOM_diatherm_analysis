@@ -104,7 +104,7 @@ late = [-90 (latv(2:end)+latv(1:(end-1)))/2 90];
 save([outD model sprintf('_output%03d',output) '_BaseVars.mat'], ...
      'T','Te','TL','dT','Cp','rho0','time','time_snap','tL', ...
      'z','zL','lon','lat','area','xL','yL','latv','late', ...
-     'lonu','latu');
+     'lonu','latu','-v7.3');
 
 %% Calculate dVdt, dHdt and save back into wmass file:
 %% Also, calculate TENMON
@@ -298,7 +298,7 @@ for ii=TL-1:-1:1
     GWB.SFW(ii,ti) = GWB.SFW(ii+1,ti) + nansum(nansum(ncread(wname,'mass_pmepr_on_nrho',[1 1 ii ti],[xL yL 1 1])/rho0,1),2);
 end
 end
-save([outD model sprintf('_output%03d',output) '_GlobalHBud.mat'],'GWB');
+save([outD model sprintf('_output%03d',output) '_GlobalHBud.mat'],'GWB','-v7.3');
 
 %% Vertical Integrate down to level from online T-binned values -----------------------------------------------------------------------------------------------------------
 Tls = [5 10 15:2.5:27.5];
@@ -352,7 +352,7 @@ while (Nremain > 0 & Ti >= 1)
     if (abs(sp) <= dT/4)
         name = [outD model sprintf('_output%03d',output) '_VertInt_T' strrep(num2str(Tls(ind)),'.','p') 'C.mat']
 
-        save(name,'FlM','FlSP','FlF','FlT','FlA','FlP','Tl');
+        save(name,'FlM','FlSP','FlF','FlT','FlA','FlP','Tl','-v7.3');
         if (haveRedi)
             save(name,'FlK','FlR','-append');
         end
@@ -401,7 +401,7 @@ for ii = 1:length(Tls)
             WMTR(:,:,ti) = 1/rho0/Cp/dT*(ncread(wname,'neutral_diffusion_on_nrho_temp',[1 1 Ti ti],[xL yL 1 1]));
         end
     end
-    save([outD model sprintf('_output%03d',output) '_WMT_T' strrep(num2str(Tl),'.','p') 'C.mat'],'WMTM','WMTSP','WMTP','WMTF','Tl');
+    save([outD model sprintf('_output%03d',output) '_WMT_T' strrep(num2str(Tl),'.','p') 'C.mat'],'WMTM','WMTSP','WMTP','WMTF','Tl','-v7.3');
     if (haveRedi)
         save([outD model sprintf('_output%03d',output) '_WMT_T' strrep(num2str(Tl),'.','p') 'C.mat'],'WMTK','WMTR','-append');
     end
