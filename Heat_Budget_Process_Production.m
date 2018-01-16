@@ -173,6 +173,10 @@ for ti=1:tL
     for zi=1:zL
         sprintf('Calculating Vsnap and Hsnap later months time %03d of %03d, depth %02d of %02d',ti,tL,zi,zL)
 
+        temp = ncread(fname,'temp',[1 1 zi ti],[xL yL 1 1]);
+        temp(~mask(:,:,zi)) = NaN;
+        if (max(max(temp))>120);temp = temp-273.15;end;
+
         tempsnap = ncread(sname,'temp',[1 1 zi ti],[xL yL 1 1]);
         tempsnap(~mask(:,:,zi)) = NaN;
         if (max(max(tempsnap))>120);tempsnap = tempsnap-273.15;end;
@@ -189,9 +193,10 @@ for ti=1:tL
             Hlay = Volsnap.*tempsnap.*inds*rho0*Cp;
             Hlay(isnan(Hlay)) = 0;
             Hsnap(:,:,Ti) = Hsnap(:,:,Ti) + Hlay;
-            TENMON(Ti,ti) = TENMON(Ti,ti)+nansum(TENf(find(inds)));
+            inds = find(temp>=Te(Ti) & temp<Te(Ti+1));
+            TENMON(Ti,ti) = TENMON(Ti,ti)+nansum(TENf(inds));
         end
-        inds = find(tempsnap>=Te(TL+1));
+        inds = find(temp>=Te(TL+1));
         TENMON(TL+1,ti) = TENMON(TL+1,ti)+nansum(TENf(inds));
     end
     
@@ -347,7 +352,7 @@ while (Nremain > 0 & Ti >= 1)
     if (abs(sp) <= dT/4)
         name = [outD model sprintf('_output%03d',output) '_VertInt_T' strrep(num2str(Tls(ind)),'.','p') 'C.mat']
 
-        save(name,'FlM','FlSP','Tl');
+        save(name,'FlM','FlSP','FlF','FlT','FlA','FlP','Tl');
         if (haveRedi)
             save(name,'FlK','FlR','-append');
         end
@@ -631,3 +636,15 @@ end
 % $$$      'HFETS','HFSUB','HFVDF','HFKNL','HFADV','HFTEN');
 
 end
+
+% $$$ %% Swap in non-NaN'd lon/lat:
+% $$$ base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag/mat_data/';
+% $$$ model = 'MOM025';
+% $$$ outputs = [8:12];
+% $$$ 
+% $$$ load([base 'old/' model sprintf('_output%03d_BaseVars.mat',2)]);
+% $$$ region = 'Global';
+% $$$ for output = 8:12
+% $$$     save([base model sprintf('_output%03d_BaseVars.mat',output)], ...
+% $$$          'lon','lat','lonu','latu','area','-append');
+% $$$ end
