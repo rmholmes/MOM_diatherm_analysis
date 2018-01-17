@@ -1,5 +1,5 @@
 function [mask_t,mask_Ny,mask_Nx,mask_Sx,mask_Sy,mask_Wx,mask_Wy] = ...
-    Heat_Budget_Mask(region,gname,fname,wname)
+    Heat_Budget_Mask(region,gname,fname,wname,outD,model)
 % This function provides masks for different regions for analysing
 % the heat budget. 
 
@@ -15,6 +15,13 @@ function [mask_t,mask_Ny,mask_Nx,mask_Sx,mask_Sy,mask_Wx,mask_Wy] = ...
 %
 % The masks below were checked using these grid locations and the
 % vertical sum of the transport.
+
+% Mask already exists in saved file? 
+outname = [outD model '_RegionMask_' region '.mat'];
+if (exist(outname))
+    ['Loading mask that already exists from file ' outname]
+    load(outname);
+else    
 
 lonv_u = ncread(gname,'xu_ocean');
 latv_u = ncread(gname,'yu_ocean');
@@ -32,8 +39,10 @@ mask_Sx = 0*mask_t; %South x-trans mask
 mask_Wy = 0*mask_t; %West y-trans mask
 mask_Wx = 0*mask_t; %West x-trans mask
 
+
 %%%%%%%% PACIFIC REGION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if (strcmp(region,'Pacific'))
+    ['Generating new mask to file ' outname]
 
 % ITF segments:
 % 114.9E:
@@ -140,6 +149,11 @@ mask_t(isnan(SST)) = 0;
 % $$$ plot(lon(txtrans_Sx~=0)+0.125,lat(txtrans_Sx~=0),'xm');
 % $$$ plot(lon(tytrans_Sy~=0),lat(tytrans_Sy~=0)+0.05,'dm');
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+end
+
+save(outname,'mask_t','mask_Ny','mask_Nx','mask_Sx','mask_Sy','mask_Wx','mask_Wy','-v7.3');
+end
 
 end
 
