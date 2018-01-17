@@ -1,17 +1,19 @@
  % This script processes the heat budget and associated variables in
 % MOM025 or MOM01 simulations and save's into .mat files
 
+% $$$ baseL = '/short/e14/rmh561/mom/archive/';
+% $$$ baseL = '/short/e14/rmh561/access-om2/;
+baseL = '/srv/ccrc/data03/z3500785/';
+
 % MOM-SIS025-WOMBAT:
-% $$$ baseD = '/short/e14/rmh561/mom/archive/MOM_wombat/'; %Data Directory.
-% $$$ baseD = '/srv/ccrc/data03/z3500785/MOM_wombat/'; %Data Directory.
 % $$$ model = 'MOM025';
+% $$$ baseD = [baseL 'MOM_wombat/']; %Data Directory.
 % MOM-SIS025:
-baseD = '/short/e14/rmh561/mom/archive/MOM_HeatDiag/'; %Data Directory.
-baseD = '/srv/ccrc/data03/z3500785/MOM_HeatDiag/'; %Data Directory.
 model = 'MOM025';
+baseD = [baseL 'MOM_HeatDiag/']; %Data Directory.
 % ACCESS-OM2:
-% $$$ baseD = '/short/e14/rmh561/access-om2/control/025deg_jra55_ryf8485/archive/'; %Data Directory.
 % $$$ model = 'ACCESS-OM2_025deg_jra55_ryf8485';
+% $$$ baseD = [baseL 'control/025deg_jra55_ryf8485/archive/']; %Data Directory.
 
 outD = [baseD 'mat_data/'];
 rstbaseD = baseD;
