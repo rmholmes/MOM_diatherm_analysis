@@ -1,10 +1,10 @@
 % This script processes the heat budget and associated variables in
 % MOM025 or MOM01 simulations and save's into .mat files. This version
-% saves only the Pacific region and transports/fluxes into and out of
-% this region.
+% saves only a specified region (as determined by Heat_Budget_Mask)
+% and transports/fluxes into and out of this region.
 
-baseL = '/short/e14/rmh561/mom/archive/';
-% $$$ baseL = '/srv/ccrc/data03/z3500785/';
+% $$$ baseL = '/short/e14/rmh561/mom/archive/';
+baseL = '/srv/ccrc/data03/z3500785/';
 
 % $$$ model = 'MOM01';
 % $$$ baseD = [baseL 'MOM01_HeatDiag/'];
@@ -18,6 +18,11 @@ baseD = [baseL 'MOM_HeatDiag/'];
 rstbaseD = baseD;
 outD = [baseD 'mat_data/'];
 
+region = 'Pacific'; % See Heat_Budget_Mask
+
+% $$$ post = 'ocean/'; % For ACCESS-OM2 output coulpled;
+post = ''; % For MOM-SIS.
+
 haveRedi = 0;
 haveGM = 0;
 % $$$ for output=[19:-1:1]
@@ -26,9 +31,9 @@ haveGM = 0;
     restart = output-1;
 
 % file-names -----------------------------------------
-base = [baseD sprintf('output%03d/',output)];
-basem1 = [baseD sprintf('output%03d/',output-1)];
-baser = [rstbaseD sprintf('restart%03d/',restart)];
+base = [baseD sprintf('output%03d/',output) post];
+basem1 = [baseD sprintf('output%03d/',output-1) post];
+baser = [rstbaseD sprintf('restart%03d/',restart) post];
 hname = [base 'ocean_heat.nc'];
 if (strfind(baseD,'01'))
     fname = [base 'ocean_month.nc'];
@@ -88,136 +93,13 @@ T = ncread(wname,'neutral');
 Te = ncread(wname,'neutralrho_edges');
 TL = length(T);dT = T(2)-T(1);
 
-% Mask information:  -----------------------------------------
-%
-% Notes on the B-grid:
-% - All the heat budget diagnostics are on t-cells, so the mask
-%   throughout the Pacific mask uses T-cells.
-% - tx_trans_nrho is on the east-face of the T-cells, or the
-%   south-face of the u-cells.
-% - tx_trans_nrho is on the north-frace of the T-cells, or the
-%   west-face of the u-cells. 
-%
-% The masks below were checked using these grid locations and the
-% vertical sum of the transport.
+[mask_t,mask_Ny,mask_Nx,mask_Sx,mask_Sy,mask_Wx,mask_Wy] = ...
+    Heat_Budget_Mask('Pacific',gname,fname,wname);
 
-mask_t = ones(size(area)); %Pacific Mask: 1 = Pacific water, 0 = Elsewhere
-mask_Ny = 0*mask_t; %North y-trans mask
-mask_Nx = 0*mask_t; %North x-trans mask
-mask_Sy = 0*mask_t; %South y-trans mask
-mask_Sx = 0*mask_t; %South x-trans mask
-mask_Wy = 0*mask_t; %West y-trans mask
-mask_Wx = 0*mask_t; %West x-trans mask
-
-% ITF segments:
-% 114.9E:
-[~, t1] = min(abs(lonv_u+245.1));[~, t2] = min(abs(latv_u+23));[~, t3] = min(abs(latv_u+8.25));
-mask_Wx(t1,t2:t3) = 1;mask_t(1:t1,t2:t3) = 0;
-% 256.9E:
-[~, t1] = min(abs(lonv_u+256.9));[~, t2] = min(abs(latv_u+0.875));[~, t3] = min(abs(latv_u-4.121));
-mask_Wx(t1,t2:t3) = 1;mask_t(1:t1,t2:t3) = 0;
-% 254.25E:
-[~, t1] = min(abs(lonv_u+254.25));[~, t2] = min(abs(latv_u+6.362));[~, t3] = min(abs(latv_u+4.371));
-mask_Wx(t1,t2:t3) = 1;mask_t(1:t1,t2:t3) = 0;
-
-%Checked: YES! Pacific_MASK_CheckITF.png where magenta points are
-%txtrans(mask_Wx).
-
-% SOUTH Pacific:
-% 46S:
-[~, t1] = min(abs(latv_u+46));[~, t2] = min(abs(lonv_u+213.5));[~, t3] = min(abs(lonv_u+73));
-mask_Sy((t2+1):t3,t1) = 1;mask_t(:,1:t1) = 0;
-
-% 213.5E:
-[~, t1] = min(abs(lonv_u+213.5));[~, t2] = min(abs(latv_u+46));[~, t3] = min(abs(latv_u+37));
-mask_Sx(t1,(t2+1):t3) = 1;mask_t(1:t1,t2:t3) = 0;
-
-%Checked: YES! Pacific_MASK_CheckTassieNZ.png where magenta crosses
-%are txtrans(mask_Sx) and magenta diamonds are tytrans(mask_Sy).
-
-% NORTH Pacific:
-[~, t1] = min(abs(latv_u-66));[~, t2] = min(abs(lonv_u+172));[~, t3] = min(abs(lonv_u+166));
-mask_Ny(t2:t3,t1) = 1;
-mask_t(:,(t1+1):end) = 0;
-
-%Checked: YES! Pacific_MASK_CheckBering.png 
-
-% Pacific Mask:
-[~, t1] = min(abs(lonv_u+68));mask_t(t1:end,:) = 0;
-[~, t1] = min(abs(lonv_u+98));[~, t2] = min(abs(latv_u-18));mask_t(t1:end,t2:end) = 0;
-[~, t1] = min(abs(lonv_u+89));[~, t2] = min(abs(latv_u-15));
-mask_t(t1:end,t2:end) = 0;[~, t1] = min(abs(lonv_u+84));
-[~, t2] = min(abs(latv_u-10));mask_t(t1:end,t2:end) = 0;
-[~, t1] = min(abs(lonv_u+82.5));[~, t2] = min(abs(latv_u-9.5));mask_t(t1:end,t2:end) = 0;
-[~, t2] = min(abs(lonv_u+80.5));[~, t3] = min(abs(latv_u-9));
-mask_t(t1:t2,t3:end) = 0;[~, t1] = min(abs(lonv_u+78.25));
-[~, t2] = min(abs(latv_u-9));mask_t(t1:end,t2:end) = 0;
-[~, t1] = min(abs(lonv_u+77.5));[~, t2] = min(abs(latv_u-7.25));mask_t(t1:end,t2:end) = 0;
-[~, t1] = min(abs(lonv_u+217));[~, t2] = min(abs(latv_u+22.29));mask_t(1:t1,1:t2) = 0;
-[~, t1] = min(abs(lonv_u+261));mask_t(1:t1,:) = 0;
-[~, t1] = min(abs(lonv_u+256.75));[~, t2] = min(abs(latv_u+1));mask_t(1:t1,1:t2) = 0;
-[~, t1] = min(abs(lonv_u+252));[~, t2] = min(abs(latv_u+6.5));mask_t(1:t1,1:t2) = 0;
-[~, t1] = min(abs(lonv_u+248));[~, t2] = min(abs(latv_u+7.25));mask_t(1:t1,1:t2) = 0;
-[~, t1] = min(abs(lonv_u+260));[~, t2] = min(abs(latv_u-8));mask_t(1:t1,1:t2) = 0;
-[~, t1] = min(abs(lonv_u+258.5));[~, t2] = min(abs(latv_u-6.5));mask_t(1:t1,1:t2) = 0;
-mask_t(81,525) = 0;mask_t(799,535)=0;
-
-SST = ncread(fname,'temp',[1 1 1 1],[xL yL 1 1]);
-mask_t(isnan(SST)) = 0;
-
-% $$$ txtrans = sum(ncread(wname,'tx_trans_nrho',[1 1 1 1],[xL yL TL 1]),3);
-% $$$ tytrans = sum(ncread(wname,'ty_trans_nrho',[1 1 1 1],[xL yL TL 1]),3);
-% $$$ 
-% $$$ % ITF check:
-% $$$ % $$$ [tmp ln1] = min(abs(lonv_u+265));
-% $$$ % $$$ [tmp ln2] = min(abs(lonv_u+242));
-% $$$ % $$$ [tmp lt1] = min(abs(latv_u+25));
-% $$$ % $$$ [tmp lt2] = min(abs(latv_u-15));
-% $$$ [tmp ln1] = min(abs(lonv_u+220));
-% $$$ [tmp ln2] = min(abs(lonv_u+190));
-% $$$ % $$$ [tmp ln1] = min(abs(lonv_u+190));
-% $$$ % $$$ [tmp ln2] = min(abs(lonv_u+70));
-% $$$ [tmp lt1] = min(abs(latv_u+50));
-% $$$ [tmp lt2] = min(abs(latv_u+36));
-% $$$ % $$$ [tmp ln1] = min(abs(lonv_u+180));
-% $$$ % $$$ [tmp ln2] = min(abs(lonv_u+160));
-% $$$ % $$$ [tmp lt1] = min(abs(latv_u-60));
-% $$$ % $$$ [tmp lt2] = min(abs(latv_u-70));
-% $$$ SST = SST(ln1:ln2,lt1:lt2);
-% $$$ lon = lon(ln1:ln2,lt1:lt2);
-% $$$ lat = lat(ln1:ln2,lt1:lt2);
-% $$$ mask_t = mask_t(ln1:ln2,lt1:lt2);
-% $$$ txtrans = txtrans(ln1:ln2,lt1:lt2);
-% $$$ tytrans = tytrans(ln1:ln2,lt1:lt2);
-% $$$ 
-% $$$ % $$$ mask_Wx = mask_Wx(ln1:ln2,lt1:lt2);
-% $$$ % $$$ txtrans_Wx = txtrans; txtrans_Wx(mask_Wx~=1) = 0;
-% $$$ % $$$ mask_Wy = mask_Wy(ln1:ln2,lt1:lt2);
-% $$$ % $$$ tytrans_Wy = tytrans; tytrans_Wy(mask_Wy~=1) = 0;
-% $$$ mask_Sx = mask_Sx(ln1:ln2,lt1:lt2);
-% $$$ txtrans_Sx = txtrans; txtrans_Sx(mask_Sx~=1) = 0;
-% $$$ mask_Sy = mask_Sy(ln1:ln2,lt1:lt2);
-% $$$ tytrans_Sy = tytrans; tytrans_Sy(mask_Sy~=1) = 0;
-% $$$ % $$$ mask_Nx = mask_Nx(ln1:ln2,lt1:lt2);
-% $$$ % $$$ txtrans_Nx = txtrans; txtrans_Nx(mask_Nx~=1) = 0;
-% $$$ % $$$ mask_Ny = mask_Ny(ln1:ln2,lt1:lt2);
-% $$$ % $$$ tytrans_Ny = tytrans; tytrans_Ny(mask_Ny~=1) = 0;
-% $$$ 
-% $$$ clf;
-% $$$ plot(lon(isnan(SST)),lat(isnan(SST)),'or');
-% $$$ hold on;
-% $$$ plot(lon(~isnan(SST)),lat(~isnan(SST)),'ok');
-% $$$ plot(lon(mask_t==1),lat(mask_t==1),'oc');
-% $$$ plot(lon(txtrans~=0)+0.125,lat(txtrans~=0),'xg');
-% $$$ hold on;
-% $$$ plot(lon(tytrans~=0),lat(tytrans~=0)+0.05,'dy');
-% $$$ plot(lon(txtrans_Sx~=0)+0.125,lat(txtrans_Sx~=0),'xm');
-% $$$ plot(lon(tytrans_Sy~=0),lat(tytrans_Sy~=0)+0.05,'dm');
-
-save([outD model sprintf('_output%03d',output) '_PacificBaseVars.mat'], ...
+save([outD model sprintf('_output%03d',output) '_' region '_BaseVars.mat'], ...
      'T','Te','TL','dT','Cp','rho0','time','time_snap','tL', ...
      'z','zL','lon','lat','area','xL','yL','latv_u','lonv_t','latv_t','lonv_u', ...
-     'lonu','latu','mask_t','mask_Ny','mask_Nx','mask_Sx','mask_Sy','mask_Wx','mask_Wy');
+     'lonu','latu','mask_t','mask_Ny','mask_Nx','mask_Sx','mask_Sy','mask_Wx','mask_Wy','-v7.3');
 
 %% Calculate volume integrated budget from online T-binned values -----------------------------------------------------------------------------------------------------------
 V      = zeros(TL+1,tL); % Volume of water (m3) above temperature T
@@ -335,8 +217,8 @@ for ti=1:tL
     TENMON(:,ti) = flipud(cumsum(flipud(TENMON(:,ti))));
 end
 
-save([outD model sprintf('_output%03d',output) '_PacificHBud.mat'], ...
-     'Vsnap','Hsnap','V','H','Temp','TENMON');
+save([outD model sprintf('_output%03d',output) '_' region '_HBud.mat'], ...
+     'Vsnap','Hsnap','V','H','Temp','TENMON','-v7.3');
 
 for ti=1:tL
     ii = TL;
@@ -417,12 +299,12 @@ for ii=TL-1:-1:1
 end
 end
 
-save([outD model sprintf('_output%03d',output) '_PacificHBud.mat'],'SWH','VDS','RMX','PME','FRZ', ...
+save([outD model sprintf('_output%03d',output) '_' region '_HBud.mat'],'SWH','VDS','RMX','PME','FRZ', ...
      'ETS','SUB','VDF','KNL','ADV','TEN','SFW','JBS','JSP','JITF','QBS','QSP','QITF','-append');
 if (haveRedi)
-    save([outD model sprintf('_output%03d',output) '_PacificHBud.mat'],'K33','RED','-append');
+    save([outD model sprintf('_output%03d',output) '_' region '_HBud.mat'],'K33','RED','-append');
 end
 if (haveGM)
-    save([outD model sprintf('_output%03d',output) '_PacificHBud.mat'],'NGM','-append');
+    save([outD model sprintf('_output%03d',output) '_' region '_HBud.mat'],'NGM','-append');
 end
 
