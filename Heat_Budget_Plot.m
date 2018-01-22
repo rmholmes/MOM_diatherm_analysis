@@ -34,6 +34,8 @@ clear all;
 base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag/mat_data/';
 model = 'MOM025';
 outputs = [8:12];
+% $$$ outputs = 8;
+% $$$ outputs = 13;
 
 % $$$ base = '/srv/ccrc/data03/z3500785/MOM01_HeatDiag/mat_data/';
 % $$$ model = 'MOM01';
@@ -254,11 +256,13 @@ set(lg,'Position',[0.5881    0.5500    0.2041    0.2588]);
 months = [1:12];
 fields = {
           {M(:,months,:), 'Vertical Mixing $\mathcal{M}$','r',2,'-'}, ...
+          {I(:,months,:), 'Implicit Mixing $\mathcal{M}$','r',2,'-'}, ...
           };
 
 % Fluxes:
 scale = 1/1e15;label = '(PW)';x = Te;
-caxs = [-0.8 0];
+% $$$ caxs = [-0.8 0];
+caxs = [-1.5 0];
 % $$$ caxs = [-5 5];
 sp = 0.05;
 % $$$ caxs = [-0.2 0];x = Te;
@@ -305,7 +309,7 @@ end
 cmap = redblue((length(cint)-3)*2);
 cmap = cmap(1:(length(cint)-3),:);
 colormap(cmap);
-colormap(redblue);
+% $$$ colormap(redblue);
 
 %% Global Seasonal Cycle TS
 months = 1:12;
@@ -387,7 +391,6 @@ LabelAxes(gca,2,25,0.003,0.925);
 
 %%% Spatial Structure:
 
-% Do vertical mixing:
 VAR = 'FlI';
 % $$$ VAR = 'FlSP';
 % $$$ VAR = 'WMTP';
@@ -411,9 +414,7 @@ eval([VAR '(' VAR '==0) = NaN;']);
 eval(['FlM = ' VAR ';']);
 
 % CHECK spatial structure sums to total:
-% $$$ Tls = [12.75:2:30.75];
-% $$$ Tls = [-2.75:0.5:33.75];
-Tls = [4.75 9.75 14.75:2.5:27.25]+0.25;
+Tls = [14.75:2.5:27.25]+0.25;
 SUM = zeros(size(Tls));
 for ii = 1:length(Tls)
 
@@ -435,115 +436,99 @@ for ii = 1:length(Tls)
     Z(Z == 0) = NaN;
     SUM(ii) = nansum(nansum(area.*Z));
 end
-%plot(Tls,SUM/1e6,'XR','MarkerSize',12,'LineWidth',2); 
+%plot(Tls,SUM/1e6,'Xb','MarkerSize',12,'LineWidth',2); 
+%plot(Tls,SUM/1e15,'Xb','MarkerSize',12,'LineWidth',2); 
 
-% $$$ %%% Regional time series 
-% $$$ 
-% $$$ months = [1:12];
-% $$$ %Region choice:
-LATsplit = 10;
+%%% Regional time series 
 
-reg = [-150 -90 -5 5];
-EEPinds = lat > reg(3) & lat < reg(4) & lon > reg(1) & lon < reg(2);
+[mask_t,~] = Heat_Budget_Mask('Pacific','','','',base,model);
+months = [1:12];
+%Region choice:
+regions = { ...
+    {'Global',lat==lat,'k'}, ...
+    {'Equatorial',abs(lat)<=10,'k'}, ...
+% $$$     {'NH',lat>10,'k'}, ...
+% $$$     {'SH',lat<-10,'k'}, ...
+% $$$     {'Nino 3',lat > -5 & lat < 5 & lon > -150 & lon < -90,'m'}, ...
+% $$$     {'Eastern Pacific',lat > -10 & lat < 10 & lon > -160 & mask_t,'c'}, ...
+    {'Eastern Pacific',lat > -10 & lat < 10 & lon > -160 & lon<-70,'c'}, ...
+    {'Equatorial Atlantic',lat > -10 & lat < 10 & lon > -65 & lon < 20,[0 0.5 0]}, ...
+    {'Western Pacific',lat > -10 & lat < 10 & lon > -260 & lon < -160,[0.5 0.5 0.5]}, ...
+    {'Kuroshio', lat < 45 & lat > 10 & lon > -260 & lon < -190,'r'}, ...
+% $$$     {'Gulf Stream', lat < 45 & lat > 10 & lon > -100 & lon < -40 & ~mask_t,'b'}, ...
+    {'Indian', lat < 25 & lat > -45 & (lon > 20 | lon < -260),'y'}, ...
+    {'South Pacific/Atlantic', lat < -10 & lat > -45 & lon > -260 & lon < 20,'g'}, ...
+          };
 
-regA = [-25 5 -5 5];
-EEAinds = lat > regA(3) & lat < regA(4) & lon > regA(1) & lon < regA(2);
-
-regI = [40 60 -2 8];
-WEIinds = lat > regI(3) & lat < regI(4) & lon > regI(1) & lon < regI(2);
-
-Eqinds = abs(lat)<=LATsplit;
-Ninds = lat>LATsplit;
-Sinds = lat<-LATsplit;
-
+Field = zeros(12,length(regions));
+AREA = zeros(12,length(regions));
 for i=1:12
     Mtmp = FlM(:,:,i);
-    MEq(i) = nansum(nansum(area(Eqinds).*Mtmp(Eqinds),1),2);
-    MN(i) = nansum(nansum(area(Ninds).*Mtmp(Ninds),1),2);
-    MS(i) = nansum(nansum(area(Sinds).*Mtmp(Sinds),1),2);
-    MEEP(i) = nansum(nansum(area(EEPinds).*Mtmp(EEPinds),1),2);
-    MEEA(i) = nansum(nansum(area(EEAinds).*Mtmp(EEAinds),1),2);
-    MWEI(i) = nansum(nansum(area(WEIinds).*Mtmp(WEIinds),1),2);
-    
     Atmp = area;
     Atmp(isnan(Mtmp)) = NaN;
-    AREAtotal(i) = nansum(nansum(Atmp));
-    AREAEEP(i) = nansum(nansum(Atmp(EEPinds)));
-    AREAEEA(i) = nansum(nansum(Atmp(EEAinds)));
-    AREAWEI(i) = nansum(nansum(Atmp(WEIinds)));
-    AREAEq(i) = nansum(nansum(Atmp(Eqinds)));
-    AREAN(i) = nansum(nansum(Atmp(Ninds)));
-    AREAS(i) = nansum(nansum(Atmp(Sinds)));
     
-% $$$     Ftmp = FlF(:,:,i);
-% $$$     FEq(i) = nansum(nansum(area(Eqinds).*Ftmp(Eqinds),1),2);
-% $$$     FN(i) = nansum(nansum(area(Ninds).*Ftmp(Ninds),1),2);
-% $$$     FS(i) = nansum(nansum(area(Sinds).*Ftmp(Sinds),1),2);
-% $$$     FEEP(i) = nansum(nansum(area(EEPinds).*Ftmp(EEPinds),1),2);
-% $$$ 
-% $$$     Atmp = FlA(:,:,i);
-% $$$     AEq(i) = nansum(nansum(area(Eqinds).*Atmp(Eqinds),1),2);
-% $$$     AN(i) = nansum(nansum(area(Ninds).*Atmp(Ninds),1),2);
-% $$$     AS(i) = nansum(nansum(area(Sinds).*Atmp(Sinds),1),2);
-% $$$     AEEP(i) = nansum(nansum(area(EEPinds).*Atmp(EEPinds),1),2);
+    for ii=1:length(regions)
+        Field(i,ii) = nansum(nansum(area(regions{ii}{2}).*Mtmp(regions{ii}{2}),1),2);
+        AREA(i,ii) = nansum(nansum(Atmp(regions{ii}{2}),1),2);
+    end
 end
-MAll = MEq+MN+MS;
-% $$$ FAll = FEq+FN+FS;AAll = AEq+AN+AS;
 
 %Display output in terminal for table:
-str = {['Area fractions model ' model ' Temp ' num2str(Tl)] ; ...
-       sprintf(' NH area = %3.2f',monmean(AREAN,2,ndays(months))/monmean(AREAtotal,2,ndays(months))) ; ...
-       sprintf(' SH area = %3.2f',monmean(AREAS,2,ndays(months))/monmean(AREAtotal,2,ndays(months))) ; ...
-       sprintf(' Eq area = %3.2f',monmean(AREAEq,2,ndays(months))/monmean(AREAtotal,2,ndays(months))) ; ...
-       sprintf(' EEP area = %3.2f',monmean(AREAEEP,2,ndays(months))/monmean(AREAtotal,2,ndays(months))); ...
-       sprintf(' WEI area = %3.2f',monmean(AREAWEI,2,ndays(months))/monmean(AREAtotal,2,ndays(months))); ...
-       sprintf(' EEA area = %3.2f',monmean(AREAEEA,2,ndays(months))/monmean(AREAtotal,2,ndays(months)))}
-str = {['Annual totals model ' model ' Temp ' num2str(Tl)]  ; ...
-       sprintf(' Total = %3.2f',monmean(MAll,2,ndays(months))/1e15) ; ...
-       sprintf(' NH = %3.2fPW (%3.0f)',monmean(MN,2,ndays(months))/1e15,monmean(MN,2,ndays(months))/monmean(MAll,2,ndays(months))*100) ; ...
-       sprintf(' SH = %3.2fPW (%3.0f)',monmean(MS,2,ndays(months))/1e15,monmean(MS,2,ndays(months))/monmean(MAll,2,ndays(months))*100) ; ...
-       sprintf(' Eq = %3.2fPW (%3.0f)',monmean(MEq,2,ndays(months))/1e15,monmean(MEq,2,ndays(months))/monmean(MAll,2,ndays(months))*100) ; ...
-       sprintf(' EEP = %3.2fPW (%3.0f)',monmean(MEEP,2,ndays(months))/1e15,monmean(MEEP,2,ndays(months))/monmean(MAll,2,ndays(months))*100); ...
-       sprintf(' WEI = %3.2fPW (%3.0f)',monmean(MWEI,2,ndays(months))/1e15,monmean(MWEI,2,ndays(months))/monmean(MAll,2,ndays(months))*100); ...
-       sprintf(' EEA = %3.2fPW (%3.0f)',monmean(MEEA,2,ndays(months))/1e15,monmean(MEEA,2,ndays(months))/monmean(MAll,2,ndays(months))*100)}
-str = {['SC range model ' model ' Temp ' num2str(Tl)]  ; ...
-       sprintf(' Total = %3.2fPW',(max(MAll)-min(MAll))/1e15) ; ...
-       sprintf(' NH = %3.2fPW (%3.0f)',(max(MN)-min(MN))/1e15,(max(MN)-min(MN))/(max(MAll)-min(MAll))*100) ; ...
-       sprintf(' SH = %3.2fPW (%3.0f)',(max(MS)-min(MS))/1e15,(max(MS)-min(MS))/(max(MAll)-min(MAll))*100) ; ...
-       sprintf(' Eq = %3.2fPW (%3.0f)',(max(MEq)-min(MEq))/1e15,(max(MEq)-min(MEq))/(max(MAll)-min(MAll))*100) ; ...
-       sprintf(' EEP = %3.2fPW (%3.0f)',(max(MEEP)-min(MEEP))/1e15,(max(MEEP)-min(MEEP))/(max(MAll)-min(MAll))*100); ...
-       sprintf(' WEI = %3.2fPW (%3.0f)',(max(MWEI)-min(MWEI))/1e15,(max(MWEI)-min(MWEI))/(max(MAll)-min(MAll))*100); ...
-       sprintf(' EEA = %3.2fPW (%3.0f)',(max(MEEA)-min(MEEA))/1e15,(max(MEEA)-min(MEEA))/(max(MAll)-min(MAll))*100)}
-
-mn1 = 4;mn2 = 7;
-str = {['SC range Apr-Jul model ' model ' Temp ' num2str(Tl)]  ; ...
-       sprintf(' Total = %3.2fPW',((MAll(mn1))-(MAll(mn2)))/1e15) ; ...
-       sprintf(' NH = %3.2fPW (%3.0f)',((MN(mn1))-(MN(mn2)))/1e15,((MN(mn1))-(MN(mn2)))/((MAll(mn1))-(MAll(mn2)))*100) ; ...
-       sprintf(' SH = %3.2fPW (%3.0f)',((MS(mn1))-(MS(mn2)))/1e15,((MS(mn1))-(MS(mn2)))/((MAll(mn1))-(MAll(mn2)))*100) ; ...
-       sprintf(' Eq = %3.2fPW (%3.0f)',((MEq(mn1))-(MEq(mn2)))/1e15,((MEq(mn1))-(MEq(mn2)))/((MAll(mn1))-(MAll(mn2)))*100) ; ...
-       sprintf(' EEP = %3.2fPW (%3.0f)',((MEEP(mn1))-(MEEP(mn2)))/1e15,((MEEP(mn1))-(MEEP(mn2)))/((MAll(mn1))-(MAll(mn2)))*100); ...
-       sprintf(' WEI = %3.2fPW (%3.0f)',((MWEI(mn1))-(MWEI(mn2)))/1e15,((MWEI(mn1))-(MWEI(mn2)))/((MAll(mn1))-(MAll(mn2)))*100); ...
-       sprintf(' EEA = %3.2fPW (%3.0f)',((MEEA(mn1))-(MEEA(mn2)))/1e15,((MEEA(mn1))-(MEEA(mn2)))/((MAll(mn1))-(MAll(mn2)))*100)}
-
-% The 1% (within Nino 3) area count of the annual mean:
-M1p = zeros(length(find(EEPinds)),12);
-A1p = area(EEPinds);
-for i=1:12
-    Mtmp = FlM(:,:,i);
-    M1p(:,i) = A1p.*Mtmp(EEPinds);
+str = {['Area fractions model ' model ' Temp ' num2str(Tl)] ;
+       ' '};
+for ii = 1:length(regions)
+    str{ii+2} = sprintf([regions{ii}{1} ' area = %3.2f'], ...
+                        monmean(AREA(:,ii),1,ndays(months))/monmean(AREA(:,1),1,ndays(months)));
 end
-M1pA = monmean(M1p,2,ndays(months));
-[M1pA,I] = sort(M1pA);
-M1p = M1p(I,:);
-Atotal = monmean(AREAtotal,2,ndays(months));
-[tmp ind] = min(abs(cumsum(A1p(I))/Atotal - 0.005));
-%plot(cumsum(A1p(I))/Atotal*100,cumsum(M1pA)/monmean(MAll,2,ndays(months))*100)
-M1pA = sum(M1pA(1:ind));
-M1pSCR = (sum(M1p(1:ind,mn1))-sum(M1p(1:ind,mn2)));
+str
 
-str = {['1% area within Nino 3 model ' model ' Temp ' num2str(Tl)]  ; ...
-       sprintf(' 1p Annual-Mean = %3.2fPW (%3.0f)',M1pA/1e15,M1pA/monmean(MAll,2,ndays(months))*100); ...
-       sprintf(' 1p SC Apr-Jul = %3.2fPW (%3.0f)',M1pSCR/1e15,M1pSCR/((MAll(mn1))-(MAll(mn2)))*100)}
+str = {['Annual totals model ' model ' Temp ' num2str(Tl)] ;
+       ' '};
+for ii = 1:length(regions)
+    str{ii+2} = [regions{ii}{1} sprintf(' = %3.2fPW (%3.0f)', ...
+                        monmean(Field(:,ii),1,ndays(months))/1e15,monmean(Field(:,ii),1,ndays(months))/monmean(Field(:,1),1,ndays(months))*100)];
+end
+str
+
+str = {['SC range model ' model ' Temp ' num2str(Tl)] ;
+       ' '};
+for ii = 1:length(regions)
+    str{ii+2} = [regions{ii}{1} sprintf(' = %3.2fPW (%3.0f)', ...
+                        (max(Field(:,ii))-min(Field(:,ii)))/1e15,(max(Field(:,ii))-min(Field(:,ii)))/(max(Field(:,1))-min(Field(:,1)))*100)];
+end
+str
+
+% $$$ mn1 = 4;mn2 = 7;
+% $$$ str = {['SC range Apr-Jul model ' model ' Temp ' num2str(Tl)] ;
+% $$$        ' '};
+mn1 = 5;mn2 = 8;
+str = {['SC range May-Aug model ' model ' Temp ' num2str(Tl)] ;
+       ' '};
+for ii = 1:length(regions)
+    str{ii+2} = [regions{ii}{1} sprintf(' = %3.2fPW (%3.0f)', ...
+                        (Field(mn1,ii)-Field(mn2,ii))/1e15,(Field(mn1,ii)-Field(mn2,ii))/(Field(mn1,1)-Field(mn2,1))*100)];
+end
+str
+
+% $$$ % The 1% (within Nino 3) area count of the annual mean:
+% $$$ M1p = zeros(length(find(EEPinds)),12);
+% $$$ A1p = area(EEPinds);
+% $$$ for i=1:12
+% $$$     Mtmp = FlM(:,:,i);
+% $$$     M1p(:,i) = A1p.*Mtmp(EEPinds);
+% $$$ end
+% $$$ M1pA = monmean(M1p,2,ndays(months));
+% $$$ [M1pA,I] = sort(M1pA);
+% $$$ M1p = M1p(I,:);
+% $$$ Atotal = monmean(AREAtotal,2,ndays(months));
+% $$$ [tmp ind] = min(abs(cumsum(A1p(I))/Atotal - 0.005));
+% $$$ %plot(cumsum(A1p(I))/Atotal*100,cumsum(M1pA)/monmean(MAll,2,ndays(months))*100)
+% $$$ M1pA = sum(M1pA(1:ind));
+% $$$ M1pSCR = (sum(M1p(1:ind,mn1))-sum(M1p(1:ind,mn2)));
+% $$$ 
+% $$$ str = {['1% area within Nino 3 model ' model ' Temp ' num2str(Tl)]  ; ...
+% $$$        sprintf(' 1p Annual-Mean = %3.2fPW (%3.0f)',M1pA/1e15,M1pA/monmean(MAll,2,ndays(months))*100); ...
+% $$$        sprintf(' 1p SC Apr-Jul = %3.2fPW (%3.0f)',M1pSCR/1e15,M1pSCR/((MAll(mn1))-(MAll(mn2)))*100)}
 
 % $$$ % Average fluxes, isotherm separationl, diffusivity:
 % $$$ load([base 'MOM025_output002_Ziso_T23C.mat']);
@@ -563,27 +548,34 @@ str = {['1% area within Nino 3 model ' model ' Temp ' num2str(Tl)]  ; ...
 % $$$ sprintf('Average flux across the isotherm = %3.1f Wm-2',AvgFlux)
 % $$$ sprintf('Average diffusivity = %3.5f m2s-1',AvgDiff)
 
-
 figure;
 set(gcf,'Position',get(0,'ScreenSize'));
 set(gcf,'defaultlinelinewidth',2);
 
-% $$$ subplot(3,1,1);
-plot(1:12,MEEP/1e15,'--r','LineWidth',4);
-hold on;
-plot(1:12,MEq/1e15,'--k','LineWidth',4);
-plot(1:12,MN/1e15,':b','LineWidth',4);
-plot(1:12,MS/1e15,':','color',[0 0.5 0],'LineWidth',4);
-plot(1:12,(MN+MS)/1e15,':k','LineWidth',4);
-plot(1:12,MAll/1e15,'-k','LineWidth',4);
+legstr = {};
+for ii=1:length(regions)
+    plot(1:12,Field(:,ii)/1e15,'-','color',regions{ii}{3},'LineWidth',2);
+    hold on;
+    legstr{ii} = regions{ii}{1};
+end
+% $$$ plot(1:12,MEEP/1e15,'--r','LineWidth',4);
+% $$$ hold on;
+% $$$ plot(1:12,MEq/1e15,'--k','LineWidth',4);
+% $$$ plot(1:12,MN/1e15,':b','LineWidth',4);
+% $$$ plot(1:12,MS/1e15,':','color',[0 0.5 0],'LineWidth',4);
+% $$$ plot(1:12,(MN+MS)/1e15,':k','LineWidth',4);
+% $$$ plot(1:12,MAll/1e15,'-k','LineWidth',4);
 xlabel('Month');
 ylabel(['PW']);
-title(['Vertical mixing heat flux through $' num2str(Tl) '^\circ$C isotherm']);
-leg = legend('Eastern Equatorial Pacific', ...
-             'Equatorial',['Northern Hemisphere $>' num2str(LATsplit) '^\circ$N'], ...
-             ['Southern Hemisphere $<' num2str(LATsplit) '^\circ$S'], ...
-             ['Outside Equatorial $>\pm' num2str(LATsplit) '^\circ$'], ...
-             ['Total']);
+% $$$ title(['Vertical mixing heat flux through $' num2str(Tl) '^\circ$C isotherm']);
+title(['Implicit mixing heat flux through $' num2str(Tl) '^\circ$C isotherm']);
+
+leg = legend(legstr);
+% $$$ 'Eastern Equatorial Pacific', ...
+% $$$              'Equatorial',['Northern Hemisphere $>' num2str(LATsplit) '^\circ$N'], ...
+% $$$              ['Southern Hemisphere $<' num2str(LATsplit) '^\circ$S'], ...
+% $$$              ['Outside Equatorial $>\pm' num2str(LATsplit) '^\circ$'], ...
+% $$$              ['Total']);
 set(leg,'Position',[0.1481    0.2656    0.2314    0.2340]);
 ylim([-0.8 0]);
 xlim([1 12]);
@@ -593,41 +585,42 @@ set(gca,'Position',[0.1300    0.2451    0.5949    0.6799]);
 set(gca,'FontSize',25);
 grid on;
 
-axes('Position',[0.74 0.2451 0.13 0.6799]);
-plot([0 1],[min(MAll/1e15) min(MAll/1e15)],'-k','linewidth',2);
-hold on;
-plot([0 1],[max(MAll/1e15) max(MAll/1e15)],'-k','linewidth',2);
-text(0.5,mean([min(MAll/1e15) max(MAll/1e15)]),sprintf('%3.2f ',max(MAll/1e15)-min(MAll/1e15)),'VerticalAlignment','middle','HorizontalAlignment','Center','Rotation',270,'FontSize',25);
-plot([1 2],[min(MEq/1e15) min(MEq/1e15)],'--k','linewidth',2);
-plot([1 2],[max(MEq/1e15) max(MEq/1e15)],'--k','linewidth',2);
-text(1.5,mean([min(MEq/1e15) max(MEq/1e15)]),sprintf('%3.2f ',max(MEq/1e15)-min(MEq/1e15)),'VerticalAlignment','middle','HorizontalAlignment','Center','Rotation',270,'FontSize',25);
-plot([2 3],[min(MEEP/1e15) min(MEEP/1e15)],'--r','linewidth',2);
-plot([2 3],[max(MEEP/1e15) max(MEEP/1e15)],'--r','linewidth',2);
-text(2.5,mean([min(MEEP/1e15) max(MEEP/1e15)]),sprintf('%3.2f ',max(MEEP/1e15)-min(MEEP/1e15)),'VerticalAlignment','middle','HorizontalAlignment','Center','Rotation',270,'color','r','FontSize',25);
-plot([3 4],[min(MN/1e15) min(MN/1e15)],':b','linewidth',2);
-plot([3 4],[max(MN/1e15) max(MN/1e15)],':b','linewidth',2);
-text(3.5,mean([min(MN/1e15) max(MN/1e15)]),sprintf('%3.2f ',max(MN/1e15)-min(MN/1e15)),'VerticalAlignment','middle','HorizontalAlignment','Center','Rotation',270,'color','b','FontSize',25);
-plot([4 5],[min(MS/1e15) min(MS/1e15)],':','linewidth',2,'color',[0 ...
-                    0.5 0]);
-plot([4 5],[max(MS/1e15) max(MS/1e15)],':','linewidth',2,'color',[0 ...
-                    0.5 0]);
-text(4.5,mean([min(MS/1e15) max(MS/1e15)]),sprintf('%3.2f ',max(MS/1e15)- min(MS/1e15)),'VerticalAlignment','middle','HorizontalAlignment','Center','Rotation',270,'color',[0 0.5 0],'FontSize',25);
-plot([5 6],[min((MN+MS)/1e15) min((MN+MS)/1e15)],':k','linewidth',2);
-plot([5 6],[max((MN+MS)/1e15) max((MN+MS)/1e15)],':k','linewidth',2);
-text(5.5,mean([min((MN+MS)/1e15) max((MN+MS)/1e15)]),sprintf('%3.2f ',max((MN+MS)/1e15)-min((MN+MS)/1e15)),'VerticalAlignment','middle','HorizontalAlignment','Center','Rotation',270,'FontSize',25);
-xlim([0 6]);
-ylim([-0.8 0]);
-set(gca,'xtick',[]);
-set(gca,'ytick',[]);
-box off;
-grid off;
-axis off;
-title('Seasonal Range','FontSize',25);
+% $$$ axes('Position',[0.74 0.2451 0.13 0.6799]);
+% $$$ plot([0 1],[min(MAll/1e15) min(MAll/1e15)],'-k','linewidth',2);
+% $$$ hold on;
+% $$$ plot([0 1],[max(MAll/1e15) max(MAll/1e15)],'-k','linewidth',2);
+% $$$ text(0.5,mean([min(MAll/1e15) max(MAll/1e15)]),sprintf('%3.2f ',max(MAll/1e15)-min(MAll/1e15)),'VerticalAlignment','middle','HorizontalAlignment','Center','Rotation',270,'FontSize',25);
+% $$$ plot([1 2],[min(MEq/1e15) min(MEq/1e15)],'--k','linewidth',2);
+% $$$ plot([1 2],[max(MEq/1e15) max(MEq/1e15)],'--k','linewidth',2);
+% $$$ text(1.5,mean([min(MEq/1e15) max(MEq/1e15)]),sprintf('%3.2f ',max(MEq/1e15)-min(MEq/1e15)),'VerticalAlignment','middle','HorizontalAlignment','Center','Rotation',270,'FontSize',25);
+% $$$ plot([2 3],[min(MEEP/1e15) min(MEEP/1e15)],'--r','linewidth',2);
+% $$$ plot([2 3],[max(MEEP/1e15) max(MEEP/1e15)],'--r','linewidth',2);
+% $$$ text(2.5,mean([min(MEEP/1e15) max(MEEP/1e15)]),sprintf('%3.2f ',max(MEEP/1e15)-min(MEEP/1e15)),'VerticalAlignment','middle','HorizontalAlignment','Center','Rotation',270,'color','r','FontSize',25);
+% $$$ plot([3 4],[min(MN/1e15) min(MN/1e15)],':b','linewidth',2);
+% $$$ plot([3 4],[max(MN/1e15) max(MN/1e15)],':b','linewidth',2);
+% $$$ text(3.5,mean([min(MN/1e15) max(MN/1e15)]),sprintf('%3.2f ',max(MN/1e15)-min(MN/1e15)),'VerticalAlignment','middle','HorizontalAlignment','Center','Rotation',270,'color','b','FontSize',25);
+% $$$ plot([4 5],[min(MS/1e15) min(MS/1e15)],':','linewidth',2,'color',[0 ...
+% $$$                     0.5 0]);
+% $$$ plot([4 5],[max(MS/1e15) max(MS/1e15)],':','linewidth',2,'color',[0 ...
+% $$$                     0.5 0]);
+% $$$ text(4.5,mean([min(MS/1e15) max(MS/1e15)]),sprintf('%3.2f ',max(MS/1e15)- min(MS/1e15)),'VerticalAlignment','middle','HorizontalAlignment','Center','Rotation',270,'color',[0 0.5 0],'FontSize',25);
+% $$$ plot([5 6],[min((MN+MS)/1e15) min((MN+MS)/1e15)],':k','linewidth',2);
+% $$$ plot([5 6],[max((MN+MS)/1e15) max((MN+MS)/1e15)],':k','linewidth',2);
+% $$$ text(5.5,mean([min((MN+MS)/1e15) max((MN+MS)/1e15)]),sprintf('%3.2f ',max((MN+MS)/1e15)-min((MN+MS)/1e15)),'VerticalAlignment','middle','HorizontalAlignment','Center','Rotation',270,'FontSize',25);
+% $$$ xlim([0 6]);
+% $$$ ylim([-0.8 0]);
+% $$$ set(gca,'xtick',[]);
+% $$$ set(gca,'ytick',[]);
+% $$$ box off;
+% $$$ grid off;
+% $$$ axis off;
+% $$$ title('Seasonal Range','FontSize',25);
 
 %%% Plot spatial pattern:
 
 obj = matfile([base model sprintf('_output%03d_SurfaceVars.mat',outputs(1))]);
 LAND = obj.SST(:,:,1);
+LAND = zeros(size(FlM(:,:,1)));
 
 %If MOM01, fix NaN's in grid:
 if (strfind(model,'01'))
@@ -641,17 +634,18 @@ xvec = 1:2:xL;
 yvec = 1:2:yL;
 txtmonth = {'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'};
 
-months = {[1:12], ...
-          [3], ...
-          [7], ...
-          [11]};
+months = {[1:12]};
+% $$$           , ...
+% $$$           [3], ...
+% $$$           [7], ...
+% $$$           [11]};
 labels = {'(a) Annual', ...
           '(b) March', ...
           '(c) July', ...
           '(d) November'};
 
 %Colormap and continents:
-clim = [-80 80];
+clim = [-100 100];
 sp = 10;
 % $$$ clim = [-30 0]; % FOR SWP
 % $$$ sp = 0.5; % FOR SWP
@@ -734,12 +728,15 @@ for i=1:length(months)
         ylim(cb,clim);
     end
     hold on;
-    xlims = get(gca,'xlim');
-    plot(xlims,LATsplit*[1 1],'--k','linewidth',1);
-    plot(xlims,-LATsplit*[1 1],'--k','linewidth',1);
-    plot([reg(1:2) reg(2:-1:1) reg(1)],[reg(3) reg(3:4) reg(4:-1:3)],'--k','linewidth',1);
-% $$$     plot([regA(1:2) regA(2:-1:1) regA(1)],[regA(3) regA(3:4) regA(4:-1:3)],'--k');
-% $$$     plot([regI(1:2) regI(2:-1:1) regI(1)],[regI(3) regI(3:4) regI(4:-1:3)],'--k');
+    % Plot regions:
+    if (exist('regions'))
+        xlims = get(gca,'xlim');
+        for ii=2:length(regions)
+            contour(lon,lat,regions{ii}{2},[0.5 0.5],'--','color',regions{ii}{3},'linewidth',2);
+            % Add text label with total:
+            text(-180,0,sprintf('%3.2fPW (%3.0f%%)',monmean(Field(:,ii),1,ndays(1:12))/1e15,monmean(Field(:,ii),1,ndays(1:12))/monmean(Field(:,1),1,ndays(1:12))*100),'color',regions{ii}{3},'Interpreter','none');
+        end
+    end
     if (i>1)
         xlabel('Longitude ($^\circ$E)');
     end
