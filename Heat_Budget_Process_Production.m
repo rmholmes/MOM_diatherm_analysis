@@ -441,7 +441,7 @@ while (Nremain > 0 & Ti >= 1)
                   ncread(wname,'ty_trans_nrho_submeso',[1 1 Ti-1 ti],[xL yL 1 1])*1e9/rho0;
         if (haveGM)
             txtrans = txtrans + ncread(wname,'tx_trans_nrho_gm',[1 1 Ti-1 ti],[xL yL 1 1])*1e9/rho0;
-            tytrans = txtrans + ncread(wname,'ty_trans_nrho_gm',[1 1 Ti-1 ti],[xL yL 1 1])*1e9/rho0;
+            tytrans = tytrans + ncread(wname,'ty_trans_nrho_gm',[1 1 Ti-1 ti],[xL yL 1 1])*1e9/rho0;
         end
             
         JIM(2:end,2:end,ti) = JIM(2:end,2:end,ti)+(txtrans(1:(end-1),2:end) - txtrans(2:end,2:end) ...
