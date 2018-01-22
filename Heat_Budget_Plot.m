@@ -92,47 +92,70 @@ dHdt(:,:,i) = GWB.dHdt; % H Change (W)
 % Water-mass transformation:
 G(:,:,i) = dVdt(:,:,i) - JS(:,:,i) + JI(:,:,i); %Water-mass transformation (m3s-1)
 
+% Surface Volume flux base flux (not P!)
+JSH(:,:,i) = JS(:,:,i).*repmat(Te,[1 tL])*rho0*Cp;
+
+% Interior heat source P:
+PI(:,:,i) = P(:,:,i) - JSH(:,:,i);
+
+% Interior heat source Q:
+QII(:,:,i) = QI(:,:,i) - JI(:,:,i).*repmat(Te,[1 tL])*rho0*Cp;
+
 % Across-isotherm advective heat flux:
 CIA(:,:,i) = G(:,:,i).*repmat(Te,[1 tL])*rho0*Cp;
 
 % Volume Change term:
 VCT(:,:,i) = dVdt(:,:,i).*repmat(Te,[1 tL])*rho0*Cp;
 
-% Implicit mixing by residual:
-I(:,:,i) = dHdt(:,:,i)-D(:,:,i)-CIA(:,:,i) + QI(:,:,i);
+% Tendency:
+N(:,:,i) = dHdt(:,:,i) - VCT(:,:,i);
+
+% $$$ % Alternative method 1 for the N calculation:
+% $$$ N(:,:,i) = rho0*Cp*cumsum(dVdt*dT,1,'reverse');
+% However, this does not work well, potentially because the
+% integral should conceptually then be defined on Tcenters as
+% opposed to Tedges. In any case, this method gives a non-zero
+% total heat flux due to implicit mixing and is much noisier. 
+
+% Implicit mixing:
+I(:,:,i) = N(:,:,i) - F(:,:,i) - P(:,:,i) - M(:,:,i) + JSH(:,:,i);
 
 % Non-advective flux into volume:
 B(:,:,i) = F(:,:,i)+M(:,:,i)+I(:,:,i)+R(:,:,i);
 
-% Interior heat source P:
-PI(:,:,i) = P(:,:,i) - JS(:,:,i).*repmat(Te,[1 tL])*rho0*Cp;
-
-% Interior heat source Q:
-QII(:,:,i) = QI(:,:,i) - JI(:,:,i).*repmat(Te,[1 tL])*rho0*Cp;
-
-% Total flux:
-N(:,:,i) = B(:,:,i) + PI(:,:,i) - QII(:,:,i);
-
 % Monthly binned total flux:
 Nmon(:,:,i) = GWB.TENMON;
 
+% Alternative method 2 (which is what I was using for
+% the GRL submit - but the above method is simpler to explain). 
+% $$$ Ialt(:,:,i) = dHdt(:,:,i)-D(:,:,i)-CIA(:,:,i) + QI(:,:,i);
+% $$$ Balt(:,:,i) = F(:,:,i)+M(:,:,i)+Ialt(:,:,i)+R(:,:,i);
+% $$$ Nalt(:,:,i) = Balt(:,:,i) + PI(:,:,i) - QII(:,:,i);
+% Gives very close results. The difference between N and Nalt, and
+% I and Ialt (i.e. (Ialt-I)./I, (Nalt-N)./N) is less than 1e-5 in
+% all cases (except where I==0, which gives Inf).
+
 % Checks:
 % WMT from B:
-% $$$ tmp = -diff(M(:,:,i),[],1)/dT/rho0/Cp;WMTM(:,:,i) = zeros(size(G(:,:,i)));WMTM(2:(end-1),:,i) = avg(tmp,1);
-% $$$ tmp = -diff(F(:,:,i),[],1)/dT/rho0/Cp;WMTF(:,:,i) = zeros(size(G(:,:,i)));WMTF(2:(end-1),:,i) = avg(tmp,1);
-% $$$ tmp = -diff(I(:,:,i),[],1)/dT/rho0/Cp;WMTI(:,:,i) = zeros(size(G(:,:,i)));WMTI(2:(end-1),:,i) = avg(tmp,1);
-% $$$ tmp = -diff(R(:,:,i),[],1)/dT/rho0/Cp;WMTR(:,:,i) = zeros(size(G(:,:,i)));WMTR(2:(end-1),:,i) = avg(tmp,1);
 WMTM(:,:,i) = -diff(M(:,:,i),[],1)/dT/rho0/Cp;
 WMTF(:,:,i) = -diff(F(:,:,i),[],1)/dT/rho0/Cp;
 WMTI(:,:,i) = -diff(I(:,:,i),[],1)/dT/rho0/Cp;
 WMTR(:,:,i) = -diff(R(:,:,i),[],1)/dT/rho0/Cp;
 WMT(:,:,i) = WMTM(:,:,i)+WMTF(:,:,i)+WMTI(:,:,i)+WMTR(:,:,i);
+
+% Alternative method 3 I from Volume budget (as for spatial structure calc FlI):
+% $$$ WMTI(:,:,i) = avg(dVdt(:,:,i),1) - avg(JS(:,:,i),1)-WMTM(:,:,i)-WMTF(:,:,i)-WMTR(:,:,i);
+% $$$ I(:,:,i) = zeros(size(I(:,:,i)));
+% $$$ I(1:(end-1),:,i) = rho0*Cp*cumsum(WMTI(:,:,i)*dT,1,'reverse');
+% This also gives pretty consistent results, although has similar
+% noisy problems and a non-zero total heat flux at the cooler
+% temperatures as alternative method 1 above. This method is
+% slightly better at the warmest temperatures.
+
 end
 months = [1:length(P(1,:,1))];
 
 %%%%Heat Flux:
-label = 'January';
-
 % Production fields:
 fields = { ...
           {F(:,months,:), 'Surface Heat Fluxes $\mathcal{F}$','k',2,'-'}, ...
@@ -184,7 +207,6 @@ set(lg,'Position',[0.5881    0.5500    0.2041    0.2588]);
 % I.e. the WMT term G (calculated via residual) is now 0.0046 Sv at
 % -3C, whereas before it was 0.5Sv (it should be zero).
 months = [1:12];
-label = 'January';
 
 fields = { ...
           {dVdt(:,months,:), 'Tendency $\frac{\partial\mathcal{V}}{\partial t}$','m',2,'-'}, ...
