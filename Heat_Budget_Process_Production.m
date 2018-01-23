@@ -528,14 +528,30 @@ end
 % $$$     end
 % $$$     save([outD model sprintf('_output%03d',output) '_Ziso_T' strrep(num2str(Tl),'.','p') 'C.mat'],'ziso');
 % $$$ end
-% $$$ 
-% $$$ %% Save surface heat flux, wind stress and SST:
-% $$$ shflux = ncread(fname,'net_sfc_heating',[1 1 1],[xL yL tL]);
-% $$$ SST = squeeze(ncread(fname,'temp',[1 1 1 1],[xL yL 1 tL]));
-% $$$ taux = ncread(fname,'tau_x',[1 1 1],[xL yL tL]);
-% $$$ tauy = ncread(fname,'tau_y',[1 1 1],[xL yL tL]);
-% $$$ 
-% $$$ save([outD model sprintf('_output%03d',output) '_SurfaceVars.mat'],'shflux','SST','taux','tauy');
+
+%% Save surface heat flux, wind stress, SST, meridional heat flux:
+shflux = ncread(fname,'net_sfc_heating',[1 1 1],[xL yL tL]);
+SST = squeeze(ncread(fname,'temp',[1 1 1 1],[xL yL 1 tL]));
+taux = ncread(fname,'tau_x',[1 1 1],[xL yL tL]);
+tauy = ncread(fname,'tau_y',[1 1 1],[xL yL tL]);
+
+save([outD model sprintf('_output%03d',output) '_SurfaceVars.mat'],'shflux','SST','taux','tauy');
+p
+% Do meridional heat flux:
+mhflux = zeros(yL,tL);
+for ti = 1:tL
+    for Ti = 1:TL
+        sprintf('Calculating meridional heat flux time %03d of %03d, temp %03d of %03d',ti,tL,Ti,TL)
+        tytrans = ncread(wname,'ty_trans_nrho',[1 1 Ti ti],[xL yL 1 1])*1e9/rho0 + ...
+                  ncread(wname,'ty_trans_nrho_submeso',[1 1 Ti ti],[xL yL 1 1])*1e9/rho0;
+        if (haveGM)
+            tytrans = tytrans + ncread(wname,'ty_trans_nrho_gm',[1 1 Ti ti],[xL yL 1 1])*1e9/rho0;
+        end
+        mhflux(:,ti) = mhflux(:,ti) + rho0*Cp*T(Ti)*nansum(tytrans,1)';
+    end
+end
+save([outD model sprintf('_output%03d',output) '_SurfaceVars.mat'],'mhflux','-append');
+
 % $$$ 
 % $$$ %% Latitude-depth overturning:
 % $$$ PSI = zeros(yL,TL,tL);
