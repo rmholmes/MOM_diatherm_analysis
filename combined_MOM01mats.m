@@ -1,16 +1,22 @@
 
 %This script combines the MOM01 3-month files into yearly files.
-base = '/srv/ccrc/data03/z3500785/MOM01_HeatDiag/mat_data/';
+% $$$ base = '/srv/ccrc/data03/z3500785/MOM01_HeatDiag/mat_data/';
+base = '/g/data/e14/rmh561/MOM01_HeatDiag/mat_data/';
 model = 'MOM01';
-% $$$ outputs = [266 267 268 269];
-% $$$ onum = 111;
-outputs = [0 1 2 3];
-onum = 222;
+
+for tttt=[1 2]
+    if (tttt==1)
+        outputs = [266 267 268 269];
+        onum = 111;
+    else
+        outputs = [0 1 2 3];
+        onum = 222;
+    end
 
 % BaseVars: ---------------------------
 fname1 = [base model sprintf('_output%03d_BaseVars.mat', ...
                              outputs(1))];
-oname = [base model sprintf('_output%03d_BaseVars.mat',onum)];
+oname = [base model sprintf('_output%03d_BaseVars.mat',onum)]
 copyfile(fname1,oname);
 
 load(fname1);
@@ -29,7 +35,7 @@ save(oname,'time','time_snap','tL','-append');
 % GlobalHB: ---------------------------
 fname1 = [base model sprintf('_output%03d_GlobalHBud.mat', ...
                              outputs(1))];
-oname = [base model sprintf('_output%03d_GlobalHBud.mat',onum)];
+oname = [base model sprintf('_output%03d_GlobalHBud.mat',onum)]
 copyfile(fname1,oname);
 
 load(fname1);
@@ -82,12 +88,12 @@ end
 
 % Any others that don't have temp -----------------------
 
-type = {'SurfaceVars'};%,'varsat_110W'};
+type = {'SurfaceVars','varsat_110W','varsat_Eq'};
 for typ = 1:length(type)
 
     fname1 = [base model sprintf(['_output%03d_' type{typ} '.mat'], ...
                                  outputs(1))];
-    oname = [base model sprintf(['_output%03d_' type{typ} '.mat'],onum)];
+    oname = [base model sprintf(['_output%03d_' type{typ} '.mat'],onum)]
     copyfile(fname1,oname);
 
     mat = load(fname1);
@@ -99,6 +105,9 @@ for typ = 1:length(type)
         for ii=1:length(names)
             eval(['sz = size(mat.' names{ii} ');']);
             vec = find(sz==3);
+            if (strcmp(names{ii},'u') | strcmp(names{ii},'v'))
+                vec = 3;
+            end
             if (length(vec)==1)
                 eval(['mata.' names{ii} ' = cat(vec,mata.' names{ii} ',mat.' names{ii} ');']);
             end
@@ -108,7 +117,12 @@ for typ = 1:length(type)
     clear mata;
     for ii=1:length(names)
         eval([names{ii} ' = mat.' names{ii} ';']);
-        save(oname,names{ii},'-append');
+        if (ii==1)
+            save(oname,names{ii},'-v7.3');
+        else
+            save(oname,names{ii},'-append');
+        end
     end
 end
 
+end

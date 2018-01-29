@@ -3,10 +3,17 @@
 % $$$ model = 'MOM01';
 model = 'MOM025';
 % $$$ baseD = '/short/e14/rmh561/mom/archive/MOM_HeatDiag/'; %Data Directory.
-baseD = '/srv/ccrc/data03/z3500785/MOM_HeatDiag/'; %Data Directory.
+% $$$ baseD = '/srv/ccrc/data03/z3500785/MOM_HeatDiag/'; %Data Directory.
+% $$$ baseD = '/g/data/e14/rmh561/MOM01_HeatDiag/';
+baseD = '/g/data/e14/rmh561/MOM_HeatDiag/';
 
-for output=2:7
-    restart = output-1;
+for output=8:12
+% $$$ for output=[0 1 2 3 266 267 268 269]
+    if (output==0)
+        restart=269;
+    else
+        restart = output-1;
+    end
 
 %% file-names and grid properties:
 base = [baseD sprintf('output%03d/',output)];
@@ -14,6 +21,7 @@ baser = [baseD sprintf('restart%03d/',restart)];
 hname = [base 'ocean_heat.nc'];
 if (strfind(baseD,'01'))
     fname = [base 'ocean_month.nc'];
+    m3name = [base 'ocean.nc'];
 else
     fname = [base 'ocean.nc'];
 end
@@ -54,8 +62,14 @@ lonsl = -110;
 [tmp lnind] = min(abs(lon(:,round(mean([lt1 lt2])))-lonsl));
 
 temp = squeeze(ncread(fname,'temp',[lnind lt1 1 1],[1 lt2-lt1+1 zL tL]));
-u = squeeze(ncread(fname,'u',[lnind lt1 1 1],[1 lt2-lt1+1 zL tL]));
-v = squeeze(ncread(fname,'v',[lnind lt1 1 1],[1 lt2-lt1+1 zL tL]));
+if (strfind(baseD,'01'))
+    u = squeeze(ncread(m3name,'u',[lnind lt1 1 1],[1 lt2-lt1+1 zL 1]));
+    v = squeeze(ncread(m3name,'v',[lnind lt1 1 1],[1 lt2-lt1+1 zL 1]));
+else
+    u = squeeze(ncread(fname,'u',[lnind lt1 1 1],[1 lt2-lt1+1 zL tL]));
+    v = squeeze(ncread(fname,'v',[lnind lt1 1 1],[1 lt2-lt1+1 zL tL]));
+end
+end
 kappa = squeeze(ncread(fname,'diff_cbt_t',[lnind lt1 1 1],[1 lt2-lt1+1 zL tL]));
 taux = squeeze(ncread(fname,'tau_x',[lnind lt1 1],[1 lt2-lt1+1 tL]));
 tauy = squeeze(ncread(fname,'tau_y',[lnind lt1 1],[1 lt2-lt1+1 tL]));
@@ -78,15 +92,20 @@ save(name,'Yt','Zt','Yu','Zu','temp','u','v','kappa','taux','tauy','mld', ...
      'vdif','vnlc','pmer','sufc','swrd');
 
 %% Get equatorial slices of variables:
-latsl = 0;
-[tmp ln1] = min(abs(lon(:,1)+240));
-[tmp ln2] = min(abs(lon(:,1)+70));
-
 [tmp ltind] = min(abs(lat(1,:)-latsl));
+latsl = 0;
+[tmp ln1] = min(abs(lon(:,ltind)+240));
+[tmp ln2] = min(abs(lon(:,ltind)+70));
+
 
 temp = squeeze(ncread(fname,'temp',[ln1 ltind 1 1],[ln2-ln1+1 1 zL tL]));
-u = squeeze(ncread(fname,'u',[ln1 ltind 1 1],[ln2-ln1+1 1 zL tL]));
-v = squeeze(ncread(fname,'v',[ln1 ltind 1 1],[ln2-ln1+1 1 zL tL]));
+if (strfind(baseD,'01'))
+    u = squeeze(ncread(m3name,'u',[ln1 ltind 1 1],[ln2-ln1+1 1 zL 1]));
+    v = squeeze(ncread(m3name,'v',[ln1 ltind 1 1],[ln2-ln1+1 1 zL 1]));
+else
+    u = squeeze(ncread(fname,'u',[ln1 ltind 1 1],[ln2-ln1+1 1 zL tL]));
+    v = squeeze(ncread(fname,'v',[ln1 ltind 1 1],[ln2-ln1+1 1 zL tL]));
+end
 kappa = squeeze(ncread(fname,'diff_cbt_t',[ln1 ltind 1 1],[ln2-ln1+1 1 zL tL]));
 taux = squeeze(ncread(fname,'tau_x',[ln1 ltind 1],[ln2-ln1+1 1 tL]));
 tauy = squeeze(ncread(fname,'tau_y',[ln1 ltind 1],[ln2-ln1+1 1 tL]));
@@ -101,8 +120,8 @@ sufc = squeeze(ncread(wname,'temp_vdiffuse_sbc_on_nrho',[ln1 ltind 1 1],[ln2-ln1
                ncread(wname,'sw_heat_on_nrho',[ln1 ltind 1 1],[ln2-ln1+1 1 TL tL]));
 swrd = squeeze(ncread(wname,'sw_heat_on_nrho',[ln1 ltind 1 1],[ln2-ln1+1 1 TL tL]));
 
-[Xt,Zt] = ndgrid(lon(ln1:ln2,1),z);
-[Xu,Zu] = ndgrid(lonu(ln1:ln2,1),z);
+[Xt,Zt] = ndgrid(lon(ln1:ln2,ltind),z);
+[Xu,Zu] = ndgrid(lonu(ln1:ln2,ltind),z);
 
 name = [baseD 'mat_data/' model sprintf('_output%03d',output) '_varsat_Eq.mat']
 save(name,'Xt','Zt','Xu','Zu','temp','u','v','kappa','taux','tauy','mld', ...
