@@ -9,6 +9,10 @@ clear all;
 % $$$ model = 'MOM025_nipoall';
 % $$$ outputs = [19];
 
+% $$$ base = '/srv/ccrc/data03/z3500785/access-om2/1deg_jra55_ryf8485_kds50_s13p8_mushy/mat_data/';
+% $$$ model = 'ACCESS-OM2_1deg_jra55_ryf8485_kds50_s13p8_mushy';
+% $$$ outputs = 57;
+
 % $$$ base = '/srv/ccrc/data03/z3500785/access-om2/1deg_jra55_ryf8485/mat_data/';
 % $$$ model = 'ACCESS-OM2_1deg_jra55_ryf8485';
 % $$$ outputs = 394;
@@ -34,10 +38,23 @@ clear all;
 base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag/mat_data/';
 model = 'MOM025';
 outputs = [8:12];
+% $$$ outputs = 15;
+
+% $$$ base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag_kb3seg/mat_data/';
+% $$$ model = 'MOM025_kb3seg';
+% $$$ outputs = 0;
+
+% $$$ base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag_kb1em5/mat_data/';
+% $$$ model = 'MOM025_kb1em5';
+% $$$ outputs = 64;
+
+% $$$ base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag_kb1em6/mat_data/';
+% $$$ model = 'MOM025_kb1em6';
+% $$$ outputs = 30;
 
 % $$$ base = '/srv/ccrc/data03/z3500785/MOM01_HeatDiag/mat_data/';
 % $$$ model = 'MOM01';
-% $$$ outputs = [111 222];
+% $$$ outputs = [222];
 
 load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
 ndays = diff(time_snap);
@@ -55,19 +72,19 @@ for i=1:length(outputs)
 P(:,:,i) = GWB.PME+GWB.RMX; % PME effective heat flux (W)
 F(:,:,i) = GWB.SWH+GWB.VDS+GWB.FRZ+GWB.ETS; % Surface heat flux (W)
 M(:,:,i) = GWB.VDF+GWB.KNL; % Vertical mixing flux (W)
-if (exist('RED'))
+if (isfield(GWB,'RED'))
     R(:,:,i) = GWB.RED+GWB.K33; % Redi diffusion (W)
 else
     R(:,:,i) = zeros(size(GWB.VDF));
 end
-if (exist('NGM'))
+if (isfield(GWB,'NGM'))
     GM(:,:,i) = GWB.NGM; % GM (W)
 else
     GM(:,:,i) = zeros(size(GWB.VDF));
 end    
-if (exist('MDS'))
+if (isfield(GWB,'MDS'))
     MD(:,:,i) = GWB.MDS; % GM (W)
-    M(:,:,i) = M(:,:,i) + GWB.MD(:,:,i); %ADD TO VERTICAL MIXING, but
+    M(:,:,i) = M(:,:,i) + GWB.MDS(:,:,i); %ADD TO VERTICAL MIXING, but
                                      %it's small...
 else
     MD(:,:,i) = zeros(size(GWB.VDF));
@@ -75,6 +92,7 @@ end
 D(:,:,i) = GWB.TEN-GWB.ADV-GWB.SUB-GM(:,:,i); % Material derivative of T (W)
 SW(:,:,i) = GWB.SWH; % Short-wave heat
 JS(:,:,i) = GWB.SFW; % Surface Volume Flux
+SUB(:,:,i) = GWB.SUB;
 
 % Pacific Interior fluxes:
 if (strcmp(region,'Pacific'))
@@ -119,7 +137,7 @@ N(:,:,i) = dHdt(:,:,i) - EHC(:,:,i);
 % total heat flux due to implicit mixing and is much noisier. 
 
 % Implicit mixing:
-I(:,:,i) = N(:,:,i) - F(:,:,i) - P(:,:,i) - M(:,:,i) + JSH(:,:,i);
+I(:,:,i) = N(:,:,i) - F(:,:,i) - P(:,:,i) - M(:,:,i) - R(:,:,i) + JSH(:,:,i);
 
 % Non-advective flux into volume:
 B(:,:,i) = F(:,:,i)+M(:,:,i)+I(:,:,i)+R(:,:,i);
@@ -172,9 +190,12 @@ fields = { ...
           {PI(:,months,:), 'Surface Volume Fluxes $\mathcal{P}_I$',[0.49 0.18 0.56],2,'--'}, ...
           {M(:,months,:), 'Vertical Mixing $\mathcal{M}$','r',2,'-'}, ...
           {I(:,months,:), 'Implicit Mixing $\mathcal{I}$','b',2,'-'}, ...
-          {HWMTI(:,months,:), 'Advective Implicit Mixing','b',2,'--'}, ...
-          {HWMTM(:,months,:), 'Advective Vertical Mixing','r',2,'--'}, ...
-          {HWMTF(:,months,:), 'Advective Surface Forcing','k',2,'--'}, ...
+          {R(:,months,:), 'Redi Mixing $\mathcal{R}$',[0 0.5 0],2,'-'}, ...
+% $$$           {GM(:,months,:), 'GM $\mathcal{G}$',[0 0.5 0],2,'--'}, ...
+% $$$           {SUB(:,months,:), 'SUB $\mathcal{S}$',[0 0.5 0],2,':'}, ...
+% $$$           {HWMTI(:,months,:), 'Advective Implicit Mixing','b',2,'--'}, ...
+% $$$           {HWMTM(:,months,:), 'Advective Vertical Mixing','r',2,'--'}, ...
+% $$$           {HWMTF(:,months,:), 'Advective Surface Forcing','k',2,'--'}, ...
 % $$$           {M(:,months,:)+I(:,months,:), 'Total Mixing $\mathcal{M}+\mathcal{I}$',[0 0.5 0],2,'--'}, ...
 % $$$           {Nmon(:,months,:), 'Monthly-Binned Total','m',2,'--'}, ...
 % $$$           {SW(:,months,:), 'Shortwave Redistribution',0.5*[1 1 1],2,'--'}, ...
@@ -265,14 +286,14 @@ set(lg,'Position',[0.5881    0.5500    0.2041    0.2588]);
 %%% Temperature vs. time:
 months = [1:12];
 fields = {
-% $$$           {M(:,months,:), 'Vertical Mixing $\mathcal{M}$','r',2,'-'}, ...
-% $$$           {I(:,months,:), 'Implicit Mixing $\mathcal{M}$','r',2,'-'}, ...
+          {M(:,months,:), 'Vertical Mixing $\mathcal{M}$','r',2,'-'}, ...
+          {I(:,months,:), 'Implicit Mixing $\mathcal{M}$','r',2,'-'}, ...
 % $$$           {F(:,months,:)+PI(:,months,:), 'Surface Heat Fluxes $\mathcal{F}$','k',2,'-'}, ...
 % $$$           {dHdt(:,months,:), 'Total HC Tendency $\frac{\partial\mathcal{H}}{\partial t}$','m',2,'-'}, ...
 % $$$           {N(:,months,:), 'Internal HC Tendency $\mathcal{N}$','m',2,'-'}, ...
 % $$$           {EHC(:,months,:), 'External HC Tendency $\rho_0C_p\Theta\frac{\partial\mathcal{V}}{\partial t}$','m',2,'-'}, ...
-          {HWMTI(:,months,:), 'Advective Implicit Mixing','b',2,'--'}, ...
-          {HWMTM(:,months,:), 'Advective Vertical Mixing','r',2,'--'}, ...
+% $$$           {HWMTI(:,months,:), 'Advective Implicit Mixing','b',2,'--'}, ...
+% $$$           {HWMTM(:,months,:), 'Advective Vertical Mixing','r',2,'--'}, ...
 % $$$           {HWMTF(:,months,:), 'Advective Surface Forcing','k',2,'--'}, ...
           };
 % $$$ fields = { ...
@@ -288,12 +309,12 @@ fields = {
 % Fluxes:
 scale = 1/1e15;label = '(PW)';x = Te;
 % $$$ caxs = [-0.8 0];
-% $$$ caxs = [-1.4 0];
-% $$$ sp = 0.05;
+caxs = [-2 0];
+sp = 0.05;
 % $$$ caxs = [-15 15];
 % $$$ sp = 1;
-caxs = [-8 8];
-sp = 0.5;
+% $$$ caxs = [-8 8];
+% $$$ sp = 0.5;
 % $$$ caxs = [-0.2 0];x = Te;
 % $$$ sp = 0.005;
 % $$$ caxs = [-0.8 0];x = Te;
@@ -418,14 +439,14 @@ LabelAxes(gca,2,25,0.003,0.925);
 
 %%% Spatial Structure:
 
-VAR = 'FlM';
+% $$$ VAR = 'FlM';
 % $$$ VAR = 'FlSP';
 % $$$ VAR = 'WMTP';
-% $$$ VAR = 'WMTM';
-% $$$ VAR = 'WMTM';
-TYPE = 'VertInt';
-% $$$ TYPE = 'WMT';
-Tl = 22.5;
+VAR = 'WMTM';
+% $$$ VAR = 'WMTI';
+% $$$ TYPE = 'VertInt';
+TYPE = 'WMT';
+Tl = 19.75;
 name = [base model sprintf('_output%03d',outputs(1)) '_' TYPE '_T' strrep(num2str(Tl),'.','p') 'C.mat']
 eval(['load(name,''' VAR ''');']);
 eval([VAR '(isnan(' VAR ')) = 0.0;']);
@@ -441,7 +462,8 @@ eval([VAR '(' VAR '==0) = NaN;']);
 eval(['FlM = ' VAR ';']);
 
 % $$$ % CHECK spatial structure sums to total:
-% $$$ Tls = [14.75:2.5:27.25]+0.25;
+% $$$ % $$$ Tls = [14.75:2.5:27.25]+0.25;
+% $$$ Tls = [5 10 15:2.5:27.5]-0.25;
 % $$$ SUM = zeros(size(Tls));
 % $$$ for ii = 1:length(Tls)
 % $$$ 
@@ -463,8 +485,8 @@ eval(['FlM = ' VAR ';']);
 % $$$     Z(Z == 0) = NaN;
 % $$$     SUM(ii) = nansum(nansum(area.*Z));
 % $$$ end
-% $$$ %plot(Tls,SUM/1e6,'Xb','MarkerSize',12,'LineWidth',2); 
-% $$$ %plot(Tls,SUM/1e15,'Xb','MarkerSize',12,'LineWidth',2); 
+%plot(Tls,SUM/1e6,'Xb','MarkerSize',12,'LineWidth',2); 
+%plot(Tls,SUM/1e15,'Xb','MarkerSize',12,'LineWidth',2); 
 
 %%% Regional time series 
 
@@ -474,19 +496,20 @@ months = [1:12];
 regions = { ...
     {'Global',lat==lat,'k'}, ...
     {'Equatorial',abs(lat)<=10,'k'}, ...
+% $$$     {'WWV',abs(lat)<=5 & lon>
 % $$$     {'NH',lat>10,'k'}, ...
 % $$$     {'SH',lat<-10,'k'}, ...
 % $$$     {'Outside Equatorial',lat<-10 | lat > 10,'k'}, ...
-% $$$     {'Nino 3',lat > -5 & lat < 5 & lon > -150 & lon < -90,'m'}, ...
+    {'Nino 3',lat > -5 & lat < 5 & lon > -150 & lon < -90,'m'}, ...
 % $$$     {'Eastern Pacific',lat > -10 & lat < 10 & lon > -160 & mask_t,'c'}, ...
     {'Eastern Pacific',lat > -10 & lat < 10 & lon > -160 & lon<-70,[0.4667    0.6745    0.1882]}, ...
-    {'Equatorial Atlantic',lat > -10 & lat < 10 & lon > -65 & lon < 20,[0 0.5 0]}, ...
-    {'Western Pacific',lat > -10 & lat < 10 & lon > -260 & lon < -160,[0.5 0.5 0.5]}, ...
-    {'Kuroshio', lat < 45 & lat > 10 & lon > -260 & lon < -190,'r'}, ...
+% $$$     {'Equatorial Atlantic',lat > -10 & lat < 10 & lon > -65 & lon < 20,[0 0.5 0]}, ...
+% $$$     {'Western Pacific',lat > -10 & lat < 10 & lon > -260 & lon < -160,[0.5 0.5 0.5]}, ...
+% $$$     {'Kuroshio', lat < 45 & lat > 10 & lon > -260 & lon < -190,'r'}, ...
 % $$$     {'Gulf Stream', lat < 45 & lat > 10 & lon > -100 & lon < -40 & ~mask_t,'b'}, ...
-    {'Gulf Stream', lat < 45 & lat > 10 & lon > -84 & lon < -40,'b'}, ...
-    {'Indian', lat < 25 & lat > -45 & (lon > 20 | lon < -260),[0.4941    0.1843    0.5569]}, ...
-    {'South Pacific/Atlantic', lat < -10 & lat > -45 & lon > -260 & lon < 20,'g'}, ...
+% $$$     {'Gulf Stream', lat < 45 & lat > 10 & lon > -84 & lon < -40,'b'}, ...
+% $$$     {'Indian', lat < 25 & lat > -45 & (lon > 20 | lon < -260),[0.4941    0.1843    0.5569]}, ...
+% $$$     {'South Pacific/Atlantic', lat < -10 & lat > -45 & lon > -260 & lon < 20,'g'}, ...
           };
 
 Field = zeros(12,length(regions));
@@ -527,12 +550,12 @@ for ii = 1:length(regions)
 end
 str
 
-mn1 = 4;mn2 = 7;
-str = {['SC range Apr-Jul model ' model ' Temp ' num2str(Tl)] ;
-       ' '};
-% $$$ mn1 = 5;mn2 = 8;
-% $$$ str = {['SC range May-Aug model ' model ' Temp ' num2str(Tl)] ;
+% $$$ mn1 = 4;mn2 = 7;
+% $$$ str = {['SC range Apr-Jul model ' model ' Temp ' num2str(Tl)] ;
 % $$$        ' '};
+mn1 = 5;mn2 = 8;
+str = {['SC range May-Aug model ' model ' Temp ' num2str(Tl)] ;
+       ' '};
 for ii = 1:length(regions)
     str{ii+2} = [regions{ii}{1} sprintf(' = %3.2fPW (%3.0f)', ...
                         (Field(mn1,ii)-Field(mn2,ii))/1e15,(Field(mn1,ii)-Field(mn2,ii))/(Field(mn1,1)-Field(mn2,1))*100)];
@@ -665,8 +688,8 @@ if (strfind(model,'01'))
 end
 
 [xL,yL] = size(lon);
-xvec = 1:3:xL;
-yvec = 1:3:yL;
+xvec = 1:4:xL;
+yvec = 1:4:yL;
 txtmonth = {'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'};
 
 months = {[1:12], ...
@@ -677,38 +700,39 @@ labels = {'(a) Annual', ...
           '(b) March', ...
           '(c) July', ...
           '(d) November'};
+months = {[1:12]};labels = {'Annual'};
 
 %Colormap and continents:
-clim = [-150 0];
-sp = 2;
+% $$$ clim = [-150 0];
+% $$$ sp = 10;
 % $$$ clim = [-80 80];
 % $$$ sp = 10;
 % $$$ clim = [-30 0]; % FOR SWP
 % $$$ sp = 0.5; % FOR SWP
-% $$$ clim = [-1 1]*(1e-5)*86400; % FOR WMT
-% $$$ sp = (0.5e-6)*86400;
+clim = [-1 1]*(1e-5)*86400; % FOR WMT
+sp = (0.25e-6)*86400;
 % $$$ clim = [-0.5 0.5]*(1e-5)*86400; % FOR WMT
-% $$$ sp = (0.5e-6)*86400;
+% $$$ sp = (0.125e-6)*86400;
 
-doWMT = 0; % plot WMT instead of flux
+doWMT = 1; % plot WMT instead of flux
 
 cpts = [-1e10 clim(1):sp:clim(2) 1e10];
 npts = length(cpts)
 
-if (doWMT)
+% $$$ if (doWMT)
 % $$$     cmap = flipud(lbmap(npts-3,'RedBlue'));
-    cmap = redblue(npts-3);
-    for i=1:(npts-3)
-        if (cmap(i,:) == 1.0)
-            cmap(i,:) = [0.94 0.94 0.94];
-        end
-    end
-else
+% $$$     cmap = redblue(npts-3);
+% $$$     for i=1:(npts-3)
+% $$$         if (cmap(i,:) == 1.0)
+% $$$             cmap(i,:) = [0.94 0.94 0.94];
+% $$$         end
+% $$$     end
+% $$$ else
     cmap = parula(npts-3);
     cmap = parula(npts-3);
     cmap(end,:) = [0.97 0.97 0.8];
     cmap(end-1,:) = (cmap(end-1,:)+cmap(end,:))/2;
-end
+% $$$ end
 
 tmp = LAND;
 tmp(isnan(LAND)) = clim(1)-sp/2;
@@ -810,9 +834,9 @@ for i=1:length(months)
             text(flon,flat,sprintf('%3.2fPW (%3.0f%%)',monmean(Field(:,ii),1,ndays(1:12))/1e15,monmean(Field(:,ii),1,ndays(1:12))/monmean(Field(:,1),1,ndays(1:12))*100),'color',regions{ii}{3},'Interpreter','none');
         end
     end
-    if (i>1)
+% $$$     if (i>1)
         xlabel('Longitude ($^\circ$E)');
-    end
+% $$$     end
     if (i<=2)
         ylabel('Latitude ($^\circ$N)');
     end
@@ -832,7 +856,6 @@ for i=1:length(months)
 end 
 colormap(cmap);
 %colormap(parula);%flipud(lbmap(50,'RedBlue')));
-
 %%% Plot spatial pattern of net heat flux and SST:
 
 % Load Variable and calculate mean:
@@ -958,33 +981,47 @@ colormap(redblue(20));
 
 %% Plot SST difference and shflux difference plots:
 
-% Load MOM01 data:
-base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag/';
-model = 'MOM01';
-outputs = [333];
-load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
-ndays = diff(time_snap);
-
-[xL,yL] = size(lon)
-%If MOM01, fix NaN's in grid:
-if (strfind(model,'01'))
-    lonv = lon(:,500);
-    latv = nanmean(lat,1);
-    [tmp ind] = min(abs(latv - 60))
-    [lon,lat] = ndgrid(lonv,latv(1:ind));
-end
-MOM01lon = lon;
-MOM01lat = lat;
-
-load([base model sprintf('_output%03d_SurfaceVars.mat', ...
-                         outputs(1))]);
-MOM01shflux = shflux(:,1:ind,:);
-MOM01SST = SST(:,1:ind,:);
+% $$$ % Load MOM01 data:
+% $$$ base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag/';
+% $$$ model = 'MOM01';
+% $$$ outputs = [111 222];
+% $$$ load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
+% $$$ ndays = diff(time_snap);
+% $$$ 
+% $$$ [xL,yL] = size(lon)
+% $$$ %If MOM01, fix NaN's in grid:
+% $$$ if (strfind(model,'01'))
+% $$$     lonv = lon(:,500);
+% $$$     latv = nanmean(lat,1);
+% $$$     [tmp ind] = min(abs(latv - 60))
+% $$$     [lon,lat] = ndgrid(lonv,latv(1:ind));
+% $$$ end
+% $$$ MOM01lon = lon;
+% $$$ MOM01lat = lat;
+% $$$ 
+% $$$ load([base model sprintf('_output%03d_SurfaceVars.mat', ...
+% $$$                          outputs(1))]);
+% $$$ MOM01shflux = shflux(:,1:ind,:);
+% $$$ MOM01SST = SST(:,1:ind,:);
 
 % Load MOM025:
-model = 'MOM025';
-outputs = [2 3 4 5 6];
+model = 'MOM025_kb1em5';
+base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag_kb1em5/mat_data/';
+% $$$ outputs = [8:12];
+% $$$ outputs = 15;
+outputs = 64;
+
+% Load ACCESS-OM2:
+% $$$ model = 'ACCESS-OM2_1deg_jra55_ryf8485_kds50_s13p8_mushy';
+% $$$ base = '/srv/ccrc/data03/z3500785/access-om2/1deg_jra55_ryf8485_kds50_s13p8_mushy/mat_data/';
+% $$$ outputs = 57;
+% $$$ base = '/srv/ccrc/data03/z3500785/access-om2/1deg_jra55_ryf8485/mat_data/';
+% $$$ model = 'ACCESS-OM2_1deg_jra55_ryf8485';
+% $$$ outputs = 394;
+
+
 load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
+ndays = diff(time_snap);
 load([base model sprintf('_output%03d_SurfaceVars.mat',outputs(1))]);
 shfluxa = shflux;
 SSTa = SST;
@@ -996,11 +1033,29 @@ end
 shflux = shfluxa/length(outputs);
 SST = SSTa/length(outputs);
 
-% Calculate bias:
-for i=1:12
-    SST(:,:,i) = interp2(MOM01lon',MOM01lat',MOM01SST(:,:,i)',lon,lat,'linear')-SST(:,:,i);
-    shflux(:,:,i) = interp2(MOM01lon',MOM01lat',MOM01shflux(:,:,i)',lon,lat,'linear')-shflux(:,:,i);
+if (max(max(max(SST)))>100)
+    SST = SST-273.15;
 end
+
+% WOA13 SST:
+WOAname = '/srv/ccrc/data03/z3500785/WOA13/woa13_decav_t00_04v2.nc';
+WOASST = ncread(WOAname,'t_an',[1 1 1 1],[1440 720 1 1]);
+[WOAlon,WOAlat] = ndgrid(ncread(WOAname,'lon'),ncread(WOAname,'lat'));
+
+%Shift longitudes:
+[tmp ind] = min(abs(WOAlon(:,1)-80));
+WOASST = cat(1,WOASST(ind+1:end,:),WOASST(1:ind,:));
+WOAlon = cat(1,WOAlon(ind+1:end,:)-360,WOAlon(1:ind,:));
+WOAlat = cat(1,WOAlat(ind+1:end,:),WOAlat(1:ind,:));
+
+% Calculate bias from WOA:
+SSTbias = monmean(SST,3,ndays)-interp2(WOAlon',WOAlat',WOASST',lon,lat,'linear');
+
+% $$$ % Calculate bias:
+% $$$ for i=1:12
+% $$$     SST(:,:,i) = interp2(MOM01lon',MOM01lat',MOM01SST(:,:,i)',lon,lat,'linear')-SST(:,:,i);
+% $$$     shflux(:,:,i) = interp2(MOM01lon',MOM01lat',MOM01shflux(:,:,i)',lon,lat,'linear')-shflux(:,:,i);
+% $$$ end
 
 [xL,yL] = size(lon);
 xvec = 1:1:xL;
@@ -1019,12 +1074,45 @@ labels = {'Annual', ...
 
 figure;
 set(gcf,'Position',[3          59        1916         914]);
-set(0,'defaulttextfontsize',15);
-set(0,'defaultaxesfontsize',15);
+set(gcf,'defaulttextfontsize',15);
+set(gcf,'defaultaxesfontsize',15);
 poss = [0.1300    0.4553    0.7693    0.4697; ...
         0.1300    0.1389    0.2343    0.2680; ...
         0.3951    0.1389    0.2343    0.2680; ...
         0.6681    0.1389    0.2343    0.2680];
+
+% Plot Biases:
+% $$$ subplot(3,1,1);
+% $$$ contourf(lon,lat,monmean(SST,3,ndays),[-1e10 0:1:34 1e10],'linestyle','none');
+% $$$ set(gca,'color','k');
+% $$$ title('MOM025 SST ($^\circ$C)');
+% $$$ caxis([0 32]);
+% $$$ colorbar;
+% $$$ subplot(3,1,2);
+% $$$ contourf(WOAlon,WOAlat,WOASST,[-1e10 0:1:34 1e10],'linestyle','none');
+% $$$ set(gca,'color','k');
+% $$$ title('WOA13 SST ($^\circ$C)');
+% $$$ caxis([0 32]);
+% $$$ colorbar;
+% $$$ subplot(3,1,3);
+contourf(lon,lat,SSTbias,[-1e10 -5:0.25:5 1e10],'linestyle', ...
+         'none');
+hold on;
+contour(lon,lat,SSTbias,[-3 -2 -1 1 2 3],'-k');
+set(gca,'color','k');
+title('MOM025 $\kappa_{iw}=10^{-5}$m$^2$s$^{-1}$ year 50 - WOA13 SST ($^\circ$C)');
+% $$$ title('MOM025 - WOA13 SST ($^\circ$C)');
+% $$$ title('ACCESS-OM2 1-degree JRA55 ryf8485 KDS50 - WOA13 SST ($^\circ$C)');
+% $$$ title('ACCESS-OM2 1-degree JRA55 ryf8485 GFDL50 - WOA13 SST ($^\circ$C)');
+title('ACCESS-OM2 1-degree JRA55 ryf8485 KDS50 Year 21 $\kappa_{iw}=10^{-5}$m$^2$s$^{-1}$ - WOA13 SST ($^\circ$C)');
+caxis([-3 3]);
+colorbar;
+colormap(redblue(24));
+set(gca,'FontSize',20);
+xlabel('Longitude ($^\circ$E)');
+ylabel('Latitude ($^\circ$N)');
+
+%
 for i=1:length(months)
     if (i == 1)
         subplot(5,3,[1 9]);
@@ -1422,12 +1510,19 @@ grid on;
 %%% Latitudinal Slices:
 
 % Load Base Variables:
-base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag/mat_data/';
-model = 'MOM025';
-outputs = 8:12;
+% $$$ base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag/mat_data/';
+% $$$ model = 'MOM025';
+% $$$ outputs = 14;
+base = '/srv/ccrc/data03/z3500785/access-om2/1deg_jra55_ryf8485_kds50_s13p8_mushy/mat_data/';
+model = 'ACCESS-OM2_1deg_jra55_ryf8485_kds50_s13p8_mushy';
+outputs = 57;
+% $$$ base = '/srv/ccrc/data03/z3500785/MOM_ENSO/mat_data/';
+% $$$ model = 'MOM025';
+% $$$ outputs = 4;
 % $$$ base = '/srv/ccrc/data03/z3500785/MOM01_HeatDiag/mat_data/';
 % $$$ model = 'MOM01';
 % $$$ outputs = [111 222];
+% $$$ load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
 load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
 ndays = diff(time_snap);
 
@@ -1447,6 +1542,9 @@ end
 for i=1:length(vars)
     eval([vars{i} ' = ' vars{i} 'a/length(outputs);']);
     eval(['clear ' vars{i} 'a;']);
+end
+if(max(max(max(temp)))>100)
+    temp = temp-273.15;
 end
 
 [yL,zL,tL] = size(temp);
@@ -1468,7 +1566,7 @@ end
 Yi = repmat(Yt(:,1),[1 TL]);
 
 var = cumsum(vdif,2,'reverse'); % Vertical Mixing Flux
-clim = [-400 0];
+clim = [-250 0];
 sp = 10;
 doWMT = 0;
 
@@ -1478,13 +1576,16 @@ doWMT = 0;
 % $$$ sp = 0.1*1e-5*86400;
 % $$$ doWMT = 1;
 
-% $$$ months = {[1:12],[3],[7],[11]};
-% $$$ monthsu01 = {[1:4],[1],[3],[4]};
-% $$$ labels = {'Annual','March','July','November'};
-
-months = {[6],[7],[8],[9]};
-monthsu01 = {[2],[3],[3],[3]};
-labels = {'June','July','August','September'};
+months = {[1:12],[3],[7],[11]};
+monthsu01 = {[1:4],[1],[3],[4]};
+labels = {'Annual','March','July','November'};
+% $$$ 
+% $$$ months = {[6],[7],[8],[9]};
+% $$$ monthsu01 = {[2],[3],[3],[3]};
+% $$$ labels = {'June','July','August','September'};
+% $$$ 
+% $$$ months = {[7:9],[10:12],[8],[11]};
+% $$$ labels = {'JAS','OND','August','November'};
 
 %Colormap:
 cpts = [-1e10 clim(1):sp:clim(2) 1e10];
@@ -1532,6 +1633,7 @@ ucol = [0.8706    0.4902         0];
                 'color',ucol);
 plot(Yu(:,1),-monmean(mld(:,months{i}),2,ndays(months{i})),'--','color',[0 0.5 0],'linewidth',3);
 ylim([-200 0]);
+%ylim([-250 0]);
 xlim([-10 10]);
 cb = colorbar;
 if (doWMT)
@@ -1568,6 +1670,9 @@ colormap(cmap);
 base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag/mat_data/';
 model = 'MOM025';
 outputs = 8:12;
+base = '/srv/ccrc/data03/z3500785/MOM_ENSO/mat_data/';
+model = 'MOM025';
+outputs = 4;
 % $$$ base = '/srv/ccrc/data03/z3500785/MOM01_HeatDiag/mat_data/';
 % $$$ model = 'MOM01';
 % $$$ outputs = [111 222];
@@ -1626,6 +1731,9 @@ labels = {'Annual','March','July','November'};
 months = {[6],[7],[8],[9]};
 monthsu01 = {[2],[3],[3],[3]};
 labels = {'June','July','August','September'};
+
+months = {[7:9],[10:12],[8],[11]};
+labels = {'JAS','OND','August','November'};
 
 %Colormap:
 cpts = [-1e10 clim(1):sp:clim(2) 1e10];
