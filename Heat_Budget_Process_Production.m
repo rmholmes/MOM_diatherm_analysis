@@ -10,8 +10,8 @@ baseL = '/short/e14/rmh561/mom/archive/';
 % $$$ model = 'MOM025';
 % $$$ baseD = [baseL 'MOM_wombat/']; %Data Directory.
 % MOM-SIS025:
-model = 'MOM025';
-baseD = [baseL 'MOM_HeatDiag/']; %Data Directory.
+model = 'MOM025_kb3seg';
+baseD = [baseL 'MOM_HeatDiag_kb3seg/']; %Data Directory.
 % ACCESS-OM2:
 % $$$ model = 'ACCESS-OM2_025deg_jra55_ryf8485';
 % $$$ baseD = [baseL 'control/025deg_jra55_ryf8485/archive/']; %Data Directory.
@@ -30,11 +30,7 @@ haveGM = 0; % 1 = GM is on, 0 = off;
 haveMDS = 0; % 1 = MDS is on, 0 = off;
 haveMIX = 1; % 1 = Do mixing components (vdiffuse_diff_cbt_*), 0 = don't. 
 
-% $$$ for output = 9:12;
-% $$$ for output = 266:269;
-output = 14;
-% $$$ for output = 0:1:3
-% $$$ output = 8;
+for output = 75:79;
 restart = output-1;
 
 % file-names -----------------------------------------
@@ -73,7 +69,7 @@ lonv_t = ncread(gname,'xt_ocean');lonv_u = ncread(gname,'xu_ocean');
 latv_t = ncread(gname,'yt_ocean');latv_u = ncread(gname,'yu_ocean');
 
 % Vertical grid  -----------------------------------------
-z = ncread(hname,'st_ocean');zL = length(z);
+z = ncread(fname,'st_ocean');zL = length(z);
 
 % 3D mask ------------------------------------------------
 mask = ncread(fname,'temp',[1 1 1 rstti],[xL yL zL 1]);
@@ -81,7 +77,7 @@ mask(~isnan(mask)) = 1; mask(isnan(mask)) = 0;
 mask = mask == 1;
 
 % Time  -----------------------------------------
-time = ncread(hname,'time');
+time = ncread(fname,'time');
 
 if (found_rst)
     dys = [31 28 31 30 31 30 31 31 30 31 30 31];
@@ -477,7 +473,8 @@ end
 save([outD model sprintf('_output%03d',output) '_GlobalHBud.mat'],'GWB','-v7.3');
 
 %% Vertical Integrate down to level from online T-binned values -----------------------------------------------------------------------------------------------------------
-Tls = [5 10 15:2.5:27.5];
+%Tls = [5 10 15:2.5:27.5];
+Tls = [21.5];
 Nremain = length(Tls);
 Ti = TL;
 
@@ -566,7 +563,8 @@ while (Nremain > 0 & Ti >= 1)
 end
 
 %% Calculate WMT due to different (resolved) terms %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-Tls = [5 10 15:2.5:27.5]-0.25;
+%Tls = [5 10 15:2.5:27.5]-0.25;
+Tls = [21.5];
 
 for ii = 1:length(Tls)
     Tl = Tls(ii);
@@ -606,8 +604,10 @@ for ii = 1:length(Tls)
 end
 
 %% Add horizontally-resolved volume fluxes for implicit mixing residual:
-WMTTls = [5 10 15:2.5:27.5]-0.25;
-FLTls = [5 10 15:2.5:27.5];
+%WMTTls = [5 10 15:2.5:27.5]-0.25;
+%FLTls = [5 10 15:2.5:27.5];
+WMTTls = [21.5]-0.25;
+FLTls = [21.5];
 
 Nremain = length(WMTTls)+length(FLTls);
 Ti = TL+1;
@@ -747,25 +747,81 @@ for ti = 1:tL
     end
 end
 save([outD model sprintf('_output%03d',output) '_SurfaceVars.mat'],'mhflux','-append');
-% $$$ 
-% $$$ 
-% $$$ %% Latitude-depth overturning:
-% $$$ PSI = zeros(yL,TL,tL);
-% $$$ 
-% $$$ % Ignoring tri-polar (wrong >60N).
-% $$$ for ti=1:tL
-% $$$     ti
-% $$$     PSI(:,:,ti) = squeeze(nansum(ncread(wname,'ty_trans_nrho',[1 1 1 ti],[xL yL TL 1]),1));
-% $$$ end
-% $$$ save([outD model sprintf('_output%03d',output) '_Tpsi.mat'],'PSI');
 
-% $$$     
-% $$$     for TI = 1:TL
-% $$$         tytrans = ncread(wname,'ty_trans_nrho',[1 1 TI ti],[xL yL 1 1]);
-% $$$         for yi=1:yL
-% $$$             inds = lat >= late(yi) & lat <= 
-% $$$             PSI(yi,TI,ti) = sum(tytrans(
 
+%% Latitude-depth overturning:
+PSI = zeros(yL,TL,tL);
+
+% Ignoring tri-polar (wrong >60N).
+for ti=1:tL
+    ti
+    PSI(:,:,ti) = squeeze(nansum(ncread(wname,'ty_trans_nrho',[1 1 1 ti],[xL yL TL 1]) + ...
+                                 ncread(wname,'ty_trans_nrho_submeso',[1 1 1 ti],[xL yL TL 1]) ...
+                                 ,1));
+    if (haveGM) 
+        PSI(:,:,ti) = PSI(:,:,ti) + squeeze(nansum(ncread(wname,'ty_trans_nrho_gm',[1 1 1 ti],[xL yL TL 1]),1));
+    end
+end
+save([outD model sprintf('_output%03d',output) '_Tpsi.mat'],'PSI');
+
+%% Zonally-averaged fluxes -------------------------------------------------------------
+ZA.F = zeros(yL,TL+1,tL); % Wm-1 due to F
+ZA.P = zeros(yL,TL+1,tL); % Wm-1 due to P
+ZA.M = zeros(yL,TL+1,tL); % Wm-1 due to M
+ZA.SWH = zeros(yL,TL+1,tL); % Wm-1 due to SW redistribution
+ZA.Mkppiw = zeros(yL,TL+1,tL); %Wm-1 due to kppiw;
+ZA.Mkppish = zeros(yL,TL+1,tL); %Wm-1 due to kppiw;
+ZA.Mwave = zeros(yL,TL+1,tL); %Wm-1 due to kppiw;
+ZA.Mkppbl = zeros(yL,TL+1,tL); %Wm-1 due to kppiw;
+ZA.Moth   = zeros(yL,TL+1,tL); %Wm-1 due to kppicon+kppdd+KPPnloc;
+ZA.JS = zeros(yL,TL+1,tL); % ?? due to surface volume flux
+
+yto = diff(ncread(gname,'yt_ocean'));
+yto = [yto(1); (yto(2:end)+yto(1:(end-1)))/2; yto(end)];
+
+% ignoring tri-polar for now.
+for ti=1:tL
+    ii = TL;
+    sprintf('Calculating zonally-averaged water-mass heat budget time %03d of %03d, temp %03d of %03d',ti,tL,ii,TL)
+    ZA.F(:,ii,ti) = (nansum(area.*ncread(wname,'temp_vdiffuse_sbc_on_nrho',[1 1 ii ti],[xL yL 1 1]),1) + ...
+                    nansum(area.*ncread(wname,'frazil_on_nrho',[1 1 ii ti],[xL yL 1 1]),1) + ...
+                    nansum(area.*ncread(wname,'temp_eta_smooth_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yto;
+    ZA.P(:,ii,ti) = (nansum(area.*ncread(wname,'sfc_hflux_pme_on_nrho',[1 1 ii ti],[xL yL 1 1]),1) + ...
+                    nansum(area.*ncread(wname,'temp_rivermix_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yto;
+    ZA.M(:,ii,ti) = (nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 ii ti],[xL yL 1 1]),1) + ...
+                    nansum(area.*ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yto;
+    ZA.SWH(:,ii,ti) = (nansum(area.*ncread(wname,'sw_heat_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yto;
+    ZA.F(:,ii,ti) = ZA.F(:,ii,ti) + ZA.SWH(:,ii,ti);
+    ZA.Mkppiw(:,ii,ti) = (nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppiw_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yto;
+    ZA.Mkppish(:,ii,ti) = (nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppish_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yto;
+    ZA.Mwave(:,ii,ti) = (nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_wave_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yto;
+    ZA.Mkppbl(:,ii,ti) = (nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppbl_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yto;
+    ZA.Moth(:,ii,ti) = (nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppicon_on_nrho',[1 1 ii ti],[xL yL 1 1]),1) + ...
+                       nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppdd_on_nrho',[1 1 ii ti],[xL yL 1 1]),1) + ...
+                       nansum(area.*ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yto;
+    ZA.JS(:,ii,ti) = (nansum(area.*ncread(wname,'mass_pmepr_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yto;
+for ii=TL-1:-1:1
+    sprintf('Calculating zonally-averaged water-mass heat budget time %03d of %03d, temp %03d of %03d',ti,tL,ii,TL)
+    ZA.F(:,ii,ti) = ZA.F(:,ii+1,ti) + (nansum(area.*ncread(wname,'temp_vdiffuse_sbc_on_nrho',[1 1 ii ti],[xL yL 1 1]),1) + ...
+                    nansum(area.*ncread(wname,'frazil_on_nrho',[1 1 ii ti],[xL yL 1 1]),1) + ...
+                    nansum(area.*ncread(wname,'temp_eta_smooth_on_nrho',[1 1 ii ti],[xL yL 1 1]),1) + ...
+                    nansum(area.*ncread(wname,'sw_heat_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yto;
+    ZA.P(:,ii,ti) = ZA.P(:,ii+1,ti) + (nansum(area.*ncread(wname,'sfc_hflux_pme_on_nrho',[1 1 ii ti],[xL yL 1 1]),1) + ...
+                    nansum(area.*ncread(wname,'temp_rivermix_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yto;
+    ZA.M(:,ii,ti) = ZA.M(:,ii+1,ti) + (nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 ii ti],[xL yL 1 1]),1) + ...
+                    nansum(area.*ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yto;
+    ZA.SWH(:,ii,ti) = ZA.SWH(:,ii+1,ti) + (nansum(area.*ncread(wname,'sw_heat_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yto;
+    ZA.Mkppiw(:,ii,ti) = ZA.Mkppiw(:,ii+1,ti) + (nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppiw_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yto;
+    ZA.Mkppish(:,ii,ti) = ZA.Mkppish(:,ii+1,ti) + (nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppish_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yto;
+    ZA.Mwave(:,ii,ti) = ZA.Mwave(:,ii+1,ti) + (nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_wave_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yto;
+    ZA.Mkppbl(:,ii,ti) = ZA.Mkppbl(:,ii+1,ti) + (nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppbl_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yto;
+    ZA.Moth(:,ii,ti) = ZA.Moth(:,ii+1,ti) + (nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppicon_on_nrho',[1 1 ii ti],[xL yL 1 1]),1) + ...
+                       nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppdd_on_nrho',[1 1 ii ti],[xL yL 1 1]),1) + ...
+                       nansum(area.*ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yto;
+    ZA.JS(:,ii,ti) = ZA.JS(:,ii+1,ti) + (nansum(area.*ncread(wname,'mass_pmepr_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yto;
+end
+end
+save([outD model sprintf('_output%03d',output) '_ZAHBud.mat'],'ZA','yto','-v7.3');
 
 % $$$ %% Heat Function From tendencies -------------------------------------------------
 % $$$ HFSWH    = zeros(yL,TL+1,tL); % W due to SW redistribution
@@ -826,7 +882,7 @@ save([outD model sprintf('_output%03d',output) '_SurfaceVars.mat'],'mhflux','-ap
 % $$$         HFVDS(1:(tplast-2),ii+1,ti) = HFVDS(1:(tplast-2),ii,ti) + cumsum(sum(VDS(:,1:(tplast-2)),1),2,'reverse')' + sum(sum(VDS(:,(tplast-1):end),1),2);
 % $$$         HFSWH(1:(tplast-2),ii+1,ti) = HFSWH(1:(tplast-2),ii,ti) + cumsum(sum(SWH(:,1:(tplast-2)),1),2,'reverse')' + sum(sum(SWH(:,(tplast-1):end),1),2);
 % $$$         HFVDF(1:(tplast-2),ii+1,ti) = HFVDF(1:(tplast-2),ii,ti) + cumsum(sum(VDF(:,1:(tplast-2)),1),2,'reverse')' + sum(sum(VDF(:,(tplast-1):end),1),2);
-% $$$         HFKNL(1:(tplast-2),ii+1,ti) = HFKNL(1:(tplast-2),ii,ti) + cumsum(sum(KNL(:,1:(tplast-2)),1),2,'reverse')' + sum(sum(KNL(:,(tplast-1):end),1),2);
+% $$$         HFKNL(1:(tplast-2),ii+1,ti) = HFKNL(1:(tplast-2),ii,ti) + cumsum(sum(KNL(:,1:(tplast-2)),1),2,'reverse')' + sum(sum(KNL(:,(tplast-1):end),1l),2);
 % $$$         HFFRZ(1:(tplast-2),ii+1,ti) = HFFRZ(1:(tplast-2),ii,ti) + cumsum(sum(FRZ(:,1:(tplast-2)),1),2,'reverse')' + sum(sum(FRZ(:,(tplast-1):end),1),2);
 % $$$         HFETS(1:(tplast-2),ii+1,ti) = HFETS(1:(tplast-2),ii,ti) + cumsum(sum(ETS(:,1:(tplast-2)),1),2,'reverse')' + sum(sum(ETS(:,(tplast-1):end),1),2);
 % $$$ % $$$ 
@@ -849,8 +905,8 @@ save([outD model sprintf('_output%03d',output) '_SurfaceVars.mat'],'mhflux','-ap
 % $$$ save([outD model sprintf('_output%03d',output) '_HFunc.mat'],'HFSWH','HFVDS','HFRMX','HFPME','HFFRZ', ...
 % $$$      'HFETS','HFSUB','HFVDF','HFKNL','HFADV','HFTEN');
 % $$$ 
-% $$$ end
-% $$$ 
+end
+
 
 % $$$ %% Swap in non-NaN'd lon/lat:
 % $$$ base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag/mat_data/';
@@ -860,9 +916,9 @@ save([outD model sprintf('_output%03d',output) '_SurfaceVars.mat'],'mhflux','-ap
 % $$$ load([base model sprintf('_output%03d_BaseVars.mat',8)]);
 % $$$ region = 'Global';
 % $$$ 
-% $$$ base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag_kb1em6/mat_data/';
-% $$$ model = 'MOM025_kb1em6';
-% $$$ for output = [0 1 30]
+% $$$ base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag/mat_data/';
+% $$$ model = 'MOM025';
+% $$$ for output = [14]
 % $$$     save([base model sprintf('_output%03d_BaseVars.mat',output)], ...
 % $$$          'lon','lat','lonu','latu','area','-append');
 % $$$ end

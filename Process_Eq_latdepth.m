@@ -1,23 +1,29 @@
 % This script extracts specified data from MOM025 and MOM01 runs 
 
 % $$$ model = 'MOM01';
-model = 'MOM025';
-% $$$ baseD = '/short/e14/rmh561/mom/archive/MOM_HeatDiag/'; %Data Directory.
+model = 'MOM025_kb3seg';
+baseD = '/short/e14/rmh561/mom/archive/MOM_HeatDiag_kb3seg/'; %Data Directory.
 % $$$ baseD = '/srv/ccrc/data03/z3500785/MOM_HeatDiag/'; %Data Directory.
 % $$$ baseD = '/g/data/e14/rmh561/MOM01_HeatDiag/';
-baseD = '/g/data/e14/rmh561/MOM_HeatDiag/';
+% $$$ baseD = '/g/data/e14/rmh561/MOM_HeatDiag/';
+% $$$ baseD = '/short/e14/mv7494/mom_perturbations/EXP1_and_EXP2_restart000_windstress/archive/';
+outD = '/short/e14/rmh561/mom/archive/MOM_HeatDiag_kb3seg/';
 
-for output=8:12
+for output=75:79
 % $$$ for output=[0 1 2 3 266 267 268 269]
     if (output==0)
-        restart=269;
+        restart=0;
     else
         restart = output-1;
     end
 
 %% file-names and grid properties:
 base = [baseD sprintf('output%03d/',output)];
-baser = [baseD sprintf('restart%03d/',restart)];
+if (output==0)
+    baser = '/short/e14/mv7494/mom_control/archive/restart000/';
+else
+    baser = [baseD sprintf('restart%03d/',restart)];
+end
 hname = [base 'ocean_heat.nc'];
 if (strfind(baseD,'01'))
     fname = [base 'ocean_month.nc'];
@@ -55,7 +61,7 @@ Te = ncread(wname,'neutralrho_edges');
 TL = length(T);dT = T(2)-T(1);
 
 %% Get lat-depth slice of variables:
-lonsl = -110;
+for lonsl=[-110 -140]
 [tmp lt1] = min(abs(lat(1,:)+20));
 [tmp lt2] = min(abs(lat(1,:)-20));
 
@@ -69,7 +75,7 @@ else
     u = squeeze(ncread(fname,'u',[lnind lt1 1 1],[1 lt2-lt1+1 zL tL]));
     v = squeeze(ncread(fname,'v',[lnind lt1 1 1],[1 lt2-lt1+1 zL tL]));
 end
-end
+
 kappa = squeeze(ncread(fname,'diff_cbt_t',[lnind lt1 1 1],[1 lt2-lt1+1 zL tL]));
 taux = squeeze(ncread(fname,'tau_x',[lnind lt1 1],[1 lt2-lt1+1 tL]));
 tauy = squeeze(ncread(fname,'tau_y',[lnind lt1 1],[1 lt2-lt1+1 tL]));
@@ -87,13 +93,14 @@ swrd = squeeze(ncread(wname,'sw_heat_on_nrho',[lnind lt1 1 1],[1 lt2-lt1+1 TL tL
 [Yt,Zt] = ndgrid(lat(lnind,lt1:lt2),z);
 [Yu,Zu] = ndgrid(latu(lnind,lt1:lt2),z);
 
-name = [baseD 'mat_data/' model sprintf('_output%03d',output) '_varsat_' num2str(-lonsl) 'W.mat']
+name = [outD 'mat_data/' model sprintf('_output%03d',output) '_varsat_' num2str(-lonsl) 'W.mat']
 save(name,'Yt','Zt','Yu','Zu','temp','u','v','kappa','taux','tauy','mld', ...
      'vdif','vnlc','pmer','sufc','swrd');
+end
 
 %% Get equatorial slices of variables:
-[tmp ltind] = min(abs(lat(1,:)-latsl));
 latsl = 0;
+[tmp ltind] = min(abs(lat(1,:)-latsl));
 [tmp ln1] = min(abs(lon(:,ltind)+240));
 [tmp ln2] = min(abs(lon(:,ltind)+70));
 
@@ -123,7 +130,7 @@ swrd = squeeze(ncread(wname,'sw_heat_on_nrho',[ln1 ltind 1 1],[ln2-ln1+1 1 TL tL
 [Xt,Zt] = ndgrid(lon(ln1:ln2,ltind),z);
 [Xu,Zu] = ndgrid(lonu(ln1:ln2,ltind),z);
 
-name = [baseD 'mat_data/' model sprintf('_output%03d',output) '_varsat_Eq.mat']
+name = [outD 'mat_data/' model sprintf('_output%03d',output) '_varsat_Eq.mat']
 save(name,'Xt','Zt','Xu','Zu','temp','u','v','kappa','taux','tauy','mld', ...
      'vdif','vnlc','pmer','sufc','swrd');
 
