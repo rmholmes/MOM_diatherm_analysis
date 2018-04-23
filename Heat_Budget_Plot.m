@@ -9,18 +9,18 @@ clear all;
 % $$$ model = 'ACCESS-OM2_1deg_jra55_ryf8485_kds50_s13p8_mushy';
 % $$$ outputs = 57;
 
-% $$$ base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag_kb3seg/mat_data/';
-% $$$ model = 'MOM025_kb3seg';
-% $$$ outputs = [75:79];
+base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag_kb3seg/mat_data/';
+model = 'MOM025_kb3seg';
+outputs = [75:79];
 
 base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag_kb1em5/mat_data/';
 model = 'MOM025_kb1em5';
 outputs = 94;
-
+% $$$ % $$$ % $$$ 
 base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag/mat_data/';
 model = 'MOM025';
-%outputs = [8:12];
-outputs = [12]
+outputs = [8:12];
+% $$$ outputs = [12]
 % $$$ 
 % $$$ 
 % $$$ base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag_kb1em6/mat_data/';
@@ -444,105 +444,6 @@ set(gca,'xtick',[1:tL]);
 set(gca,'FontSize',25);
 grid on;box on;
 LabelAxes(gca,2,25,0.003,0.925);
-
-%%% Latitude-Temperature
-
-load([base model sprintf('_output%03d_',outputs(1)) 'ZAHBud.mat']);
-
-names = fieldnames(ZA);
-for i=1:length(names)
-    eval(['z' names{i} ' = ZA.' names{i} ';']);
-end
-
-for i=1:length(outputs)
-
-    load([base model sprintf('_output%03d_',outputs(1)) 'ZAHBud.mat']);
-
-    for i=1:length(names)
-        eval(['z' names{i} ' = z' names{i} ' + ZA.' names{i} ';']);
-    end
-end
-for i=1:length(names)
-    eval(['z' names{i} ' = z' names{i} '/length(outputs);']);
-end
-months = [1:length(zP(1,1,:))];
-
-% $$$ fields = { ...
-% $$$           {zF(:,:,months)+zP(:,:,months), 'Surface Forcing $\mathcal{F}+\mathcal{P}$','k',2,'-'}, ...
-% $$$           {zM(:,:,months), 'Vertical Mixing $\mathcal{M}$','r',2,'-'}, ...
-% $$$           {zF(:,:,months)+zP(:,:,months)+zM(:,:,months), 'Surface Forcing and Mixing $\mathcal{F}+\mathcal{P}+\mathcal{M}$','k',2,'-'}, ...
-% $$$           };
-fields = { ...
-          {-diff(zF(:,:,months)+zP(:,:,months),[],2)/dT,'Surface Heating Rate','k',2,'-'}, ...
-          {-diff(zM(:,:,months),[],2)/dT,'Mixing Heating Rate','k',2,'-'}, ...
-         };
-fields = { ...
-          {repmat(zF(:,1,:),[1 TL+1 1])-zF(:,:,months), 'Surface Forcing $\mathcal{F}$','r',2,'-'}, ...
-          {zM(:,:,months), 'Vertical Mixing $\mathcal{M}$','r',2,'-'}, ...
-          {zMkppiw(:,:,months), 'Background Mixing','b',2,'-'}, ...
-          {zMkppish(:,:,months), 'Interior Shear Instability',[0 0.5 0],2,'-'}, ...
-          {zMkppbl(:,:,months), 'KPP Boundary Layer','m',2,'-'}, ...
-          {zMwave(:,:,months), 'Topographic Internal Wave','k',2,'-'}, ...
-% $$$           {zMoth(:,:,months),'Vertical Diffusion Other',[0.49 0.18 0.56],2,'-'}, ...
-          };
-
-% $$$ doWMT = 0;
-% $$$ 
-% $$$ if (doWMT)
-% $$$     Fscale = 1/1e12;
-% $$$     clim = [-20 20];
-% $$$     sp = 0.1;
-% $$$     cblab = 'TW / $^\circ$C / $^\circ$';
-% $$$ else
-    Fscale = 1/1e12;
-    clim = [-40 40];
-    sp = 1;
-    cblab = 'TW / $^\circ$';
-% $$$ end
-
-cpts = [-1e10 clim(1):sp:clim(2) 1e10];
-npts = length(cpts);
-
-% $$$ if (doWMT)
-    cmap = redblue(npts-3);
-% $$$ else
-% $$$     cmap = parula(npts-3);
-% $$$     cmap = parula(npts-3);
-% $$$     cmap(end,:) = [0.97 0.97 0.8];
-% $$$     cmap(end-1,:) = (cmap(end-1,:)+cmap(end,:))/2;
-% $$$ end
-
-%Fluxes only:
-figure;
-set(gcf,'Position',[207          97        1609         815]);
-set(gcf,'defaulttextfontsize',15);
-set(gcf,'defaultaxesfontsize',15);
-leg = {};
-legh = [];
-for i=1:length(fields)
-    subplot(2,3,i)
-    if (length(fields{i}{1}(1,:,1)) == length(Te))
-        x = Te;
-    else
-        x = T;
-    end
-    [Yg,Tg] = ndgrid(latv,x);
-
-    VAR = monmean(fields{i}{1},3,ndays(months))*Fscale;
-    VAR(VAR==0) = NaN;
-    contourf(Yg,Tg,VAR,cpts,'linestyle','none');
-    ylim([-3 32]);
-    xlim([-80 70]);
-    caxis(clim);
-    box on; 
-    grid on;
-    ylabel('Temperature $\Theta$ ($^\circ$C)');
-    xlabel('Latitude ($^\circ$N)');
-    cb = colorbar;
-    ylabel(cb,cblab);
-    title(fields{i}{2});
-end
-colormap(cmap);
 
 %%% Spatial Structure:
 
@@ -1735,7 +1636,7 @@ load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
 ndays = diff(time_snap);
 
 % Load Variable and calculate mean:
-lonsl = 110;
+lonsl = 140;
 load([base model sprintf(['_output%03d_varsat_' num2str(lonsl) 'W.mat'],outputs(1))]);
 vars = {'temp','u','v','kappa','taux','tauy','mld','vdif','vnlc','pmer','sufc','swrd'};
 for i=1:length(vars)
@@ -2039,7 +1940,7 @@ ndays = diff(time_snap);
 load([base model sprintf('_output%03d_Tpsi.mat',outputs(1))]);
 NaNs = PSI == 0;
 % $$$ PSI = cumsum(-PSI/rho0*1e9,2); %cumsum from low temps and correct units
-PSI = cumsum(PSI/rho0*1e9,2);
+PSI = cumsum(PSI/rho0*1e9,2,'reverse');
 
 % Load SST:
 load([base model sprintf('_output%03d_SurfaceVars.mat',outputs(1))]);
@@ -2048,7 +1949,6 @@ SST(SST==0) = NaN;
 maxSST = squeeze(max(max(SST,[],1),[],3));
 meanSST = squeeze(nanmean(nanmean(SST,1),3));
 minSST = squeeze(min(min(SST,[],1),[],3));
-
 
 %calculate heat function:
 H = cumsum(rho0*Cp*PSI*dT,2);
