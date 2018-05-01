@@ -30,6 +30,14 @@ haveGM = 0; % 1 = GM is on, 0 = off;
 haveMDS = 1; % 1 = MDS is on, 0 = off;
 haveMIX = 0; % 1 = Do mixing components (vdiffuse_diff_cbt_*), 0 = don't. 
 
+% scaling constant on the transports:
+if (strcmp(model(1),'A')) %ACCESS-OM2, transport in kg/s
+    tsc = 1;
+else % MOM-SIS, transport in 1e9 kg/s
+    tsc = 1e9;
+end
+    
+
 % $$$ for output = 76:79;
 for output = 78;
 restart = output-1;
@@ -635,13 +643,13 @@ while (Nremain > 0 & Ti >= 1)
         '%2.2f, going down to %2.2f'],ti,tL,Te(Ti),min([WMTTls FLTls]))
         JSM(:,:,ti) = JSM(:,:,ti) + ncread(wname,'mass_pmepr_on_nrho',[1 1 Ti-1 ti],[xL yL 1 1])./area/rho0;
         dVdtM(:,:,ti) = dVdtM(:,:,ti) + ncread(wname,'dVdt',[1 1 Ti-1 ti],[xL yL 1 1])*1e9/rho0./area;
-        txtrans = ncread(wname,'tx_trans_nrho',[1 1 Ti-1 ti],[xL yL 1 1])*1e9/rho0 + ...
-                  ncread(wname,'tx_trans_nrho_submeso',[1 1 Ti-1 ti],[xL yL 1 1])*1e9/rho0;
-        tytrans = ncread(wname,'ty_trans_nrho',[1 1 Ti-1 ti],[xL yL 1 1])*1e9/rho0 + ...
-                  ncread(wname,'ty_trans_nrho_submeso',[1 1 Ti-1 ti],[xL yL 1 1])*1e9/rho0;
+        txtrans = ncread(wname,'tx_trans_nrho',[1 1 Ti-1 ti],[xL yL 1 1])*tsc/rho0 + ...
+                  ncread(wname,'tx_trans_nrho_submeso',[1 1 Ti-1 ti],[xL yL 1 1])*tsc/rho0;
+        tytrans = ncread(wname,'ty_trans_nrho',[1 1 Ti-1 ti],[xL yL 1 1])*tsc/rho0 + ...
+                  ncread(wname,'ty_trans_nrho_submeso',[1 1 Ti-1 ti],[xL yL 1 1])*tsc/rho0;
         if (haveGM)
-            txtrans = txtrans + ncread(wname,'tx_trans_nrho_gm',[1 1 Ti-1 ti],[xL yL 1 1])*1e9/rho0;
-            tytrans = tytrans + ncread(wname,'ty_trans_nrho_gm',[1 1 Ti-1 ti],[xL yL 1 1])*1e9/rho0;
+            txtrans = txtrans + ncread(wname,'tx_trans_nrho_gm',[1 1 Ti-1 ti],[xL yL 1 1])*tsc/rho0;
+            tytrans = tytrans + ncread(wname,'ty_trans_nrho_gm',[1 1 Ti-1 ti],[xL yL 1 1])*tsc/rho0;
         end
             
         JIM(2:end,2:end,ti) = JIM(2:end,2:end,ti)+(txtrans(1:(end-1),2:end) - txtrans(2:end,2:end) ...
@@ -742,10 +750,10 @@ mhflux = zeros(yL,tL);
 for ti = 1:tL
     for Ti = 1:TL
         sprintf('Calculating meridional heat flux time %03d of %03d, temp %03d of %03d',ti,tL,Ti,TL)
-        tytrans = ncread(wname,'ty_trans_nrho',[1 1 Ti ti],[xL yL 1 1])*1e9/rho0 + ...
-                  ncread(wname,'ty_trans_nrho_submeso',[1 1 Ti ti],[xL yL 1 1])*1e9/rho0;
+        tytrans = ncread(wname,'ty_trans_nrho',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0 + ...
+                  ncread(wname,'ty_trans_nrho_submeso',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0;
         if (haveGM)
-            tytrans = tytrans + ncread(wname,'ty_trans_nrho_gm',[1 1 Ti ti],[xL yL 1 1])*1e9/rho0;
+            tytrans = tytrans + ncread(wname,'ty_trans_nrho_gm',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0;
         end
         mhflux(:,ti) = mhflux(:,ti) + rho0*Cp*T(Ti)*nansum(tytrans,1)';
     end
@@ -808,9 +816,9 @@ for ti=1:tL
     ZA.dVdt(:,ii,ti) = nansum(ncread(wname,'dVdt',[1 1 ii ti],[xL yL 1 1])*1e9/rho0,1)'./yto;
     ZA.dHdt(:,ii,ti) = nansum(ncread(wname,'dHdt',[1 1 ii ti],[xL yL 1 1]),1)'./yto;
     ZA.PSI(:,ii,ti) =  nansum(ncread(wname,'ty_trans_nrho',[1 1 ii ti],[xL yL 1 1]) + ...
-                              ncread(wname,'ty_trans_nrho_submeso',[1 1 ii ti],[xL yL 1 1]),1)'*1e9/rho0;
+                              ncread(wname,'ty_trans_nrho_submeso',[1 1 ii ti],[xL yL 1 1]),1)'*tsc/rho0;
     if (haveGM) 
-        ZA.PSI(:,ii,ti) = ZA.PSI(:,ii,ti) + nansum(ncread(wname,'ty_trans_nrho_gm',[1 1 ii ti],[xL yL 1 1]),1)'*1e9/rho0;
+        ZA.PSI(:,ii,ti) = ZA.PSI(:,ii,ti) + nansum(ncread(wname,'ty_trans_nrho_gm',[1 1 ii ti],[xL yL 1 1]),1)'*tsc/rho0;
     end
 
     ZA.SWH(:,ii,ti) = (nansum(area.*ncread(wname,'sw_heat_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yto;
@@ -846,9 +854,9 @@ for ii=TL-1:-1:1
     ZA.dVdt(:,ii,ti) = ZA.dVdt(:,ii+1,ti) + nansum(ncread(wname,'dVdt',[1 1 ii ti],[xL yL 1 1])*1e9/rho0,1)'./yto;
     ZA.dHdt(:,ii,ti) = ZA.dHdt(:,ii+1,ti) + nansum(ncread(wname,'dHdt',[1 1 ii ti],[xL yL 1 1]),1)'./yto;
     ZA.PSI(:,ii,ti) =  ZA.PSI(:,ii+1,ti) + nansum(ncread(wname,'ty_trans_nrho',[1 1 ii ti],[xL yL 1 1]) + ...
-                              ncread(wname,'ty_trans_nrho_submeso',[1 1 ii ti],[xL yL 1 1]),1)'*1e9/rho0;
+                              ncread(wname,'ty_trans_nrho_submeso',[1 1 ii ti],[xL yL 1 1]),1)'*tsc/rho0;
     if (haveGM) 
-        ZA.PSI(:,ii,ti) = ZA.PSI(:,ii,ti) + nansum(ncread(wname,'ty_trans_nrho_gm',[1 1 ii ti],[xL yL 1 1]),1)'*1e9/rho0;
+        ZA.PSI(:,ii,ti) = ZA.PSI(:,ii,ti) + nansum(ncread(wname,'ty_trans_nrho_gm',[1 1 ii ti],[xL yL 1 1]),1)'*tsc/rho0;
     end
     ZA.SWH(:,ii,ti) = ZA.SWH(:,ii+1,ti) + (nansum(area.*ncread(wname,'sw_heat_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yto;
     if (haveMIX)
