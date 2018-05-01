@@ -52,6 +52,7 @@ if (strfind(baseD,'01'))
 else
     fname = [base 'ocean.nc'];
 end
+fname2 = [base 'ocean_month.nc'];
 gname = [base 'ocean_grid.nc'];
 sname = [base 'ocean_snap.nc'];
 wname = [base 'ocean_wmass.nc'];
@@ -737,13 +738,18 @@ end
 % $$$     save([outD model sprintf('_output%03d',output) '_Ziso_T' strrep(num2str(Tl),'.','p') 'C.mat'],'ziso');
 % $$$ end
 % $$$ 
-%% Save surface heat flux, wind stress, SST, meridional heat flux:
-shflux = ncread(fname,'net_sfc_heating',[1 1 1],[xL yL tL]);
-SST = squeeze(ncread(fname,'temp',[1 1 1 1],[xL yL 1 tL]));
-taux = ncread(fname,'tau_x',[1 1 1],[xL yL tL]);
-tauy = ncread(fname,'tau_y',[1 1 1],[xL yL tL]);
 
-save([outD model sprintf('_output%03d',output) '_SurfaceVars.mat'],'shflux','SST','taux','tauy');
+%% Save surface heat flux, wind stress, SST, meridional heat flux:
+try
+    shflux = ncread(fname,'net_sfc_heating',[1 1 1],[xL yL tL]);
+catch
+    shflux = ncread(fname2,'net_sfc_heating',[1 1 1],[xL yL tL]);
+end    
+SST = squeeze(ncread(fname,'temp',[1 1 1 1],[xL yL 1 tL]));
+% $$$ taux = ncread(fname,'tau_x',[1 1 1],[xL yL tL]);
+% $$$ tauy = ncread(fname,'tau_y',[1 1 1],[xL yL tL]);
+
+save([outD model sprintf('_output%03d',output) '_SurfaceVars.mat'],'shflux','SST');%,'taux','tauy');
 
 % Do meridional heat flux:
 mhflux = zeros(yL,tL);
@@ -878,88 +884,6 @@ end
 end
 save([outD model sprintf('_output%03d',output) '_ZAHBud.mat'],'ZA','yto','-v7.3');
 
-% $$$ %% Heat Function From tendencies -------------------------------------------------
-% $$$ HFSWH    = zeros(yL,TL+1,tL); % W due to SW redistribution
-% $$$ HFVDS    = zeros(yL,TL+1,tL); % W due to vdiffuse_sbc.
-% $$$ HFRMX    = zeros(yL,TL+1,tL); % W due to rivermix.
-% $$$ HFPME    = zeros(yL,TL+1,tL); % W due to P-E.
-% $$$ HFFRZ    = zeros(yL,TL+1,tL); % W due to frazil.
-% $$$ HFETS    = zeros(yL,TL+1,tL); % W due to eta_smoothing.
-% $$$ HFSUB    = zeros(yL,TL+1,tL); % W due to submesoscale.
-% $$$ HFVDF    = zeros(yL,TL+1,tL); % W due to vdiffusion
-% $$$ HFKNL    = zeros(yL,TL+1,tL); % W due to KPP non-local
-% $$$ HFADV    = zeros(yL,TL+1,tL); % W due to advection
-% $$$ HFTEN    = zeros(yL,TL+1,tL); % W due to tendency
-% $$$ 
-% $$$ tph = zeros(yL,1);
-% $$$ for yi=1:yL
-% $$$     tph(yi) = all(lat(:,yi) == latv(yi));
-% $$$ end
-% $$$ tph = ~tph;
-% $$$ tplast = find(tph==1,1,'first');
-% $$$ 
-% $$$ for ti=1:tL
-% $$$     for ii=1:TL
-% $$$         TEN = area.*ncread(wname,'temp_tendency_on_nrho',[1 1 ii ti],[xL yL 1 1]);TEN(isnan(TEN)) = 0;
-% $$$         ADV = area.*ncread(wname,'temp_advection_on_nrho',[1 1 ii ti],[xL yL 1 1]);ADV(isnan(ADV)) = 0;
-% $$$         SUB = area.*ncread(wname,'temp_submeso_on_nrho',[1 1 ii ti],[xL yL 1 1]);SUB(isnan(SUB)) = 0;
-% $$$         PME = area.*ncread(wname,'sfc_hflux_pme_on_nrho',[1 1 ii ti],[xL yL 1 1]);PME(isnan(PME)) = 0;
-% $$$         RMX = area.*ncread(wname,'temp_rivermix_on_nrho',[1 1 ii ti],[xL yL 1 1]);RMX(isnan(RMX)) = 0;
-% $$$         VDS = area.*ncread(wname,'temp_vdiffuse_sbc_on_nrho',[1 1 ii ti],[xL yL 1 1]);VDS(isnan(VDS)) = 0;
-% $$$         SWH = area.*ncread(wname,'sw_heat_on_nrho',[1 1 ii ti],[xL yL 1 1]);SWH(isnan(SWH)) = 0;
-% $$$         VDF = area.*ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 ii ti],[xL yL 1 1]);VDF(isnan(VDF)) = 0;
-% $$$         KNL = area.*ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 ii ti],[xL yL 1 1]);KNL(isnan(KNL)) = 0;
-% $$$         FRZ = area.*ncread(wname,'frazil_on_nrho',[1 1 ii ti],[xL yL 1 1]);FRZ(isnan(FRZ)) = 0;
-% $$$         ETS = area.*ncread(wname,'temp_eta_smooth_on_nrho',[1 1 ii ti],[xL yL 1 1]);ETS(isnan(ETS)) = 0;
-% $$$         
-% $$$         % Tripolar region:
-% $$$         for yi=yL:-1:(tplast-1)
-% $$$             sprintf('Calculating heat function lat %03d of %03d, time %03d of %03d, temp %03d of %03d',yL-yi+1,yL,ti,tL,ii,TL)
-% $$$             inds = lat >= latv(yi);
-% $$$             HFTEN(yi,ii+1,ti) = HFTEN(yi,ii,ti) + sum(TEN(inds));
-% $$$             HFADV(yi,ii+1,ti) = HFADV(yi,ii,ti) + sum(ADV(inds));
-% $$$             HFSUB(yi,ii+1,ti) = HFSUB(yi,ii,ti) + sum(SUB(inds));
-% $$$             HFPME(yi,ii+1,ti) = HFPME(yi,ii,ti) + sum(PME(inds));
-% $$$             HFRMX(yi,ii+1,ti) = HFRMX(yi,ii,ti) + sum(RMX(inds));
-% $$$             HFVDS(yi,ii+1,ti) = HFVDS(yi,ii,ti) + sum(VDS(inds));
-% $$$             HFSWH(yi,ii+1,ti) = HFSWH(yi,ii,ti) + sum(SWH(inds));
-% $$$             HFVDF(yi,ii+1,ti) = HFVDF(yi,ii,ti) + sum(VDF(inds));
-% $$$             HFKNL(yi,ii+1,ti) = HFKNL(yi,ii,ti) + sum(KNL(inds));
-% $$$             HFFRZ(yi,ii+1,ti) = HFFRZ(yi,ii,ti) + sum(FRZ(inds));
-% $$$             HFETS(yi,ii+1,ti) = HFETS(yi,ii,ti) + sum(ETS(inds));
-% $$$         end
-% $$$         %Non-tripolar region:
-% $$$         HFTEN(1:(tplast-2),ii+1,ti) = HFTEN(1:(tplast-2),ii,ti) + cumsum(sum(TEN(:,1:(tplast-2)),1),2,'reverse')' + sum(sum(TEN(:,(tplast-1):end),1),2);
-% $$$         HFADV(1:(tplast-2),ii+1,ti) = HFADV(1:(tplast-2),ii,ti) + cumsum(sum(ADV(:,1:(tplast-2)),1),2,'reverse')' + sum(sum(ADV(:,(tplast-1):end),1),2);
-% $$$         HFSUB(1:(tplast-2),ii+1,ti) = HFSUB(1:(tplast-2),ii,ti) + cumsum(sum(SUB(:,1:(tplast-2)),1),2,'reverse')' + sum(sum(SUB(:,(tplast-1):end),1),2);
-% $$$         HFPME(1:(tplast-2),ii+1,ti) = HFPME(1:(tplast-2),ii,ti) + cumsum(sum(PME(:,1:(tplast-2)),1),2,'reverse')' + sum(sum(PME(:,(tplast-1):end),1),2);
-% $$$         HFRMX(1:(tplast-2),ii+1,ti) = HFRMX(1:(tplast-2),ii,ti) + cumsum(sum(RMX(:,1:(tplast-2)),1),2,'reverse')' + sum(sum(RMX(:,(tplast-1):end),1),2);
-% $$$         HFVDS(1:(tplast-2),ii+1,ti) = HFVDS(1:(tplast-2),ii,ti) + cumsum(sum(VDS(:,1:(tplast-2)),1),2,'reverse')' + sum(sum(VDS(:,(tplast-1):end),1),2);
-% $$$         HFSWH(1:(tplast-2),ii+1,ti) = HFSWH(1:(tplast-2),ii,ti) + cumsum(sum(SWH(:,1:(tplast-2)),1),2,'reverse')' + sum(sum(SWH(:,(tplast-1):end),1),2);
-% $$$         HFVDF(1:(tplast-2),ii+1,ti) = HFVDF(1:(tplast-2),ii,ti) + cumsum(sum(VDF(:,1:(tplast-2)),1),2,'reverse')' + sum(sum(VDF(:,(tplast-1):end),1),2);
-% $$$         HFKNL(1:(tplast-2),ii+1,ti) = HFKNL(1:(tplast-2),ii,ti) + cumsum(sum(KNL(:,1:(tplast-2)),1),2,'reverse')' + sum(sum(KNL(:,(tplast-1):end),1l),2);
-% $$$         HFFRZ(1:(tplast-2),ii+1,ti) = HFFRZ(1:(tplast-2),ii,ti) + cumsum(sum(FRZ(:,1:(tplast-2)),1),2,'reverse')' + sum(sum(FRZ(:,(tplast-1):end),1),2);
-% $$$         HFETS(1:(tplast-2),ii+1,ti) = HFETS(1:(tplast-2),ii,ti) + cumsum(sum(ETS(:,1:(tplast-2)),1),2,'reverse')' + sum(sum(ETS(:,(tplast-1):end),1),2);
-% $$$ % $$$ 
-% $$$ % $$$         for yi=(tplast-2):-1:1
-% $$$ % $$$             sprintf('Calculating heat function lat %03d of %03d, time %03d of %03d, temp %03d of %03d',yL-yi+1,yL,ti,tL,ii,TL)
-% $$$ % $$$             HFTEN(yi,ii+1,ti) = HFTEN(yi,ii,ti) + nansum(nansum(TEN(:,yi:end),1),2);
-% $$$ % $$$             HFADV(yi,ii+1,ti) = HFADV(yi,ii,ti) + nansum(nansum(ADV(:,yi:end),1),2);
-% $$$ % $$$             HFSUB(yi,ii+1,ti) = HFSUB(yi,ii,ti) + nansum(nansum(SUB(:,yi:end),1),2);
-% $$$ % $$$             HFPME(yi,ii+1,ti) = HFPME(yi,ii,ti) + nansum(nansum(PME(:,yi:end),1),2);
-% $$$ % $$$             HFRMX(yi,ii+1,ti) = HFRMX(yi,ii,ti) + nansum(nansum(RMX(:,yi:end),1),2);
-% $$$ % $$$             HFVDS(yi,ii+1,ti) = HFVDS(yi,ii,ti) + nansum(nansum(VDS(:,yi:end),1),2);
-% $$$ % $$$             HFSWH(yi,ii+1,ti) = HFSWH(yi,ii,ti) + nansum(nansum(SWH(:,yi:end),1),2);
-% $$$ % $$$             HFVDF(yi,ii+1,ti) = HFVDF(yi,ii,ti) + nansum(nansum(VDF(:,yi:end),1),2);
-% $$$ % $$$             HFKNL(yi,ii+1,ti) = HFKNL(yi,ii,ti) + nansum(nansum(KNL(:,yi:end),1),2);
-% $$$ % $$$             HFFRZ(yi,ii+1,ti) = HFFRZ(yi,ii,ti) + nansum(nansum(FRZ(:,yi:end),1),2);
-% $$$ % $$$             HFETS(yi,ii+1,ti) = HFETS(yi,ii,ti) + nansum(nansum(ETS(:,yi:end),1),2);
-% $$$ % $$$         end
-% $$$     end
-% $$$ end
-% $$$ save([outD model sprintf('_output%03d',output) '_HFunc.mat'],'HFSWH','HFVDS','HFRMX','HFPME','HFFRZ', ...
-% $$$      'HFETS','HFSUB','HFVDF','HFKNL','HFADV','HFTEN');
-% $$$ 
 end
 
 
