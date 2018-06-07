@@ -3,7 +3,7 @@
 
 % $$$ baseL = '/short/e14/rmh561/mom/archive/';
 % $$$ baseL = '/g/data/e14/rmh561/';
-baseL = '/short/e14/rmh561/access-om2/';
+baseL = '/short/e14/rmh561/access-om2/archive/';
 % $$$ baseL = '/srv/ccrc/data03/z3500785/';
 
 % MOM-SIS025-WOMBAT:
@@ -13,8 +13,9 @@ baseL = '/short/e14/rmh561/access-om2/';
 % $$$ model = 'MOM025_kb3seg';
 % $$$ baseD = [baseL 'MOM_HeatDiag_kb3seg/']; %Data Directory.
 % ACCESS-OM2:
-model = 'ACCESS-OM2_025deg_jra55_ryf8485';
-baseD = [baseL 'archive/025deg_jra55_ryf8485']; %Data Directory.
+model = 'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may';
+baseD = [baseL '1deg_jra55_ryf8485_kds50_may/']; %Data Directory.
+ICdir = '/g/data1/ua8/MOM/initial_conditions/WOA/10_KDS50/';
 % MOM-SIS01:
 % $$$ model = 'MOM01';
 % $$$ baseD = [baseL 'MOM01_HeatDiag/']; %Data Directory.
@@ -25,8 +26,8 @@ rstbaseD = baseD;
 post = 'ocean/'; % For ACCESS-OM2 output coulpled;
 % $$$ post = ''; % For MOM-SIS.
 
-haveRedi = 0; % 1 = Redi diffusion is on, 0 = off
-haveGM = 0; % 1 = GM is on, 0 = off;
+haveRedi = 1; % 1 = Redi diffusion is on, 0 = off
+haveGM = 1; % 1 = GM is on, 0 = off;
 haveMDS = 1; % 1 = MDS is on, 0 = off;
 haveMIX = 0; % 1 = Do mixing components (vdiffuse_diff_cbt_*), 0 = don't. 
 
@@ -39,13 +40,17 @@ end
     
 
 % $$$ for output = 76:79;
-for output = 78;
+for output = 0;
 restart = output-1;
 
 % file-names -----------------------------------------
 base = [baseD sprintf('output%03d/',output) post];
 basem1 = [baseD sprintf('output%03d/',output-1) post];
-baser = [rstbaseD sprintf('restart%03d/',restart) post];
+if (output==0)
+    baser = ICdir;
+else
+    baser = [rstbaseD sprintf('restart%03d/',restart) post];
+end
 hname = [base 'ocean_heat.nc'];
 if (strfind(baseD,'01'))
     fname = [base 'ocean_month.nc'];
@@ -56,20 +61,16 @@ fname2 = [base 'ocean_month.nc'];
 gname = [base 'ocean_grid.nc'];
 sname = [base 'ocean_snap.nc'];
 wname = [base 'ocean_wmass.nc'];
+tname = [base 'time_stamp.out'];
 if (exist(baser))
     found_rst = 1;rstti = 1;
     rnameT = [baser 'ocean_temp_salt.res.nc'];
     rnameZ = [baser 'ocean_thickness.res.nc'];
-    rnametime = [baser 'coupler.res'];
-    if (~exist(rnametime))
-        rnametime = [baser 'ocean_solo.res'];
-    end
 else
     found_rst = 0;rstti = 12;
     rnameT = [basem1 'ocean_snap.nc'];
     rnameZ = [basem1 'ocean_snap.nc'];
-    rnametime = [basem1 'ocean_snap.nc'];
-end    
+end
          
 % Horizontal Grid  -----------------------------------------
 lon = ncread(gname,'geolon_t');lat = ncread(gname,'geolat_t');
@@ -80,6 +81,19 @@ latv_t = ncread(gname,'yt_ocean');latv_u = ncread(gname,'yu_ocean');
 
 % Vertical grid  -----------------------------------------
 z = ncread(fname,'st_ocean');zL = length(z);
+if (output ==0)
+    % Initial dzt accounting for partial bottom cells:
+    ht = ncread(gname,'ht');ze = ncread(fname,'st_edges_ocean');
+    kmt = ncread(gname,'kmt');
+    dztI = repmat(permute(diff(ze),[3 2 1]),[size(ht) 1]);
+    for ii = 1:xL
+        for jj = 1:yL
+            if (kmt(ii,jj)>1)
+                dztI(ii,jj,kmt(ii,jj)) = ht(ii,jj) - ze(kmt(ii,jj));
+            end
+        end
+    end    
+end
 
 % 3D mask ------------------------------------------------
 mask = ncread(fname,'temp',[1 1 1 rstti],[xL yL zL 1]);
@@ -89,20 +103,12 @@ mask = mask == 1;
 % Time  -----------------------------------------
 time = ncread(fname,'time');
 
-if (found_rst)
-    dys = [31 28 31 30 31 30 31 31 30 31 30 31];
-    C = textread(rnametime, '%s','delimiter', '\n');
-    C = strsplit(C{3});
-    rtime = [str2num(C{1}) str2num(C{2}) str2num(C{3}) str2num(C{4}) str2num(C{5}) str2num(C{6})];
-    time_snap = [(rtime(1)-1)*365+sum(dys(1:(rtime(2)-1)))+(rtime(3)-1)+rtime(4)/24+rtime(5)/24/60+rtime(6)/24/60/60;
-                 ncread(sname,'time')];
-else
-    time_snapl = ncread(rnametime,'time');
-    time_snap = [time_snapl(end); ncread(sname,'time')];
-end
-
-time_snap = mod(time_snap,365);
-if (time_snap(end) == 0) time_snap(end) = 365;end
+dys = [31 28 31 30 31 30 31 31 30 31 30 31];
+C = textread(tname, '%s','delimiter', '\n');
+C = strsplit(C{1});
+rtime = [str2num(C{1}) str2num(C{2}) str2num(C{3}) str2num(C{4}) str2num(C{5}) str2num(C{6})];
+time_snap = [(rtime(1)-1)*365+sum(dys(1:(rtime(2)-1)))+(rtime(3)-1)+rtime(4)/24+rtime(5)/24/60+rtime(6)/24/60/60;
+             ncread(sname,'time')];
 
 tL = length(time);
 
@@ -161,7 +167,11 @@ for zi = 1:zL
     if (max(max(tempsnap))>120);tempsnap = tempsnap-273.15;end;
     
     if (found_rst)
-        Volsnap = ncread(rnameZ,'rho_dzt',[1 1 zi rstti],[xL yL 1 1]).*area/rho0;
+        if (output == 0) % Initial dzt:
+            Volsnap = dztI(:,:,zi).*area;
+        else
+            Volsnap = ncread(rnameZ,'rho_dzt',[1 1 zi rstti],[xL yL 1 1]).*area/rho0;
+        end
     else
         Volsnap = ncread(rnameT,'dzt',[1 1 zi rstti],[xL yL 1 1]).*area;
     end
