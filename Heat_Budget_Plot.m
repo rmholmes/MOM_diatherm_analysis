@@ -5,6 +5,7 @@ close all;
 clear all;
 
 base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
+% $$$ base = 'archive/mat_data/';
 
 RUNS = { ...
 % MOM01-SIS:
@@ -19,9 +20,10 @@ RUNS = { ...
 % $$$     {'ACCESS-OM2_025deg_jra55_ryf8485',[78]}, ...
 % $$$     {'ACCESS-OM2_025deg_jra55_ryf8485_redi',[59]}, ...
 % $$$     {'ACCESS-OM2_025deg_jra55_ryf8485_gmredi',[73]}, ...
-% $$$ %         {'ACCESS-OM2_025deg_jra55_ryf8485_KDS75',[??]}, ...
+% $$$ %     {'ACCESS-OM2_025deg_jra55_ryf8485_KDS75',[??]}, ...
 % ACCESS-OM2 1-degree:
          {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may',[0]}, ...
+         {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may_kb1em5',[0]}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_s13p8_mushy',[51]}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_s13p8_mushy',[52]}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_s13p8_mushy',[57]}, ...
@@ -32,9 +34,7 @@ RUNS = { ...
        };
 
 rr = 1;
-% $$$ for rr = 1:length(RUNS);
-% $$$ for rr=2:3
-% $$$ for rr = 6:length(RUNS);
+for rr = 1:length(RUNS);
     outputs = RUNS{rr}{2};
     model = RUNS{rr}{1};
 
@@ -51,9 +51,11 @@ rr = 1;
     %% Global Calculations:
     for i=1:length(outputs)
         
-        load([base model sprintf('_output%03d_',outputs(i)) region 'HBud.mat']);
+% $$$     % Annual or Monthly offline Binning:
 % $$$     load([base model sprintf('_output%03d_',outputs(i)) 'GlobalHBud_MonAnBin.mat']);
 % $$$     GWB = GWBann;
+
+        load([base model sprintf('_output%03d_',outputs(i)) region 'HBud.mat']);
         nyrs = tL/12;szTe = [TL+1 12 nyrs];szT  = [TL 12 nyrs];
         
         % Fluxes:
@@ -71,21 +73,26 @@ rr = 1;
             VDFsum(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.VDFkppiw+GWB.VDFkppish+GWB.VDFkppicon+ ...
                 GWB.VDFkppbl+GWB.VDFkppdd+GWB.VDFwave+GWB.KNL,szTe);
         end
-        if (isfield(GWB,'RED'))
+        if (isfield(GWB,'RED')) % Redi Diffusion
             R(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.RED+GWB.K33,szTe); % Redi diffusion (W)
         else
             R(:,:,ycur:(ycur+nyrs-1)) = zeros(size(P(:,:,ycur:(ycur+nyrs-1))));
         end
-        if (isfield(GWB,'NGM'))
+        if (isfield(GWB,'NGM')) % GM parameterization
             GM(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.NGM,szTe); % GM (W)
         else
             GM(:,:,ycur:(ycur+nyrs-1)) = zeros(size(P(:,:,ycur:(ycur+nyrs-1))));
         end    
-        if (isfield(GWB,'MDS'))
+        if (isfield(GWB,'MDS')) % Mix-downslope
             MD(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.MDS,szTe);; % GM (W)
             M(:,:,ycur:(ycur+nyrs-1)) = M(:,:,ycur:(ycur+nyrs-1)) + reshape(GWB.MDS,szTe); %ADD TO VERTICAL MIXING, but it's small...
         else
             MD(:,:,ycur:(ycur+nyrs-1)) = zeros(size(P(:,:,ycur:(ycur+nyrs-1))));
+        end    
+        if (isfield(GWB,'NUM')) % Pre-calculated numerical mixing
+            NUM(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.NUM,szTe); % NUM (W)
+        else
+            NUM(:,:,ycur:(ycur+nyrs-1)) = zeros(size(P(:,:,ycur:(ycur+nyrs-1))));
         end    
         D(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.TEN-GWB.ADV-GWB.SUB,szTe)-GM(:,:,ycur:(ycur+nyrs-1)); % Material derivative of T (W)
         SW(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.SWH,szTe); % Short-wave heat
@@ -101,7 +108,7 @@ rr = 1;
             JI(:,:,ycur:(ycur+nyrs-1)) = zeros(size(P(:,:,ycur:(ycur+nyrs-1))));
         end
 
-% $$$ % Snapshot fields:
+        % Snapshot fields:
         dVdt(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.dVdt,szTe); % V Change (m3s-1)
         dHdt(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.dHdt,szTe); % H Change (W)
 
@@ -179,16 +186,17 @@ rr = 1;
         ycur = ycur+nyrs;
     end
     months = [1:length(P(1,:,1))];
-    yrs = [1:1];
-% $$$     months = 2:12;
+    yrs = [1:length(P(1,1,:))];
 %%%%Heat Flux:
 % Production fields:
 fields = { ...
           {N(:,months,yrs), 'Internal HC Tendency $\mathcal{N}$','m',2,'-'}, ...
           {F(:,months,yrs)+PI(:,months,yrs), 'Surface Forcing $\mathcal{F}+\mathcal{P}_I$','k',2,'-'}, ...
+          {M(:,months,yrs)+R(:,months,yrs)+I(:,months,yrs), 'Total Mixing $\mathcal{M}+\mathcal{R}+\mathcal{I}$','r',2,'-'}, ...
           {M(:,months,yrs), 'Vertical Mixing $\mathcal{M}$','r',2,'-'}, ...
           {R(:,months,yrs), 'Redi Mixing $\mathcal{R}$',[0 0.5 0],2,'-'}, ...
           {I(:,months,yrs), 'Numerical Mixing $\mathcal{I}$','b',2,'-'}, ...
+          {NUM(:,months,yrs), 'Numerical Mixing Direct $\mathcal{I}$','c',2,'-'}, ...
 % $$$           {SW(:,months,yrs), 'Shortwave Redistribution',0.5*[1 1 1],2,'--'}, ...
 % $$$           {dHdt(:,months,yrs), 'HC Tendency $\frac{\partial\mathcal{H}}{\partial t}$','m',2,'--'}, ...
 % $$$           {PI(:,months,yrs), 'Surface Volume Fluxes $\mathcal{P}_I$',[0.49 0.18 0.56],2,'--'}, ...
@@ -220,6 +228,8 @@ fields = { ...
 
 Fscale = 1/1e15;
 
+yrtyps = {'-','--','-.',':','-'}; % line-types for different years
+
 %Fluxes only:
 figure;
 set(gcf,'Position',[207          97        1609         815]);
@@ -232,12 +242,16 @@ for i=1:length(fields)
     else
         x = T;
     end
-    for j=yrs%j=1:length(P(1,1,:));
-        h = plot(Te,monmean(fields{i}{1}(:,:,j),2,ndays(months))*Fscale,fields{i}{5}, 'color',fields{i}{3} ...
-             ,'linewidth',0.5);
+    for j=1:length(yrs) % Plot years separately
+        h = plot(Te,monmean(fields{i}{1}(:,:,yrs(j)),2,ndays(months))*Fscale,yrtyps{j}, 'color',fields{i}{3} ...
+             ,'linewidth',3);
+        if (j == 1)
+            legh(i) = h;
+        end
     end
-    legh(i) = plot(x,mean(monmean(fields{i}{1},2,ndays(months))*Fscale,3),fields{i}{5}, 'color',fields{i}{3} ...
-         ,'linewidth',fields{i}{4});
+% $$$     % Average years together:
+% $$$     legh(i) = plot(x,mean(monmean(fields{i}{1},2,ndays(months))*Fscale,3),fields{i}{5}, 'color',fields{i}{3} ...
+% $$$          ,'linewidth',fields{i}{4});
     leg{i} = fields{i}{2};
 % $$$     leg{i} = strrep(RUNS{rr}{1},'_',' ');
 end
@@ -251,7 +265,7 @@ lg = legend(legh,leg);
 set(lg,'Position',[0.5881    0.5500    0.2041    0.2588]);
 
 % $$$ 
-% $$$ % Region averages:
+% $$$ % Region averages for different runs:
 % $$$ ff = mean(monmean(fields{i}{1},2,ndays(months))*Fscale,3);
 % $$$ [tmp ind1] = min(abs(Te-17.5));
 % $$$ [tmp ind2] = min(abs(Te-25));
@@ -297,7 +311,7 @@ set(lg,'Position',[0.5881    0.5500    0.2041    0.2588]);
 % $$$ end
 % $$$ set(gca,'ytick',[]);
 % $$$ title('Blue = Numerical Mixing $17.5^\circ$C-$25^\circ$C, Yellow = Numerical Mixing $0^\circ$C-$10^\circ$C');
-
+% $$$ 
 %%%%WM Transformation / Volume Budget:
 % 05-12-17 Note: The volume budget of the Pacific now closes
 % satisfactorily, after fixing masks and including submeso transport.
@@ -1147,27 +1161,24 @@ outputs = 94;
 base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag/mat_data/';
 model = 'MOM025';
 outputs = [8:12];
-% $$$ outputs = [14]
-% $$$ 
-% $$$ 
-% $$$ base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag_kb1em6/mat_data/';
-% $$$ model = 'MOM025_kb1em6';
-% $$$ outputs = 30;
+outputs = [14]
+
+base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag_kb1em6/mat_data/';
+model = 'MOM025_kb1em6';
+outputs = 30;
 
 % Load ACCESS-OM2:
-% $$$ model = 'ACCESS-OM2_1deg_jra55_ryf8485_kds50_s13p8_mushy';
-% $$$ base = '/srv/ccrc/data03/z3500785/access-om2/1deg_jra55_ryf8485_kds50_s13p8_mushy/mat_data/';
-% $$$ outputs = 57;
-% $$$ base = '/srv/ccrc/data03/z3500785/access-om2/1deg_jra55_ryf8485/mat_data/';
-% $$$ model = 'ACCESS-OM2_1deg_jra55_ryf8485';
-% $$$ outputs = 394;
-
+model = 'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may';
+base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
+outputs = 3;
 
 load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
 ndays = diff(time_snap);
 load([base model sprintf('_output%03d_SurfaceVars.mat',outputs(1))]);
 shfluxa = shflux;
 SSTa = SST;
+SSTa = SSTa(:,:,13:24);
+ndays = ndays(1:12);
 for i=2:length(outputs)
     load([base model sprintf('_output%03d_SurfaceVars.mat',outputs(i))]);
     shfluxa = shfluxa+shflux;
@@ -1214,24 +1225,18 @@ poss = [0.15  0.56 0.3 0.34; ...
 contourf(lon(xvec,yvec),lat(xvec,yvec),SSTbias(xvec,yvec),[-1e10 -5:0.25:5 1e10],'linestyle', ...
          'none');
 hold on;
-contour(lon,lat,SSTbias,[-3 -2 -1 1 2 3],'-k');
+% $$$ contour(lon,lat,SSTbias,[-3 -2 -1 1 2 3],'-k');
+contour(lon,lat,SSTbias,[-1:0.5:1],'-k');
 set(gca,'color','k');
-% $$$ title('MOM025 $\kappa_{iw}=10^{-5}$m$^2$s$^{-1}$ year 50 - WOA13 SST ($^\circ$C)');
-title('MOM025 $\kappa_B$ Control - WOA13 SST ($^\circ$C)');
-title('MOM025 $\kappa_B=10^{-5}$m$^2$s$^{-1}$ - WOA13 SST ($^\circ$C)');
-title('MOM025 $\kappa_B=10^{-6}$m$^2$s$^{-1}$ - WOA13 SST ($^\circ$C)');
-title('MOM025 $\kappa_B=0$m$^2$s$^{-1}$ - WOA13 SST ($^\circ$C)');
-% $$$ title('MOM025 - WOA13 SST ($^\circ$C)');
-% $$$ title('ACCESS-OM2 1-degree JRA55 ryf8485 KDS50 - WOA13 SST ($^\circ$C)');
-% $$$ title('ACCESS-OM2 1-degree JRA55 ryf8485 GFDL50 - WOA13 SST ($^\circ$C)');
-% $$$ title('ACCESS-OM2 1-degree JRA55 ryf8485 KDS50 Year 21 $\kappa_{iw}=10^{-5}$m$^2$s$^{-1}$ - WOA13 SST ($^\circ$C)');
-caxis([-3 3]);
+title('$\kappa_B=10^{-5}$ - WOA13 SST Year 2 ($^\circ$C)');
+caxis([-1 1]);
 colorbar;
 colormap(redblue(24));
 set(gca,'FontSize',20);
 xlabel('Longitude ($^\circ$E)');
 % $$$ ylabel('Latitude ($^\circ$N)');
 set(gca,'Position',poss(4,:));
+
 
 %
 for i=1:length(months)
