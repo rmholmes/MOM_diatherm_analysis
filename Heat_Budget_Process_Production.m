@@ -243,36 +243,54 @@ for ti=1:tL
 end
 netcdf.close(ncid);
 
-%% Calculate numerical mixing WMT by residual and save back into
-%% netcdf file:
+%% Calculate numerical mixing by residual from heat budget and save
+%% back into netcdf file:
 
 % Create variables:
 ncid = netcdf.open(wname,'NC_WRITE');
 try
-    id = netcdf.inqVarID(ncid,'temp_numdiff_on_nrho');
+    id = netcdf.inqVarID(ncid,'temp_numdiff_heat_on_nrho');
     not_there = 0;
 catch
     not_there = 1;
 end
 %If variable not there, add it:
 if (not_there)
-    xid = netcdf.inqDimID(ncid,'grid_xt_ocean');yid = netcdf.inqDimID(ncid,'grid_yt_ocean');zid = netcdf.inqDimID(ncid,'neutral');tid = netcdf.inqDimID(ncid,'time');
+    xid = netcdf.inqDimID(ncid,'grid_xt_ocean');yid = netcdf.inqDimID(ncid,'grid_yt_ocean');zid = netcdf.inqDimID(ncid,'neutralrho_edges');tid = netcdf.inqDimID(ncid,'time');
     netcdf.reDef(ncid);
-    ndifID = netcdf.defVar(ncid,'temp_numdiff_on_nrho','NC_FLOAT',[xid yid zid tid]);
+    ndifID = netcdf.defVar(ncid,'temp_numdiff_heat_on_nrho','NC_FLOAT',[xid yid zid tid]);
     netcdf.putAtt(ncid,ndifID,'long_name',['Diffusion of heat due ' ...
-                        'to numerical mixing binned to neutral density']);
+                        'to numerical mixing estimated from heat ' ...
+                        'fluxes binned to neutral density']);
     netcdf.putAtt(ncid,ndifID,'units','Watts/m^2');
     netcdf.putAtt(ncid,ndifID,'_FillValue',single(-1e20));
     netcdf.endDef(ncid);
 else
-    ndifID = netcdf.inqVarID(ncid,'temp_numdiff_on_nrho');
+    ndifID = netcdf.inqVarID(ncid,'temp_numdiff_heat_on_nrho');
 end
 
 for ti=1:tL
     Ti = TL;
     sprintf('Calculating numdif time %03d of %03d, Temp %03d of %03d',ti,tL,Ti,TL)
-    JSP = ncread(wname,'mass_pmepr_on_nrho',[1 1 Ti ti],[xL yL 1 1])./area/rho0;
-    dVdtP = double(ncread(wname,'dVdt',[1 1 Ti ti],[xL yL 1 1]))*1e9/rho0./area;
+    JS = ncread(wname,'mass_pmepr_on_nrho',[1 1 Ti ti],[xL yL 1 1])./area/rho0;
+    dVdt = double(ncread(wname,'dVdt',[1 1 Ti ti],[xL yL 1 1]))*1e9/rho0./area;
+    dHdt = double(ncread(wname,'dHdt',[1 1 Ti ti],[xL yL 1 1]))./area;
+    dift = ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
+           ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
+           ncread(wname,'temp_vdiffuse_sbc_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
+           ncread(wname,'sw_heat_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
+           ncread(wname,'frazil_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
+           ncread(wname,'temp_eta_smooth_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
+           ncread(wname,'sfc_hflux_pme_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
+           ncread(wname,'temp_rivermix_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+    if (haveRedi)
+        dift = dift + ncread(wname,'temp_vdiffuse_k33_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
+               ncread(wname,'neutral_diffusion_on_nrho_temp',[1 1 Ti ti],[xL yL 1 1]);
+    end
+    if (haveMDS)
+        dift = dift + ncread(wname,'mixdownslope_temp_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+    end    
+    
     txtrans = ncread(wname,'tx_trans_nrho',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0 + ...
               ncread(wname,'tx_trans_nrho_submeso',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0;
     tytrans = ncread(wname,'ty_trans_nrho',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0 + ...
@@ -281,22 +299,32 @@ for ti=1:tL
         txtrans = txtrans + ncread(wname,'tx_trans_nrho_gm',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0;
         tytrans = tytrans + ncread(wname,'ty_trans_nrho_gm',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0;
     end
+    qxtrans = ncread(wname,'temp_xflux_adv_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+    qytrans = ncread(wname,'temp_yflux_adv_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
 
-    JIP = zeros(xL,yL);
-    JIP(2:end,2:end) = (txtrans(1:(end-1),2:end) - txtrans(2:end,2:end) ...
+    JI = zeros(xL,yL);
+    JI(2:end,2:end) = (txtrans(1:(end-1),2:end) - txtrans(2:end,2:end) ...
                                          +tytrans(2:end,1:(end-1)) - tytrans(2:end,2:end))./area(2:end,2:end);
-    JIP(1,2:end) = (txtrans(end,2:end) - txtrans(1,2:end) ...
+    JI(1,2:end) = (txtrans(end,2:end) - txtrans(1,2:end) ...
                                  +tytrans(1,1:(end-1)) - tytrans(1,2:end))./area(1,2:end);        
-    JSM = JSP;
-    dVdtM = dVdtP;
-    JIM = JIP;
+    QI = zeros(xL,yL);
+    QI(2:end,2:end) = (qxtrans(1:(end-1),2:end) - qxtrans(2:end,2:end) ...
+                                         +qytrans(2:end,1:(end-1)) - qytrans(2:end,2:end))./area(2:end,2:end);
+    QI(1,2:end) = (qxtrans(end,2:end) - qxtrans(1,2:end) ...
+                                 +qytrans(1,1:(end-1)) - qytrans(1,2:end))./area(1,2:end);        
+
+    ndif = dHdt - (dVdt - JI - JS)*rho0*Cp*Te(Ti) - dift - QI;
     
-    netcdf.putVar(ncid,ndifID,[0 0 Ti-1 ti-1],[xL yL 1 1],zeros(xL,yL));
+    netcdf.putVar(ncid,ndifID,[0 0 Ti ti-1],[xL yL 1 1],zeros(xL,yL));
+    netcdf.putVar(ncid,ndifID,[0 0 Ti-1 ti-1],[xL yL 1 1],ndif);
     for Ti=TL-1:-1:1
         sprintf(['Calculating numdif time %03d of %03d, Temp %03d ' ...
                  'of %03d'],ti,tL,Ti,TL)
-        JSM = JSM + ncread(wname,'mass_pmepr_on_nrho',[1 1 Ti ti],[xL yL 1 1])./area/rho0;
-        dVdtM = dVdtM + double(ncread(wname,'dVdt',[1 1 Ti ti],[xL yL 1 1]))*1e9/rho0./area;
+        JS = JS + ncread(wname,'mass_pmepr_on_nrho',[1 1 Ti ti],[xL yL 1 1])./area/rho0;
+        dVdt = dVdt + double(ncread(wname,'dVdt',[1 1 Ti ti],[xL ...
+                            yL 1 1]))*1e9/rho0./area;
+        dHdt = dHdt + double(ncread(wname,'dHdt',[1 1 Ti ti],[xL ...
+                            yL 1 1]))./area;
         txtrans = ncread(wname,'tx_trans_nrho',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0 + ...
                   ncread(wname,'tx_trans_nrho_submeso',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0;
         tytrans = ncread(wname,'ty_trans_nrho',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0 + ...
@@ -305,22 +333,28 @@ for ti=1:tL
             txtrans = txtrans + ncread(wname,'tx_trans_nrho_gm',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0;
             tytrans = tytrans + ncread(wname,'ty_trans_nrho_gm',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0;
         end
+        qxtrans = ncread(wname,'temp_xflux_adv_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+        qytrans = ncread(wname,'temp_yflux_adv_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
             
-        JIM(2:end,2:end) = JIM(2:end,2:end)+(txtrans(1:(end-1),2:end) - txtrans(2:end,2:end) ...
+        JI(2:end,2:end) = JI(2:end,2:end)+(txtrans(1:(end-1),2:end) - txtrans(2:end,2:end) ...
                 +tytrans(2:end,1:(end-1)) - tytrans(2:end,2:end))./area(2:end,2:end);
-        JIM(1,2:end) = JIM(1,2:end)+(txtrans(end,2:end) - txtrans(1,2:end) ...
+        JI(1,2:end) = JI(1,2:end)+(txtrans(end,2:end) - txtrans(1,2:end) ...
             +tytrans(1,1:(end-1)) - tytrans(1,2:end))./area(1,2:end);        
+
+        QI(2:end,2:end) = QI(2:end,2:end)+(qxtrans(1:(end-1),2:end) - qxtrans(2:end,2:end) ...
+                +qytrans(2:end,1:(end-1)) - qytrans(2:end,2:end))./area(2:end,2:end);
+        QI(1,2:end) = QI(1,2:end)+(qxtrans(end,2:end) - qxtrans(1,2:end) ...
+            +qytrans(1,1:(end-1)) - qytrans(1,2:end))./area(1,2:end);        
+
         
-        dVdt = (dVdtM + dVdtP)/2;
-        JS = (JSM + JSP)/2;
-        JI = (JIM + JIP)/2;
-        
-        dift = ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
+        dift = dift + ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
                ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
                ncread(wname,'temp_vdiffuse_sbc_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
                ncread(wname,'sw_heat_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
                ncread(wname,'frazil_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
-               ncread(wname,'temp_eta_smooth_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+               ncread(wname,'temp_eta_smooth_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
+               ncread(wname,'sfc_hflux_pme_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
+               ncread(wname,'temp_rivermix_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
         if (haveRedi)
             dift = dift + ncread(wname,'temp_vdiffuse_k33_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
                           ncread(wname,'neutral_diffusion_on_nrho_temp',[1 1 Ti ti],[xL yL 1 1]);
@@ -328,14 +362,9 @@ for ti=1:tL
         if (haveMDS)
             dift = dift + ncread(wname,'mixdownslope_temp_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
         end
-
-        ndif = (dVdt - JI - JS)*rho0*Cp*dT - dift;
-        ndif(isnan(ndif)) = 0;
+             
+        ndif = dHdt - (dVdt - JI - JS)*rho0*Cp*Te(Ti) - dift - QI;
         netcdf.putVar(ncid,ndifID,[0 0 Ti-1 ti-1],[xL yL 1 1],ndif);
-        
-        JSP = JSM;
-        JIP = JIM;
-        dVdtP = dVdtM;
     end
 end
 netcdf.close(ncid);
@@ -522,6 +551,16 @@ GWB.ADV    = zeros(TL+1,tL); % W due to advection
 GWB.TEN    = zeros(TL+1,tL); % W due to tendency
 GWB.SFW    = zeros(TL+1,tL); % surface volume flux into ocean (m3s-1)
 GWB.NUM    = zeros(TL+1,tL); % W due to numerical mixing
+GWB.NUMH    = zeros(TL+1,tL); % W due to numerical mixing from heat budget
+
+% Get NUMH:
+for ti=1:tL
+    for Ti = (TL+1):-1:1
+        sprintf('Calculating NUMH heat budget time %03d of %03d, temp %03d of %03d',ti,tL,Ti,TL)
+        GWB.NUMH(Ti,ti) = nansum(nansum(area.*ncread(wname, ...
+                                                     'temp_numdiff_heat_on_nrho',[1 1 Ti ti],[xL yL 1 1]),1),2);
+    end
+end
 
 for ti=1:tL
     ii = TL;
@@ -627,46 +666,48 @@ end
 FlT = zeros(xL,yL,tL); % tendency
 FlSP = zeros(xL,yL,tL); % solar penetration
 FlI = zeros(xL,yL,tL); % numerical mixing
-
+FlIH = zeros(xL,yL,tL); % numerical mixing from heat budget
+ 
 while (Nremain > 0 & Ti >= 1)
     Tl = Te(Ti);
 
     for ti=1:tL
         sprintf(['Calculating water-mass heat budget time %03d of ' ...
                  '%03d, temp %2.2f, going down to %2.2f'],ti,tL,Te(Ti),min(Tls))
-        FlT(:,:,ti) = FlT(:,:,ti)+ncread(wname,'temp_tendency_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
-        if (haveRedi)
-            FlK(:,:,ti) = FlK(:,:,ti)+ncread(wname,'temp_vdiffuse_k33_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
-            FlR(:,:,ti) = FlR(:,:,ti)+ncread(wname,'neutral_diffusion_on_nrho_temp',[1 1 Ti ti],[xL yL 1 1]);
-        end
-        FlA(:,:,ti) = FlA(:,:,ti)+ncread(wname,'temp_advection_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
-            ncread(wname,'temp_submeso_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
-        if (haveGM)
-            FlG(:,:,ti) = FlG(:,:,ti)+ncread(wname,'neutral_gm_on_nrho_temp',[1 1 Ti ti],[xL yL 1 1]);
-            FlA(:,:,ti) = FlA(:,:,ti)+ncread(wname,'neutral_gm_on_nrho_temp',[1 1 Ti ti],[xL yL 1 1]);
-        end
-        FlP(:,:,ti) = FlP(:,:,ti)+ncread(wname,'sfc_hflux_pme_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
-            ncread(wname,'temp_rivermix_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
-        FlM(:,:,ti) = FlM(:,:,ti)+ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
-            ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
-        if (haveMDS)
-            FlM(:,:,ti) = FlM(:,:,ti)+ncread(wname,'mixdownslope_temp_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
-        end
-        if (haveMIX)
-            FlMdif(:,:,ti) = FlMdif(:,:,ti)+ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
-            FlMkppiw(:,:,ti) = FlMkppiw(:,:,ti)+ncread(wname,'temp_vdiffuse_diff_cbt_kppiw_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
-            FlMkppish(:,:,ti) = FlMkppish(:,:,ti)+ncread(wname,'temp_vdiffuse_diff_cbt_kppish_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
-            FlMkppicon(:,:,ti) = FlMkppicon(:,:,ti)+ncread(wname,'temp_vdiffuse_diff_cbt_kppicon_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
-            FlMkppbl(:,:,ti) = FlMkppbl(:,:,ti)+ncread(wname,'temp_vdiffuse_diff_cbt_kppbl_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
-            FlMkppdd(:,:,ti) = FlMkppdd(:,:,ti)+ncread(wname,'temp_vdiffuse_diff_cbt_kppdd_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
-            FlMwave(:,:,ti) = FlMwave(:,:,ti)+ncread(wname,'temp_vdiffuse_diff_cbt_wave_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
-        end            
-        FlF(:,:,ti) = FlF(:,:,ti)+ncread(wname,'temp_vdiffuse_sbc_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
-            ncread(wname,'sw_heat_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
-            ncread(wname,'frazil_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
-            ncread(wname,'temp_eta_smooth_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
-        FlSP(:,:,ti) = FlSP(:,:,ti)+ncread(wname,'sw_heat_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
-        FlI(:,:,ti) = FlI(:,:,ti)+ncread(wname,'temp_numdiff_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+% $$$         FlT(:,:,ti) = FlT(:,:,ti)+ncread(wname,'temp_tendency_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+% $$$         if (haveRedi)
+% $$$             FlK(:,:,ti) = FlK(:,:,ti)+ncread(wname,'temp_vdiffuse_k33_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+% $$$             FlR(:,:,ti) = FlR(:,:,ti)+ncread(wname,'neutral_diffusion_on_nrho_temp',[1 1 Ti ti],[xL yL 1 1]);
+% $$$         end
+% $$$         FlA(:,:,ti) = FlA(:,:,ti)+ncread(wname,'temp_advection_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
+% $$$             ncread(wname,'temp_submeso_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+% $$$         if (haveGM)
+% $$$             FlG(:,:,ti) = FlG(:,:,ti)+ncread(wname,'neutral_gm_on_nrho_temp',[1 1 Ti ti],[xL yL 1 1]);
+% $$$             FlA(:,:,ti) = FlA(:,:,ti)+ncread(wname,'neutral_gm_on_nrho_temp',[1 1 Ti ti],[xL yL 1 1]);
+% $$$         end
+% $$$         FlP(:,:,ti) = FlP(:,:,ti)+ncread(wname,'sfc_hflux_pme_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
+% $$$             ncread(wname,'temp_rivermix_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+% $$$         FlM(:,:,ti) = FlM(:,:,ti)+ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
+% $$$             ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+% $$$         if (haveMDS)
+% $$$             FlM(:,:,ti) = FlM(:,:,ti)+ncread(wname,'mixdownslope_temp_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+% $$$         end
+% $$$         if (haveMIX)
+% $$$             FlMdif(:,:,ti) = FlMdif(:,:,ti)+ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+% $$$             FlMkppiw(:,:,ti) = FlMkppiw(:,:,ti)+ncread(wname,'temp_vdiffuse_diff_cbt_kppiw_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+% $$$             FlMkppish(:,:,ti) = FlMkppish(:,:,ti)+ncread(wname,'temp_vdiffuse_diff_cbt_kppish_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+% $$$             FlMkppicon(:,:,ti) = FlMkppicon(:,:,ti)+ncread(wname,'temp_vdiffuse_diff_cbt_kppicon_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+% $$$             FlMkppbl(:,:,ti) = FlMkppbl(:,:,ti)+ncread(wname,'temp_vdiffuse_diff_cbt_kppbl_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+% $$$             FlMkppdd(:,:,ti) = FlMkppdd(:,:,ti)+ncread(wname,'temp_vdiffuse_diff_cbt_kppdd_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+% $$$             FlMwave(:,:,ti) = FlMwave(:,:,ti)+ncread(wname,'temp_vdiffuse_diff_cbt_wave_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+% $$$         end            
+% $$$         FlF(:,:,ti) = FlF(:,:,ti)+ncread(wname,'temp_vdiffuse_sbc_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
+% $$$             ncread(wname,'sw_heat_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
+% $$$             ncread(wname,'frazil_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
+% $$$             ncread(wname,'temp_eta_smooth_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+% $$$         FlSP(:,:,ti) = FlSP(:,:,ti)+ncread(wname,'sw_heat_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+% $$$         FlI(:,:,ti) = FlI(:,:,ti)+ncread(wname,'temp_numdiff_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+        FlIH(:,:,ti) = ncread(wname,'temp_numdiff_heat_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
     end
 
     % Save heat flux terms:
@@ -674,17 +715,18 @@ while (Nremain > 0 & Ti >= 1)
     if (abs(sp) <= dT/4)
         name = [outD model sprintf('_output%03d',output) '_VertInt_T' strrep(num2str(Tls(ind)),'.','p') 'C.mat']
 
-        save(name,'FlM','FlSP','FlF','FlT','FlA','FlP','FlI','Tl','-v7.3');
-        if (haveMIX)
-            save(name,'FlMdif','FlMkppiw','FlMkppish', ...
-                 'FlMkppicon','FlMkppbl','FlMkppdd','FlMwave','-append');
-        end
-        if (haveRedi)
-            save(name,'FlK','FlR','-append');
-        end
-        if (haveGM)
-            save(name,'FlG','-append');
-        end
+        save(name,'FlIH','-append','-v7.3');
+% $$$         save(name,'FlM','FlSP','FlF','FlT','FlA','FlP','FlI','FlIH','Tl','-v7.3');
+% $$$         if (haveMIX)
+% $$$             save(name,'FlMdif','FlMkppiw','FlMkppish', ...
+% $$$                  'FlMkppicon','FlMkppbl','FlMkppdd','FlMwave','-append');
+% $$$         end
+% $$$         if (haveRedi)
+% $$$             save(name,'FlK','FlR','-append');
+% $$$         end
+% $$$         if (haveGM)
+% $$$             save(name,'FlG','-append');
+% $$$         end
         
         Nremain = Nremain-1;
     end
@@ -820,6 +862,7 @@ ZA.dVdt = zeros(yL,TL+1,tL); % Wdeg-1 dVdt
 ZA.dHdt = zeros(yL,TL+1,tL); % Wdeg-1 dHdt
 ZA.SWH = zeros(yL,TL+1,tL); % Wdeg-1 due to SW redistribution
 ZA.NUM = zeros(yL,TL+1,tL); % Wdeg-1 due to numerical mixing
+ZA.NUMH = zeros(yL,TL+1,tL); % Wdeg-1 due to numerical mixing from heat budget
 if (haveMIX)
     ZA.Mkppiw = zeros(yL,TL+1,tL); %Wdeg-1 due to kppiw;
     ZA.Mkppish = zeros(yL,TL+1,tL); %Wdeg-1 due to kppiw;
@@ -848,6 +891,7 @@ for ti=1:tL
     ZA.M(:,ii,ti) = (nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 ii ti],[xL yL 1 1]),1) + ...
                     nansum(area.*ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yto;
     ZA.NUM(:,ii,ti) = nansum(area.*ncread(wname,'temp_numdiff_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)'./yto;
+    ZA.NUMH(:,ii,ti) = nansum(area.*ncread(wname,'temp_numdiff_heat_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)'./yto;
     if (haveMDS)
         ZA.M(:,ii,ti) = ZA.M(:,ii,ti) + nansum(area.*ncread(wname,'mixdownslope_temp_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)'./yto;
     end
@@ -887,6 +931,7 @@ for ii=TL-1:-1:1
     ZA.M(:,ii,ti) = ZA.M(:,ii+1,ti) + (nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 ii ti],[xL yL 1 1]),1) + ...
                     nansum(area.*ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yto;
     ZA.NUM(:,ii,ti) = ZA.NUM(:,ii+1,ti) + nansum(area.*ncread(wname,'temp_numdiff_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)'./yto;
+    ZA.NUMH(:,ii,ti) = ZA.NUMH(:,ii+1,ti) + nansum(area.*ncread(wname,'temp_numdiff_heat_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)'./yto;
     if (haveMDS)
         ZA.M(:,ii,ti) = ZA.M(:,ii,ti) + nansum(area.*ncread(wname,'mixdownslope_temp_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)'./yto;
     end
