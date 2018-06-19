@@ -19,5 +19,7 @@ Then running Heat_Budget_Plot should give you a few figures:
 * Spatial Lon-lat plot of heat flux due to vertical mixing across 22.5C 
 * Spatial Lon-lat plot of surface heat flux and SST contours.
 
-There's also code there to plot SST biases from WOA13 (commented out at the moment). 
+There's also code there to plot SST biases from WOA13 (commented out
+at the moment). There's also plenty more plotting capability in the
+master branch (but it's a bit ugly...).
 
