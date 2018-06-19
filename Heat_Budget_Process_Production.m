@@ -1,4 +1,4 @@
- % This script processes the heat budget and associated variables in
+% This script processes the heat budget and associated variables in
 % MOM025 or MOM01 simulations and save's into .mat files
 
 % $$$ baseL = '/short/e14/rmh561/mom/archive/';
@@ -40,8 +40,8 @@ end
     
 
  % $$$ for output = 76:79;
-% $$$ output = 0;
-for output = 0:1;
+output = 36;
+%for output = 0;
 restart = output-1;
 
 % file-names -----------------------------------------
@@ -147,11 +147,11 @@ if (not_there)
     dVdtID = netcdf.defVar(ncid,'dVdt','NC_FLOAT',[xid yid zid tid]);
     netcdf.putAtt(ncid,dVdtID,'long_name','Change in time of volume within temperature bin');
     netcdf.putAtt(ncid,dVdtID,'units','Sv (10^9 kg/s)');
-    netcdf.putAtt(ncid,dVdtID,'_FillValue',-1e20);
+    netcdf.putAtt(ncid,dVdtID,'_FillValue',single(-1e20));
     dHdtID = netcdf.defVar(ncid,'dHdt','NC_FLOAT',[xid yid zid tid]);
     netcdf.putAtt(ncid,dHdtID,'long_name','Change in time of heat content within temperature bin');
     netcdf.putAtt(ncid,dHdtID,'units','Watts');
-    netcdf.putAtt(ncid,dHdtID,'_FillValue',-1e20);
+    netcdf.putAtt(ncid,dHdtID,'_FillValue',single(-1e20));
     netcdf.endDef(ncid);
 else
     dVdtID = netcdf.inqVarID(ncid,'dVdt');
@@ -262,7 +262,7 @@ if (not_there)
     netcdf.putAtt(ncid,ndifID,'long_name',['Diffusion of heat due ' ...
                         'to numerical mixing binned to neutral density']);
     netcdf.putAtt(ncid,ndifID,'units','Watts/m^2');
-    netcdf.putAtt(ncid,ndifID,'_FillValue',-1e20);
+    netcdf.putAtt(ncid,ndifID,'_FillValue',single(-1e20));
     netcdf.endDef(ncid);
 else
     ndifID = netcdf.inqVarID(ncid,'temp_numdiff_on_nrho');
@@ -599,7 +599,8 @@ end
 save([outD model sprintf('_output%03d',output) '_GlobalHBud.mat'],'GWB','-v7.3');
 
 %% Vertical Integrate down to level from online T-binned values -----------------------------------------------------------------------------------------------------------
-Tls = [0:2.5:27.5];
+%Tls = [0:2.5:27.5];
+Tls = [20 22.5 25 27.5];
 Nremain = length(Tls);
 Ti = TL;
 
@@ -693,7 +694,8 @@ while (Nremain > 0 & Ti >= 1)
 end
 
 %% Calculate WMT due to different (resolved) terms %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-Tls = [0:2.5:27.5]-0.25;
+Tls = [20 22.5 25 27.5];
+% $$$ Tls = [0:2.5:27.5]-0.25;
 
 for ii = 1:length(Tls)
     Tl = Tls(ii);
@@ -793,6 +795,22 @@ for ti = 1:tL
     end
 end
 save([outD model sprintf('_output%03d',output) '_SurfaceVars.mat'],'mhflux','-append');
+
+% $$$ 
+% $$$ %% Latitude-depth overturning:
+% $$$ PSI = zeros(yL,TL,tL);
+% $$$ 
+% $$$ % Ignoring tri-polar (wrong >60N).
+% $$$ for ti=1:tL
+% $$$     ti
+% $$$     PSI(:,:,ti) = squeeze(nansum(ncread(wname,'ty_trans_nrho',[1 1 1 ti],[xL yL TL 1]) + ...
+% $$$                                  ncread(wname,'ty_trans_nrho_submeso',[1 1 1 ti],[xL yL TL 1]) ...
+% $$$                                  ,1));
+% $$$     if (haveGM) 
+% $$$         PSI(:,:,ti) = PSI(:,:,ti) + squeeze(nansum(ncread(wname,'ty_trans_nrho_gm',[1 1 1 ti],[xL yL TL 1]),1));
+% $$$     end
+% $$$ end
+% $$$ save([outD model sprintf('_output%03d',output) '_Tpsi.mat'],'PSI');
 
 %% Zonally-averaged fluxes -------------------------------------------------------------
 ZA.F = zeros(yL,TL+1,tL); % Wdeg-1 due to F
@@ -899,8 +917,8 @@ end
 end
 save([outD model sprintf('_output%03d',output) '_ZAHBud.mat'],'ZA','yto','-v7.3');
 
-end
-
+% $$$ end
+% $$$ 
 
 % $$$ %% Swap in non-NaN'd lon/lat:
 % $$$ base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag/mat_data/';
