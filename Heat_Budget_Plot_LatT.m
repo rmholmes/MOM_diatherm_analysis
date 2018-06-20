@@ -4,30 +4,26 @@
 close all;
 clear all;
 
-% Load Base Variables:
-% $$$ base = '/srv/ccrc/data03/z3500785/access-om2/1deg_jra55_ryf8485_kds50_s13p8_mushy/mat_data/';
-% $$$ model = 'ACCESS-OM2_1deg_jra55_ryf8485_kds50_s13p8_mushy';
-% $$$ outputs = 57;
+base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
 
-base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag_kb3seg/mat_data/';
+% Load Base Variables:
 model = 'MOM025_kb3seg';
 outputs = [75:79];
 
-base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag_kb1em5/mat_data/';
 model = 'MOM025_kb1em5';
 outputs = 94;
 % $$$ 
-base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag/mat_data/';
 model = 'MOM025';
 outputs = [8:12];
 % $$$ outputs = [12]
 % $$$ 
 % $$$ 
-% $$$ base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag_kb1em6/mat_data/';
 % $$$ model = 'MOM025_kb1em6';
 % $$$ outputs = 30;
 
-% $$$ base = '/srv/ccrc/data03/z3500785/MOM01_HeatDiag/mat_data/';
+model = 'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may';
+outputs = 36;
+
 % $$$ model = 'MOM01';
 % $$$ outputs = [222];
 
@@ -62,6 +58,9 @@ for i=1:length(outputs)
             zMwave(:,:,:,i) = -zMwave(:,:,:,i);zMkppbl(:,:,:,i) = -zMkppbl(:,:,:,i);
             zMoth(:,:,:,i) = -zMoth(:,:,:,i);
         end
+        if (isfield(ZA,'RED')) % Redi mixing
+            zRED(:,:,:,i) = -zRED(:,:,:,i);zK33(:,:,:,i) = -zK33(:,:,:,i);
+        end
     end
     % extras:
     if (direc)
@@ -76,6 +75,9 @@ for i=1:length(outputs)
     zPI(:,:,:,i) = zP(:,:,:,i) - zJSH(:,:,:,i); % Interior heat source PI
     zN(:,:,:,i) = zdHdt(:,:,:,i) - zdVdt(:,:,:,i).*repmat(Te',[yL 1 tL])*rho0*Cp;
     zI(:,:,:,i) = zJdia(:,:,:,i)-zN(:,:,:,i)-zF(:,:,:,i)-zPI(:,:,:,i)-zM(:,:,:,i);
+    if (isfield(ZA,'RED'))
+        zI(:,:,:,i) = zI(:,:,:,i) - zRED(:,:,:,i) - zK33(:,:,:,i);
+    end
 end
 months = [1:length(zP(1,1,:,1))];
 
@@ -109,21 +111,22 @@ SST(SST==0) = NaN;
 meanSST = squeeze(nanmean(monmean(SST,3,ndays),1));
 minSST = squeeze(min(monmean(SST,3,ndays),[],1));
 
-% Plot Streamfunction and Heat Function:
-fields = { ...
-          {zPSI(:,:,months)/1e6, 'Streamfunction $\Psi$',[-30 30],2,'Sv'}, ...
-          {zAI(:,:,months)/1e15, 'Heat Function $\mathcal{A}_I$',[-1.5 1.5],0.1,'PW'}, ...
-};
-
-% $$$ % Plot overall fields:
+% $$$ % Plot Streamfunction and Heat Function:
 % $$$ fields = { ...
-% $$$           {-rho0*Cp*zPSI(:,:,months)/1e12, 'Isothermal Heat Flux $\mathcal{J}_{iso} = -\rho_0C_p\Psi$',[-150 150],15,'TW / $^\circ$C'}, ...
-% $$$           {zJdia(:,:,months)/1e12, 'Diathermal Heat Flux $\mathcal{J}_{dia} = -\frac{\partial\mathcal{A}_I}{\partial\phi}$',[-50 50],5,'TW / $^\circ$'}, ...
-% $$$           {(zF(:,:,months)+zPI(:,:,months))/1e12, 'Diathermal Surface Forcing $\frac{\partial\left(\mathcal{F}+\mathcal{P}_I\right)}{\partial\phi}$',[-50 50],5,'TW / $^\circ$'}, ...
-% $$$           {zM(:,:,months)/1e12, 'Diathermal Vertical Mixing $\frac{\partial\mathcal{M}}{\partial\phi}$',[-50 50],5,'TW / $^\circ$'}, ...
-% $$$           {zI(:,:,months)/1e12, 'Diathermal Numerical Mixing $\frac{\partial\mathcal{I}}{\partial\phi}$',[-50 50],5,'TW / $^\circ$'}, ...
+% $$$           {zPSI(:,:,months)/1e6, 'Streamfunction $\Psi$',[-30 30],2,'Sv'}, ...
+% $$$           {zAI(:,:,months)/1e15, 'Heat Function $\mathcal{A}_I$',[-1.5 1.5],0.1,'PW'}, ...
+% $$$ };
+
+% Plot overall fields:
+fields = { ...
+          {-rho0*Cp*zPSI(:,:,months)/1e12, 'Isothermal Heat Flux $\mathcal{J}_{iso} = -\rho_0C_p\Psi$',[-150 150],15,'TW / $^\circ$C'}, ...
+          {zJdia(:,:,months)/1e12, 'Diathermal Heat Flux $\mathcal{J}_{dia} = -\frac{\partial\mathcal{A}_I}{\partial\phi}$',[-50 50],5,'TW / $^\circ$'}, ...
+          {(zF(:,:,months)+zPI(:,:,months))/1e12, 'Diathermal Surface Forcing $\frac{\partial\left(\mathcal{F}+\mathcal{P}_I\right)}{\partial\phi}$',[-50 50],5,'TW / $^\circ$'}, ...
+          {zM(:,:,months)/1e12, 'Diathermal Vertical Mixing $\frac{\partial\mathcal{M}}{\partial\phi}$',[-50 50],5,'TW / $^\circ$'}, ...
+          {zI(:,:,months)/1e12, 'Diathermal Numerical Mixing $\frac{\partial\mathcal{I}}{\partial\phi}$',[-50 50],5,'TW / $^\circ$'}, ...
+          {(zRED(:,:,months)+zK33(:,:,months))/1e12, 'Diathermal Redi Mixing $\frac{\partial\mathcal{R}}{\partial\phi}$',[-10 10],1,'TW / $^\circ$'}, ...
 % $$$           {zN(:,:,months)/1e12, 'Diathermal Internal Tendency $\frac{\partial\mathcal{N}}{\partial\phi}$',[-10 10],1,'TW / $^\circ$'}, ...
-% $$$           };
+          };
 
 % $$$ % Plot latitudinal integral:
 % $$$ fields = { ...
@@ -178,7 +181,7 @@ set(gcf,'Position',[207          97        1609         815]);
 set(gcf,'defaulttextfontsize',15);
 set(gcf,'defaultaxesfontsize',15);
 for i=1:length(fields)
-    subplot(2,3,i+2)
+    subplot(2,3,i)
     if (length(fields{i}{1}(1,:,1)) == length(Te))
         x = Te;
     else
