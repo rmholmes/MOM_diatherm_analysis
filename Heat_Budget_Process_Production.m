@@ -547,13 +547,13 @@ end
 GWB.ADV    = zeros(TL+1,tL); % W due to advection
 GWB.TEN    = zeros(TL+1,tL); % W due to tendency
 GWB.SFW    = zeros(TL+1,tL); % surface volume flux into ocean (m3s-1)
-GWB.NUMH    = zeros(TL+1,tL); % W due to numerical mixing from heat budget
+GWB.NUM    = zeros(TL+1,tL); % W due to numerical mixing from heat budget
 
-% Get NUMH:
+% Get NUM:
 for ti=1:tL
     for Ti = (TL+1):-1:1
         sprintf('Calculating NUMH heat budget time %03d of %03d, temp %03d of %03d',ti,tL,Ti,TL)
-        GWB.NUMH(Ti,ti) = nansum(nansum(area.*ncread(wname, ...
+        GWB.NUM(Ti,ti) = nansum(nansum(area.*ncread(wname, ...
                                                      'temp_numdiff_heat_on_nrho',[1 1 Ti ti],[xL yL 1 1]),1),2);
     end
 end
@@ -835,7 +835,6 @@ ZA.dVdt = zeros(yL,TL+1,tL); % Wdeg-1 dVdt
 ZA.dHdt = zeros(yL,TL+1,tL); % Wdeg-1 dHdt
 ZA.SWH = zeros(yL,TL+1,tL); % Wdeg-1 due to SW redistribution
 ZA.NUM = zeros(yL,TL+1,tL); % Wdeg-1 due to numerical mixing
-ZA.NUMH = zeros(yL,TL+1,tL); % Wdeg-1 due to numerical mixing from heat budget
 if (haveMIX)
     ZA.Mkppiw = zeros(yL,TL+1,tL); %Wdeg-1 due to kppiw;
     ZA.Mkppish = zeros(yL,TL+1,tL); %Wdeg-1 due to kppiw;
@@ -852,6 +851,15 @@ ZA.PSI = zeros(yL,TL+1,tL); % m3s-1 northward transport
 yto = diff(ncread(gname,'yt_ocean'));
 yto = [yto(1); (yto(2:end)+yto(1:(end-1)))/2; yto(end)];
 
+% Get NUM:
+for ti=1:tL
+    for Ti = (TL+1):-1:1
+        sprintf('Calculating NUM heat budget time %03d of %03d, temp %03d of %03d',ti,tL,Ti,TL+1)
+        ZA.NUM(Ti,ti) = nansum(area.*ncread(wname, ...
+                                                     'temp_numdiff_heat_on_nrho',[1 1 Ti ti],[xL yL 1 1]),1)'./yto;
+    end
+end
+
 % ignoring tri-polar for now.
 for ti=1:tL
     ii = TL;
@@ -863,8 +871,6 @@ for ti=1:tL
                     nansum(area.*ncread(wname,'temp_rivermix_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yto;
     ZA.M(:,ii,ti) = (nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 ii ti],[xL yL 1 1]),1) + ...
                     nansum(area.*ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yto;
-    ZA.NUM(:,ii,ti) = nansum(area.*ncread(wname,'temp_numdiff_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)'./yto;
-    ZA.NUMH(:,ii,ti) = nansum(area.*ncread(wname,'temp_numdiff_heat_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)'./yto;
     if (haveMDS)
         ZA.M(:,ii,ti) = ZA.M(:,ii,ti) + nansum(area.*ncread(wname,'mixdownslope_temp_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)'./yto;
     end
@@ -903,8 +909,6 @@ for ii=TL-1:-1:1
                     nansum(area.*ncread(wname,'temp_rivermix_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yto;
     ZA.M(:,ii,ti) = ZA.M(:,ii+1,ti) + (nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 ii ti],[xL yL 1 1]),1) + ...
                     nansum(area.*ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yto;
-    ZA.NUM(:,ii,ti) = ZA.NUM(:,ii+1,ti) + nansum(area.*ncread(wname,'temp_numdiff_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)'./yto;
-    ZA.NUMH(:,ii,ti) = ZA.NUMH(:,ii+1,ti) + nansum(area.*ncread(wname,'temp_numdiff_heat_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)'./yto;
     if (haveMDS)
         ZA.M(:,ii,ti) = ZA.M(:,ii,ti) + nansum(area.*ncread(wname,'mixdownslope_temp_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)'./yto;
     end
