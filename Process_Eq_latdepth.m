@@ -1,15 +1,16 @@
 % This script extracts specified data from MOM025 and MOM01 runs 
 
-% $$$ model = 'MOM01';
-model = 'MOM025_kb3seg';
-baseD = '/short/e14/rmh561/mom/archive/MOM_HeatDiag_kb3seg/'; %Data Directory.
-% $$$ baseD = '/srv/ccrc/data03/z3500785/MOM_HeatDiag/'; %Data Directory.
-% $$$ baseD = '/g/data/e14/rmh561/MOM01_HeatDiag/';
-% $$$ baseD = '/g/data/e14/rmh561/MOM_HeatDiag/';
-% $$$ baseD = '/short/e14/mv7494/mom_perturbations/EXP1_and_EXP2_restart000_windstress/archive/';
-outD = '/short/e14/rmh561/mom/archive/MOM_HeatDiag_kb3seg/';
+% $$$ baseL = '/short/e14/rmh561/mom/archive/';
+% $$$ baseL = '/g/data/e14/rmh561/';
+baseL = '/short/e14/rmh561/access-om2/archive/';
+% $$$ baseL = '/srv/ccrc/data03/z3500785/';
+model = 'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may';
+baseD = [baseL '1deg_jra55_ryf8485_kds50_may/']; %Data Directory.
 
-for output=75:79
+outD = [baseD 'mat_data/'];
+
+output = 36;
+% $$$ for output=75:79
 % $$$ for output=[0 1 2 3 266 267 268 269]
     if (output==0)
         restart=0;
@@ -134,5 +135,5 @@ name = [outD 'mat_data/' model sprintf('_output%03d',output) '_varsat_Eq.mat']
 save(name,'Xt','Zt','Xu','Zu','temp','u','v','kappa','taux','tauy','mld', ...
      'vdif','vnlc','pmer','sufc','swrd');
 
-end
+% $$$ end
 
