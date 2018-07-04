@@ -1,17 +1,18 @@
 % This script extracts specified data from MOM025 and MOM01 runs 
 
-% $$$ baseL = '/short/e14/rmh561/mom/archive/';
+baseL = '/short/e14/rmh561/mom/archive/';
 % $$$ baseL = '/g/data/e14/rmh561/';
-baseL = '/short/e14/rmh561/access-om2/archive/';
+% $$$ baseL = '/short/e14/rmh561/access-om2/archive/';
 % $$$ baseL = '/srv/ccrc/data03/z3500785/';
-model = 'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may';
-baseD = [baseL '1deg_jra55_ryf8485_kds50_may/']; %Data Directory.
+% $$$ types = {'kds50','gfdl50','kds75','kds100','kds135'};
 
-outD = [baseD 'mat_data/'];
+model = 'MOM025_kb3seg';
+baseD = [baseL 'MOM_HeatDiag_kb3seg/'];
 
-output = 36;
-% $$$ for output=75:79
-% $$$ for output=[0 1 2 3 266 267 268 269]
+outD = [baseD];
+
+% $$$ output = 36;
+for output=80:84
     if (output==0)
         restart=0;
     else
@@ -20,11 +21,6 @@ output = 36;
 
 %% file-names and grid properties:
 base = [baseD sprintf('output%03d/',output)];
-if (output==0)
-    baser = '/short/e14/mv7494/mom_control/archive/restart000/';
-else
-    baser = [baseD sprintf('restart%03d/',restart)];
-end
 hname = [base 'ocean_heat.nc'];
 if (strfind(baseD,'01'))
     fname = [base 'ocean_month.nc'];
@@ -35,23 +31,14 @@ end
 gname = [base 'ocean_grid.nc'];
 sname = [base 'ocean_snap.nc'];
 wname = [base 'ocean_wmass.nc'];
-rnameT = [baser 'ocean_temp_salt.res.nc'];
-rnameZ = [baser 'ocean_thickness.res.nc'];
-rnametime = [baser 'coupler.res'];
          
-lon = ncread(hname,'geolon_t');lat = ncread(hname,'geolat_t');
+lon = ncread(gname,'geolon_t');lat = ncread(gname,'geolat_t');
 area = ncread(gname,'area_t');[xL,yL] = size(lon);
-lonu = ncread(hname,'geolon_c');latu = ncread(hname,'geolat_c');
+lonu = ncread(gname,'geolon_c');latu = ncread(gname,'geolat_c');
 
-z = ncread(hname,'st_ocean');zL = length(z);
+z = ncread(fname,'st_ocean');zL = length(z);
 
-time = ncread(hname,'time');
-dys = [31 28 31 30 31 30 31 31 30 31 30 31];
-C = textread(rnametime, '%s','delimiter', '\n');
-rtime = [str2num(C{3}(1:3)) str2num(C{3}(8:9)) str2num(C{3}(14:15)) str2num(C{3}(20:21)) str2num(C{3}(26:27)) str2num(C{3}(32:33))];
-time_snap = [(rtime(1)-1)*365+sum(dys(1:(rtime(2)-1)))+(rtime(3)-1)+rtime(4)/24+rtime(5)/24/60+rtime(6)/24/60/60;
-             ncread(sname,'time')];
-if (time_snap(end) == 0) time_snap(end) = 365;end
+time = ncread(fname,'time');
 tL = length(time);
 
 Cp = 3992.1; % J kg-1 degC-1
@@ -69,6 +56,7 @@ for lonsl=[-110 -140]
 [tmp lnind] = min(abs(lon(:,round(mean([lt1 lt2])))-lonsl));
 
 temp = squeeze(ncread(fname,'temp',[lnind lt1 1 1],[1 lt2-lt1+1 zL tL]));
+
 if (strfind(baseD,'01'))
     u = squeeze(ncread(m3name,'u',[lnind lt1 1 1],[1 lt2-lt1+1 zL 1]));
     v = squeeze(ncread(m3name,'v',[lnind lt1 1 1],[1 lt2-lt1+1 zL 1]));
@@ -83,6 +71,7 @@ tauy = squeeze(ncread(fname,'tau_y',[lnind lt1 1],[1 lt2-lt1+1 tL]));
 mld = squeeze(ncread(fname,'mld',[lnind lt1 1],[1 lt2-lt1+1 tL]));
 vdif = squeeze(ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[lnind lt1 1 1],[1 lt2-lt1+1 TL tL]));
 vnlc = squeeze(ncread(wname,'temp_nonlocal_KPP_on_nrho',[lnind lt1 1 1],[1 lt2-lt1+1 TL tL]));
+ndif = squeeze(ncread(wname,'temp_numdiff_heat_on_nrho',[lnind lt1 1 1],[1 lt2-lt1+1 TL tL]));
 pmer = squeeze(ncread(wname,'sfc_hflux_pme_on_nrho',[lnind lt1 1 1],[1 lt2-lt1+1 TL tL]) + ...
                ncread(wname,'temp_rivermix_on_nrho',[lnind lt1 1 1],[1 lt2-lt1+1 TL tL]));
 sufc = squeeze(ncread(wname,'temp_vdiffuse_sbc_on_nrho',[lnind lt1 1 1],[1 lt2-lt1+1 TL tL]) + ...
@@ -95,45 +84,45 @@ swrd = squeeze(ncread(wname,'sw_heat_on_nrho',[lnind lt1 1 1],[1 lt2-lt1+1 TL tL
 [Yu,Zu] = ndgrid(latu(lnind,lt1:lt2),z);
 
 name = [outD 'mat_data/' model sprintf('_output%03d',output) '_varsat_' num2str(-lonsl) 'W.mat']
-save(name,'Yt','Zt','Yu','Zu','temp','u','v','kappa','taux','tauy','mld', ...
-     'vdif','vnlc','pmer','sufc','swrd');
+save(name,'Yt','Zt','Yu','Zu','temp','kappa','taux','tauy','mld', ...
+     'vdif','vnlc','pmer','sufc','swrd','ndif');
 end
 
 %% Get equatorial slices of variables:
-latsl = 0;
-[tmp ltind] = min(abs(lat(1,:)-latsl));
-[tmp ln1] = min(abs(lon(:,ltind)+240));
-[tmp ln2] = min(abs(lon(:,ltind)+70));
+[tmp lt1] = min(abs(lat(1,:)+2));
+[tmp lt2] = min(abs(lat(1,:)-2));
+[tmp ln1] = min(abs(lon(:,lt1)+240));
+[tmp ln2] = min(abs(lon(:,lt1)+70));
 
 
-temp = squeeze(ncread(fname,'temp',[ln1 ltind 1 1],[ln2-ln1+1 1 zL tL]));
+temp = squeeze(mean(ncread(fname,'temp',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL tL]),2));
 if (strfind(baseD,'01'))
-    u = squeeze(ncread(m3name,'u',[ln1 ltind 1 1],[ln2-ln1+1 1 zL 1]));
-    v = squeeze(ncread(m3name,'v',[ln1 ltind 1 1],[ln2-ln1+1 1 zL 1]));
+    u = squeeze(mean(ncread(m3name,'u',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL 1]),2));
+    v = squeeze(mean(ncread(m3name,'v',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL 1]),2));
 else
-    u = squeeze(ncread(fname,'u',[ln1 ltind 1 1],[ln2-ln1+1 1 zL tL]));
-    v = squeeze(ncread(fname,'v',[ln1 ltind 1 1],[ln2-ln1+1 1 zL tL]));
+    u = squeeze(mean(ncread(fname,'u',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL tL]),2));
+    v = squeeze(mean(ncread(fname,'v',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL tL]),2));
 end
-kappa = squeeze(ncread(fname,'diff_cbt_t',[ln1 ltind 1 1],[ln2-ln1+1 1 zL tL]));
-taux = squeeze(ncread(fname,'tau_x',[ln1 ltind 1],[ln2-ln1+1 1 tL]));
-tauy = squeeze(ncread(fname,'tau_y',[ln1 ltind 1],[ln2-ln1+1 1 tL]));
-mld = squeeze(ncread(fname,'mld',[ln1 ltind 1],[ln2-ln1+1 1 tL]));
-vdif = squeeze(ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[ln1 ltind 1 1],[ln2-ln1+1 1 TL tL]));
-vnlc = squeeze(ncread(wname,'temp_nonlocal_KPP_on_nrho',[ln1 ltind 1 1],[ln2-ln1+1 1 TL tL]));
-pmer = squeeze(ncread(wname,'sfc_hflux_pme_on_nrho',[ln1 ltind 1 1],[ln2-ln1+1 1 TL tL]) + ...
-               ncread(wname,'temp_rivermix_on_nrho',[ln1 ltind 1 1],[ln2-ln1+1 1 TL tL]));
-sufc = squeeze(ncread(wname,'temp_vdiffuse_sbc_on_nrho',[ln1 ltind 1 1],[ln2-ln1+1 1 TL tL]) + ...
-               ncread(wname,'frazil_on_nrho',[ln1 ltind 1 1],[ln2-ln1+1 1 TL tL]) + ...
-               ncread(wname,'temp_eta_smooth_on_nrho',[ln1 ltind 1 1],[ln2-ln1+1 1 TL tL]) + ...
-               ncread(wname,'sw_heat_on_nrho',[ln1 ltind 1 1],[ln2-ln1+1 1 TL tL]));
-swrd = squeeze(ncread(wname,'sw_heat_on_nrho',[ln1 ltind 1 1],[ln2-ln1+1 1 TL tL]));
+kappa = squeeze(mean(ncread(fname,'diff_cbt_t',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL tL]),2));
+taux = squeeze(mean(ncread(fname,'tau_x',[ln1 lt1 1],[ln2-ln1+1 lt2-lt1+1 tL]),2));
+tauy = squeeze(mean(ncread(fname,'tau_y',[ln1 lt1 1],[ln2-ln1+1 lt2-lt1+1 tL]),2));
+mld = squeeze(mean(ncread(fname,'mld',[ln1 lt1 1],[ln2-ln1+1 lt2-lt1+1 tL]),2));
+vdif = squeeze(mean(ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 TL tL]),2));
+ndif = squeeze(mean(ncread(wname,'temp_numdiff_heat_on_nrho',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 TL tL]),2));
+vnlc = squeeze(mean(ncread(wname,'temp_nonlocal_KPP_on_nrho',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 TL tL]),2));
+pmer = squeeze(mean(ncread(wname,'sfc_hflux_pme_on_nrho',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 TL tL]) + ...
+               ncread(wname,'temp_rivermix_on_nrho',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 TL tL]),2));
+sufc = squeeze(mean(ncread(wname,'temp_vdiffuse_sbc_on_nrho',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 TL tL]) + ...
+               ncread(wname,'frazil_on_nrho',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 TL tL]) + ...
+               ncread(wname,'temp_eta_smooth_on_nrho',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 TL tL]) + ...
+               ncread(wname,'sw_heat_on_nrho',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 TL tL]),2));
+swrd = squeeze(mean(ncread(wname,'sw_heat_on_nrho',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 TL tL]),2));
 
-[Xt,Zt] = ndgrid(lon(ln1:ln2,ltind),z);
-[Xu,Zu] = ndgrid(lonu(ln1:ln2,ltind),z);
+[Xt,Zt] = ndgrid(mean(lon(ln1:ln2,lt1:lt2),2),z);
+[Xu,Zu] = ndgrid(mean(lonu(ln1:ln2,lt1:lt2),2),z);
 
-name = [outD 'mat_data/' model sprintf('_output%03d',output) '_varsat_Eq.mat']
-save(name,'Xt','Zt','Xu','Zu','temp','u','v','kappa','taux','tauy','mld', ...
-     'vdif','vnlc','pmer','sufc','swrd');
-
-% $$$ end
+name = [outD 'mat_data/' model sprintf('_output%03d',output) '_varsat_EqPM2.mat']
+save(name,'Xt','Zt','Xu','Zu','temp','kappa','taux','tauy','mld', ...
+     'vdif','vnlc','pmer','sufc','swrd','ndif');
+end
 

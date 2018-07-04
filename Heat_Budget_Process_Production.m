@@ -941,21 +941,21 @@ save([outD model sprintf('_output%03d',output) '_ZAHBud.mat'],'ZA','yto','-v7.3'
 
 % $$$ end
 
-
+% $$$ 
 % $$$ %% Swap in non-NaN'd lon/lat:
-% $$$ base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag/mat_data/';
+% $$$ base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
 % $$$ model = 'MOM025';
 % $$$ outputs = [8:12];
 % $$$ 
 % $$$ load([base model sprintf('_output%03d_BaseVars.mat',8)]);
 % $$$ region = 'Global';
 % $$$ 
-% $$$ base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag/mat_data/';
-% $$$ model = 'MOM025';
-% $$$ for output = [14]
+% $$$ base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
+% $$$ model = 'MOM025_kb3seg';
+% $$$ for output = [80:84]
 % $$$     save([base model sprintf('_output%03d_BaseVars.mat',output)], ...
 % $$$          'lon','lat','lonu','latu','area','-append');
 % $$$ end
-
+% $$$ 
 
 
