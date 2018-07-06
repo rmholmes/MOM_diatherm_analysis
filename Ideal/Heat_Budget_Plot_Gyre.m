@@ -9,11 +9,11 @@ base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
 RUNS = { ...
 % MOM-Gyre:
          {'MOM_Gyre',[1]}, ...
-         {'MOM_Gyre',[2]}, ...
-         {'MOM_Gyre',[3]}, ...
+% $$$          {'MOM_Gyre',[2]}, ...
+% $$$          {'MOM_Gyre',[3]}, ...
        };
 
-rr = 2;
+rr = 1;
 % $$$ for rr=1:length(RUNS)
 outputs = RUNS{rr}{2};
 model = RUNS{rr}{1};
@@ -32,6 +32,7 @@ for i=1:length(outputs)
 % Fluxes:
 M(:,:,i) = GWB.VDF; % Vertical mixing flux (W)
 D(:,:,i) = GWB.TEN-GWB.ADV; % Material derivative of T (W)
+NUM(:,:,i) = GWB.NUM; % Numerical mixing from heat bug
 
 dVdt(:,:,i) = GWB.dVdt; % V Change (m3s-1)
 dHdt(:,:,i) = GWB.dHdt; % H Change (W)
@@ -66,7 +67,7 @@ HWMT(:,:,i) = HWMTM(:,:,i)+HWMTI(:,:,i);
 
 end
 
-months = 2:length(M(1,:));
+months = 5;%2:length(M(1,:));
 
 %%%%Heat Flux:
 % Production fields:
@@ -74,6 +75,7 @@ fields = { ...
           {N(:,months,:), 'Internal HC Tendency $\mathcal{N}$','m',2,'-'}, ...
           {M(:,months,:), 'Vertical Mixing $\mathcal{M}$','r',2,'-'}, ...
           {I(:,months,:), 'Numerical Mixing $\mathcal{I}$','b',2,'-'}, ...
+          {NUM(:,months,:), 'Numerical Mixing direct $\mathcal{I}$','c',2,'-'}, ...
           {dHdt(:,months,:), 'HC Tendency $\frac{\partial\mathcal{H}}{\partial t}$','m',2,'--'}, ...
           };
 
@@ -109,40 +111,40 @@ xlabel('Temperature $\Theta$ ($^\circ$C)');
 lg = legend(legh,leg);
 set(lg,'Position',[0.5881    0.5500    0.2041    0.2588]);
 
-%%%%WM Transformation / Volume Budget:
-fields = { ...
-          {dVdt(:,months,:), 'Tendency $\frac{\partial\mathcal{V}}{\partial t}$','m',2,'-'}, ...
-          {WMT(:,months,:), 'Total WMT $\mathcal{G}$',[0 0.5 0],2,'--'}, ...
-          {WMTM(:,months,:), 'WMT $\mathcal{G}$ from Vertical Mixing','r',2,'-'}, ...
-          {WMTI(:,months,:), 'WMT $\mathcal{G}$ from Implicit Mixing','b',2,'-'}, ...
-          };
-
-Mscale = 1/1e6;
-
-%Fluxes only:
-figure;
-set(gcf,'Position',[207          97        1609         815]);
-leg = {};
-legh = [];
-for i=1:length(fields)
-    hold on;
-    if (length(fields{i}{1}(:,1)) == length(Te))
-        x = Te;
-    else
-        x = T;
-    end
-    legh(i) = plot(x,mean(monmean(fields{i}{1},2,ndays(months))*Mscale,3),fields{i}{5}, 'color',fields{i}{3} ...
-         ,'linewidth',fields{i}{4});
-    leg{i} = fields{i}{2};
-end
-ylim([-2 2]);
-xlim([-3 31]);
-box on;
-grid on;
-ylabel('Water Mass Transformation (Sv)');
-xlabel('Temperature $\Theta$ ($^\circ$C)');
-lg = legend(legh,leg);
-set(lg,'Position',[0.5881    0.5500    0.2041    0.2588]);
+% $$$ %%%%WM Transformation / Volume Budget:
+% $$$ fields = { ...
+% $$$           {dVdt(:,months,:), 'Tendency $\frac{\partial\mathcal{V}}{\partial t}$','m',2,'-'}, ...
+% $$$           {WMT(:,months,:), 'Total WMT $\mathcal{G}$',[0 0.5 0],2,'--'}, ...
+% $$$           {WMTM(:,months,:), 'WMT $\mathcal{G}$ from Vertical Mixing','r',2,'-'}, ...
+% $$$           {WMTI(:,months,:), 'WMT $\mathcal{G}$ from Implicit Mixing','b',2,'-'}, ...
+% $$$           };
+% $$$ 
+% $$$ Mscale = 1/1e6;
+% $$$ 
+% $$$ %Fluxes only:
+% $$$ figure;
+% $$$ set(gcf,'Position',[207          97        1609         815]);
+% $$$ leg = {};
+% $$$ legh = [];
+% $$$ for i=1:length(fields)
+% $$$     hold on;
+% $$$     if (length(fields{i}{1}(:,1)) == length(Te))
+% $$$         x = Te;
+% $$$     else
+% $$$         x = T;
+% $$$     end
+% $$$     legh(i) = plot(x,mean(monmean(fields{i}{1},2,ndays(months))*Mscale,3),fields{i}{5}, 'color',fields{i}{3} ...
+% $$$          ,'linewidth',fields{i}{4});
+% $$$     leg{i} = fields{i}{2};
+% $$$ end
+% $$$ ylim([-2 2]);
+% $$$ xlim([-3 31]);
+% $$$ box on;
+% $$$ grid on;
+% $$$ ylabel('Water Mass Transformation (Sv)');
+% $$$ xlabel('Temperature $\Theta$ ($^\circ$C)');
+% $$$ lg = legend(legh,leg);
+% $$$ set(lg,'Position',[0.5881    0.5500    0.2041    0.2588]);
 
 %%% Spatial Structure:
 
@@ -172,32 +174,32 @@ eval(['FlM = ' VAR ';']);
 % $$$ FlMblall = FlM - FlMwave - FlMkppish;
 % $$$ FlM = FlMblall;
 
-% CHECK spatial structure sums to total:
-% $$$ Tls = [14.75:2.5:27.25]+0.25;
-Tls = [0:2:22];
-SUM = zeros(size(Tls));
-for ii = 1:length(Tls)
-
-    Tl = Tls(ii)
-    load([base model sprintf('_output%03d',outputs(1)) '_' TYPE '_T' strrep(num2str(Tl),'.','p') 'C.mat']);
-    eval([VAR '(isnan(' VAR ')) = 0.0;']);
-    eval([VAR 'a = ' VAR ';']);
-    for i=2:length(outputs)
-        load([base model sprintf('_output%03d',outputs(i)) '_' TYPE '_T' strrep(num2str(Tl),'.','p') 'C.mat']);
-        eval([VAR '(isnan(' VAR ')) = 0.0;']);
-        eval([VAR 'a = ' VAR 'a + ' VAR ';']);
-    end
-    eval([VAR ' = ' VAR 'a/length(outputs);']);
-    eval([VAR '(' VAR '==0) = NaN;']);
-    eval(['FlM = ' VAR ';']);
-    tmp = FlM;
-    tmp(isnan(tmp)) = 0.0;
-    Z = monmean(tmp(:,:,months),3,ndays(months));
-    Z(Z == 0) = NaN;
-    SUM(ii) = nansum(nansum(area.*Z));
-end
-% $$$ plot(Tls,SUM/1e6,'Xb','MarkerSize',12,'LineWidth',2); 
-plot(Tls,SUM/1e12,'Xb','MarkerSize',12,'LineWidth',2); 
+% $$$ % CHECK spatial structure sums to total:
+% $$$ % $$$ Tls = [14.75:2.5:27.25]+0.25;
+% $$$ Tls = [0:2:22];
+% $$$ SUM = zeros(size(Tls));
+% $$$ for ii = 1:length(Tls)
+% $$$ 
+% $$$     Tl = Tls(ii)
+% $$$     load([base model sprintf('_output%03d',outputs(1)) '_' TYPE '_T' strrep(num2str(Tl),'.','p') 'C.mat']);
+% $$$     eval([VAR '(isnan(' VAR ')) = 0.0;']);
+% $$$     eval([VAR 'a = ' VAR ';']);
+% $$$     for i=2:length(outputs)
+% $$$         load([base model sprintf('_output%03d',outputs(i)) '_' TYPE '_T' strrep(num2str(Tl),'.','p') 'C.mat']);
+% $$$         eval([VAR '(isnan(' VAR ')) = 0.0;']);
+% $$$         eval([VAR 'a = ' VAR 'a + ' VAR ';']);
+% $$$     end
+% $$$     eval([VAR ' = ' VAR 'a/length(outputs);']);
+% $$$     eval([VAR '(' VAR '==0) = NaN;']);
+% $$$     eval(['FlM = ' VAR ';']);
+% $$$     tmp = FlM;
+% $$$     tmp(isnan(tmp)) = 0.0;
+% $$$     Z = monmean(tmp(:,:,months),3,ndays(months));
+% $$$     Z(Z == 0) = NaN;
+% $$$     SUM(ii) = nansum(nansum(area.*Z));
+% $$$ end
+% $$$ % $$$ plot(Tls,SUM/1e6,'Xb','MarkerSize',12,'LineWidth',2); 
+% $$$ plot(Tls,SUM/1e12,'Xb','MarkerSize',12,'LineWidth',2); 
 
 %%% Plot spatial pattern:
 
@@ -207,11 +209,12 @@ LAND = zeros(size(FlM(:,:,1)));
 xvec = 1:1:xL;
 yvec = 1:1:yL;
 
-if (rr==1)
-    months = [2:12];
-else
-    months = [2:6];
-end
+% $$$ if (rr==1)
+% $$$     months = [2:12];
+% $$$ else
+% $$$     months = [2:6];
+% $$$ end
+months = 2:6;
 
 clim = [-10 10];
 sp = 0.1;
