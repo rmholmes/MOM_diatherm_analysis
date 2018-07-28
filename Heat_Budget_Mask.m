@@ -150,6 +150,50 @@ mask_t(isnan(SST)) = 0;
 % $$$ plot(lon(tytrans_Sy~=0),lat(tytrans_Sy~=0)+0.05,'dm');
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%%%%%%%% INDO-PACIFIC REGION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+elseif (strcmp(region,'IndoPacific'))
+    % Get Pacific mask:
+    [mask_t,mask_Ny,mask_Nx,mask_Sx,mask_Sy,mask_Wx,mask_Wy] = ...
+    Heat_Budget_Mask('Pacific',gname,fname,wname,outD,model);
+
+    % Add eastern Indian:
+    [~, t1] = min(abs(latv_u+46));[~, t3] = min(abs(lonv_u+73));
+    mask_Sy(1:t3,t1) = 1;
+    mask_Wx = 0*mask_Wx;
+    mask_Wy = 0*mask_Wy;
+    
+    [~, t2] = min(abs(latv_u-40));[~, t3] = min(abs(lonv_u+200));
+    mask_t(1:t3,(t1+1):t2) = 1;
+
+    % Add western Indian:
+    [~, t3] = min(abs(lonv_u-20));[~, t2] = min(abs(latv_u-30));
+    mask_t(t3:end,(t1+1):t2) = 1;
+    [~, t3] = min(abs(lonv_u-47));[~, t2] = min(abs(latv_u-32));
+    mask_t(t3:end,(t1+1):t2) = 1;
+
+    SST = ncread(fname,'temp',[1 1 1 1],[xL yL 1 1]);
+    mask_t(isnan(SST)) = 0;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%% INDO-PACIFIC REGION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+elseif (strcmp(region,'Atlantic'))
+    % Get Indo-Pacific mask:
+    [mask_t,mask_Ny,mask_Nx,mask_Sx,mask_Sy,mask_Wx,mask_Wy] = ...
+    Heat_Budget_Mask('IndoPacific',gname,fname,wname,outD,model);
+    
+    % Invert:
+    tmp = mask_t;
+    tmp(mask_t == 1) = 0;
+    tmp(mask_t == 0) = 1;
+    mask_t = tmp;
+    [~, t1] = min(abs(latv_u+46));[~, t2] = min(abs(latv_u-66));
+    
+    mask_t(:,1:t1) = 0;
+    mask_t(:,(t2+1):end) = 0;
+
+    SST = ncread(fname,'temp',[1 1 1 1],[xL yL 1 1]);
+    mask_t(isnan(SST)) = 0;
+
 end
 
 save(outname,'mask_t','mask_Ny','mask_Nx','mask_Sx','mask_Sy','mask_Wx','mask_Wy','-v7.3');

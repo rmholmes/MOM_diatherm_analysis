@@ -1,21 +1,21 @@
 % This script processes the heat budget and associated variables in
 % MOM025 or MOM01 simulations and save's into .mat files
 
-% $$$ baseL = '/short/e14/rmh561/mom/archive/';
+baseL = '/short/e14/rmh561/mom/archive/';
 % $$$ baseL = '/g/data/e14/rmh561/';
-baseL = '/short/e14/rmh561/access-om2/archive/';
+% $$$ baseL = '/short/e14/rmh561/access-om2/archive/';
 % $$$ baseL = '/srv/ccrc/data03/z3500785/';
 
 % MOM-SIS025-WOMBAT:
 % $$$ model = 'MOM025';
 % $$$ baseD = [baseL 'MOM_wombat/']; %Data Directory.
 % MOM-SIS025:
-% $$$ model = 'MOM025_kb3seg';
-% $$$ baseD = [baseL 'MOM_HeatDiag_kb3seg/']; %Data Directory.
+model = 'MOM025_kb3seg';
+baseD = [baseL 'MOM_HeatDiag_kb3seg/']; %Data Directory.
 % ACCESS-OM2:
-model = 'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may_Tcen';
-baseD = [baseL '1deg_jra55_ryf8485_kds50_may/']; %Data Directory.
-ICdir = '/g/data1/ua8/MOM/initial_conditions/WOA/10_KDS50/';
+% $$$ model = 'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may_Tcen';
+% $$$ baseD = [baseL '1deg_jra55_ryf8485_kds50_may/']; %Data Directory.
+% $$$ ICdir = '/g/data1/ua8/MOM/initial_conditions/WOA/10_KDS50/';
 % MOM-SIS01:
 % $$$ model = 'MOM01';
 % $$$ baseD = [baseL 'MOM01_HeatDiag/']; %Data Directory.
@@ -23,13 +23,14 @@ ICdir = '/g/data1/ua8/MOM/initial_conditions/WOA/10_KDS50/';
 outD = [baseD 'mat_data/'];
 rstbaseD = baseD;
 
-post = 'ocean/'; % For ACCESS-OM2 output coulpled;
-% $$$ post = ''; % For MOM-SIS.
+% $$$ post = 'ocean/'; % For ACCESS-OM2 output coulpled;
+post = ''; % For MOM-SIS.
 
-haveRedi = 1; % 1 = Redi diffusion is on, 0 = off
-haveGM = 1; % 1 = GM is on, 0 = off;
-haveMDS = 1; % 1 = MDS is on, 0 = off;
-haveMIX = 0; % 1 = Do mixing components (vdiffuse_diff_cbt_*), 0 = don't. 
+haveRedi = 0; % 1 = Redi diffusion is on, 0 = off
+haveGM = 0; % 1 = GM is on, 0 = off;
+haveMDS = 0; % 1 = MDS is on, 0 = off;
+haveMIX = 1; % 1 = Do mixing components (vdiffuse_diff_cbt_*), 0 = don't. 
+haveHND = 0; % 1 = Do numerical mixing via heat budget.
 
 % scaling constant on the transports:
 if (strcmp(model(1),'A')) %ACCESS-OM2, transport in kg/s
@@ -38,8 +39,10 @@ else % MOM-SIS, transport in 1e9 kg/s
     tsc = 1e9;
 end
 
-output = 36;
+for output = 75:79;
 restart = output-1;
+
+region = 'IndoPacific';
 
 % file-names -----------------------------------------
 base = [baseD sprintf('output%03d/',output) post];
@@ -97,6 +100,12 @@ end
 mask = ncread(fname,'temp',[1 1 1 rstti],[xL yL zL 1]);
 mask(~isnan(mask)) = 1; mask(isnan(mask)) = 0;
 mask = mask == 1;
+
+if (~strcmp(region,'Global'))
+    [maskREG,~,~,~,~,~,~] = Heat_Budget_Mask(region,gname,fname,wname,outD,model);
+else
+    maskREG = ones(xL,yL);
+end
 
 % Time  -----------------------------------------
 time = ncread(fname,'time');
@@ -547,89 +556,91 @@ end
 GWB.ADV    = zeros(TL+1,tL); % W due to advection
 GWB.TEN    = zeros(TL+1,tL); % W due to tendency
 GWB.SFW    = zeros(TL+1,tL); % surface volume flux into ocean (m3s-1)
-GWB.NUM    = zeros(TL+1,tL); % W due to numerical mixing from heat budget
 
-% Get NUM:
-for ti=1:tL
-    for Ti = (TL+1):-1:1
-        sprintf('Calculating NUMH heat budget time %03d of %03d, temp %03d of %03d',ti,tL,Ti,TL)
-        GWB.NUM(Ti,ti) = nansum(nansum(area.*ncread(wname, ...
-                                                     'temp_numdiff_heat_on_nrho',[1 1 Ti ti],[xL yL 1 1]),1),2);
+if (haveHND)
+    GWB.NUM    = zeros(TL+1,tL); % W due to numerical mixing from heat budget
+    % Get NUM:
+    for ti=1:tL
+        for Ti = (TL+1):-1:1
+            sprintf('Calculating NUMH heat budget time %03d of %03d, temp %03d of %03d',ti,tL,Ti,TL)
+            GWB.NUM(Ti,ti) = nansum(nansum(area.*ncread(wname, ...
+                                                        'temp_numdiff_heat_on_nrho',[1 1 Ti ti],[xL yL 1 1]),1),2);
+        end
     end
 end
 
 for ti=1:tL
     ii = TL;
     sprintf('Calculating global water-mass heat budget time %03d of %03d, temp %03d of %03d',ti,tL,ii,TL)
-    GWB.dVdt(ii,ti) = nansum(nansum(ncread(wname,'dVdt',[1 1 ii ti],[xL yL 1 1])*1e9/rho0,1),2);
-    GWB.dHdt(ii,ti) = nansum(nansum(ncread(wname,'dHdt',[1 1 ii ti],[xL yL 1 1]),1),2);
-    GWB.TEN(ii,ti) = nansum(nansum(area.*ncread(wname,'temp_tendency_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-    GWB.ADV(ii,ti) = nansum(nansum(area.*ncread(wname,'temp_advection_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-    GWB.SUB(ii,ti) = nansum(nansum(area.*ncread(wname,'temp_submeso_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-    GWB.PME(ii,ti) = nansum(nansum(area.*ncread(wname,'sfc_hflux_pme_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-    GWB.RMX(ii,ti) = nansum(nansum(area.*ncread(wname,'temp_rivermix_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-    GWB.VDS(ii,ti) = nansum(nansum(area.*ncread(wname,'temp_vdiffuse_sbc_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-    GWB.SWH(ii,ti) = nansum(nansum(area.*ncread(wname,'sw_heat_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-    GWB.VDF(ii,ti) = nansum(nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-    GWB.KNL(ii,ti) = nansum(nansum(area.*ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.dVdt(ii,ti) = nansum(nansum(maskREG.*ncread(wname,'dVdt',[1 1 ii ti],[xL yL 1 1])*1e9/rho0,1),2);
+    GWB.dHdt(ii,ti) = nansum(nansum(maskREG.*ncread(wname,'dHdt',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.TEN(ii,ti) = nansum(nansum(maskREG.*area.*ncread(wname,'temp_tendency_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.ADV(ii,ti) = nansum(nansum(maskREG.*area.*ncread(wname,'temp_advection_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.SUB(ii,ti) = nansum(nansum(maskREG.*area.*ncread(wname,'temp_submeso_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.PME(ii,ti) = nansum(nansum(maskREG.*area.*ncread(wname,'sfc_hflux_pme_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.RMX(ii,ti) = nansum(nansum(maskREG.*area.*ncread(wname,'temp_rivermix_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.VDS(ii,ti) = nansum(nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_sbc_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.SWH(ii,ti) = nansum(nansum(maskREG.*area.*ncread(wname,'sw_heat_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.VDF(ii,ti) = nansum(nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.KNL(ii,ti) = nansum(nansum(maskREG.*area.*ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     if (haveMIX)
-    GWB.VDFkppiw(ii,ti) = nansum(nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppiw_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-    GWB.VDFkppish(ii,ti) = nansum(nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppish_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-    GWB.VDFkppicon(ii,ti) = nansum(nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppicon_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-    GWB.VDFkppbl(ii,ti) = nansum(nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppbl_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-    GWB.VDFkppdd(ii,ti) = nansum(nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppdd_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-    GWB.VDFwave(ii,ti) = nansum(nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_wave_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.VDFkppiw(ii,ti) = nansum(nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppiw_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.VDFkppish(ii,ti) = nansum(nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppish_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.VDFkppicon(ii,ti) = nansum(nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppicon_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.VDFkppbl(ii,ti) = nansum(nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppbl_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.VDFkppdd(ii,ti) = nansum(nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppdd_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.VDFwave(ii,ti) = nansum(nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_wave_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     end        
     if (haveRedi)
-    GWB.K33(ii,ti) = nansum(nansum(area.*ncread(wname,'temp_vdiffuse_k33_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-    GWB.RED(ii,ti) = nansum(nansum(area.*ncread(wname,'neutral_diffusion_on_nrho_temp',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.K33(ii,ti) = nansum(nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_k33_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.RED(ii,ti) = nansum(nansum(maskREG.*area.*ncread(wname,'neutral_diffusion_on_nrho_temp',[1 1 ii ti],[xL yL 1 1]),1),2);
     end
     if (haveGM)
-    GWB.NGM(ii,ti) = nansum(nansum(area.*ncread(wname,'neutral_gm_on_nrho_temp',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.NGM(ii,ti) = nansum(nansum(maskREG.*area.*ncread(wname,'neutral_gm_on_nrho_temp',[1 1 ii ti],[xL yL 1 1]),1),2);
     end
     if (haveMDS)
-    GWB.MDS(ii,ti) = nansum(nansum(area.*ncread(wname,'mixdownslope_temp_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.MDS(ii,ti) = nansum(nansum(maskREG.*area.*ncread(wname,'mixdownslope_temp_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     end
-    GWB.FRZ(ii,ti) = nansum(nansum(area.*ncread(wname,'frazil_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-    GWB.ETS(ii,ti) = nansum(nansum(area.*ncread(wname,'temp_eta_smooth_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-    GWB.SFW(ii,ti) = nansum(nansum(ncread(wname,'mass_pmepr_on_nrho',[1 1 ii ti],[xL yL 1 1])/rho0,1),2);
+    GWB.FRZ(ii,ti) = nansum(nansum(maskREG.*area.*ncread(wname,'frazil_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.ETS(ii,ti) = nansum(nansum(maskREG.*area.*ncread(wname,'temp_eta_smooth_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.SFW(ii,ti) = nansum(nansum(maskREG.*ncread(wname,'mass_pmepr_on_nrho',[1 1 ii ti],[xL yL 1 1])/rho0,1),2);
 for ii=TL-1:-1:1
     sprintf('Calculating global water-mass heat budget time %03d of %03d, temp %03d of %03d',ti,tL,ii,TL)
-    GWB.dVdt(ii,ti) = GWB.dVdt(ii+1,ti) + nansum(nansum(ncread(wname,'dVdt',[1 1 ii ti],[xL yL 1 1])*1e9/rho0,1),2);
-    GWB.dHdt(ii,ti) = GWB.dHdt(ii+1,ti) + nansum(nansum(ncread(wname,'dHdt',[1 1 ii ti],[xL yL 1 1]),1),2);
-    GWB.TEN(ii,ti) = GWB.TEN(ii+1,ti) + nansum(nansum(area.*ncread(wname,'temp_tendency_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-    GWB.ADV(ii,ti) = GWB.ADV(ii+1,ti) + nansum(nansum(area.*ncread(wname,'temp_advection_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-    GWB.SUB(ii,ti) = GWB.SUB(ii+1,ti) + nansum(nansum(area.*ncread(wname,'temp_submeso_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-    GWB.PME(ii,ti) = GWB.PME(ii+1,ti) + nansum(nansum(area.*ncread(wname,'sfc_hflux_pme_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-    GWB.RMX(ii,ti) = GWB.RMX(ii+1,ti) + nansum(nansum(area.*ncread(wname,'temp_rivermix_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-    GWB.VDS(ii,ti) = GWB.VDS(ii+1,ti) + nansum(nansum(area.*ncread(wname,'temp_vdiffuse_sbc_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-    GWB.SWH(ii,ti) = GWB.SWH(ii+1,ti) + nansum(nansum(area.*ncread(wname,'sw_heat_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-    GWB.VDF(ii,ti) = GWB.VDF(ii+1,ti) + nansum(nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-    GWB.KNL(ii,ti) = GWB.KNL(ii+1,ti) + nansum(nansum(area.*ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.dVdt(ii,ti) = GWB.dVdt(ii+1,ti) + nansum(nansum(maskREG.*ncread(wname,'dVdt',[1 1 ii ti],[xL yL 1 1])*1e9/rho0,1),2);
+    GWB.dHdt(ii,ti) = GWB.dHdt(ii+1,ti) + nansum(nansum(maskREG.*ncread(wname,'dHdt',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.TEN(ii,ti) = GWB.TEN(ii+1,ti) + nansum(nansum(maskREG.*area.*ncread(wname,'temp_tendency_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.ADV(ii,ti) = GWB.ADV(ii+1,ti) + nansum(nansum(maskREG.*area.*ncread(wname,'temp_advection_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.SUB(ii,ti) = GWB.SUB(ii+1,ti) + nansum(nansum(maskREG.*area.*ncread(wname,'temp_submeso_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.PME(ii,ti) = GWB.PME(ii+1,ti) + nansum(nansum(maskREG.*area.*ncread(wname,'sfc_hflux_pme_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.RMX(ii,ti) = GWB.RMX(ii+1,ti) + nansum(nansum(maskREG.*area.*ncread(wname,'temp_rivermix_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.VDS(ii,ti) = GWB.VDS(ii+1,ti) + nansum(nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_sbc_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.SWH(ii,ti) = GWB.SWH(ii+1,ti) + nansum(nansum(maskREG.*area.*ncread(wname,'sw_heat_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.VDF(ii,ti) = GWB.VDF(ii+1,ti) + nansum(nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.KNL(ii,ti) = GWB.KNL(ii+1,ti) + nansum(nansum(maskREG.*area.*ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     if (haveMIX)
-    GWB.VDFkppiw(ii,ti)   = GWB.VDFkppiw(ii+1,ti)   + nansum(nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppiw_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-    GWB.VDFkppish(ii,ti)  = GWB.VDFkppish(ii+1,ti)  + nansum(nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppish_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-    GWB.VDFkppicon(ii,ti) = GWB.VDFkppicon(ii+1,ti) + nansum(nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppicon_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-    GWB.VDFkppbl(ii,ti)   = GWB.VDFkppbl(ii+1,ti)   + nansum(nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppbl_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-    GWB.VDFkppdd(ii,ti)   = GWB.VDFkppdd(ii+1,ti)   + nansum(nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppdd_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-    GWB.VDFwave(ii,ti)    = GWB.VDFwave(ii+1,ti)    + nansum(nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_wave_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);        
+    GWB.VDFkppiw(ii,ti)   = GWB.VDFkppiw(ii+1,ti)   + nansum(nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppiw_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.VDFkppish(ii,ti)  = GWB.VDFkppish(ii+1,ti)  + nansum(nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppish_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.VDFkppicon(ii,ti) = GWB.VDFkppicon(ii+1,ti) + nansum(nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppicon_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.VDFkppbl(ii,ti)   = GWB.VDFkppbl(ii+1,ti)   + nansum(nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppbl_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.VDFkppdd(ii,ti)   = GWB.VDFkppdd(ii+1,ti)   + nansum(nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppdd_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.VDFwave(ii,ti)    = GWB.VDFwave(ii+1,ti)    + nansum(nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_wave_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);        
     end
     if (haveRedi)
-    GWB.K33(ii,ti) = GWB.K33(ii+1,ti) + nansum(nansum(area.*ncread(wname,'temp_vdiffuse_k33_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-    GWB.RED(ii,ti) = GWB.RED(ii+1,ti) + nansum(nansum(area.*ncread(wname,'neutral_diffusion_on_nrho_temp',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.K33(ii,ti) = GWB.K33(ii+1,ti) + nansum(nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_k33_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.RED(ii,ti) = GWB.RED(ii+1,ti) + nansum(nansum(maskREG.*area.*ncread(wname,'neutral_diffusion_on_nrho_temp',[1 1 ii ti],[xL yL 1 1]),1),2);
     end
     if (haveGM)
-    GWB.NGM(ii,ti) = GWB.NGM(ii+1,ti) + nansum(nansum(area.*ncread(wname,'neutral_gm_on_nrho_temp',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.NGM(ii,ti) = GWB.NGM(ii+1,ti) + nansum(nansum(maskREG.*area.*ncread(wname,'neutral_gm_on_nrho_temp',[1 1 ii ti],[xL yL 1 1]),1),2);
     end
     if (haveMDS)
-    GWB.MDS(ii,ti) = GWB.MDS(ii+1,ti) + nansum(nansum(area.*ncread(wname,'mixdownslope_temp_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.MDS(ii,ti) = GWB.MDS(ii+1,ti) + nansum(nansum(maskREG.*area.*ncread(wname,'mixdownslope_temp_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     end
-    GWB.FRZ(ii,ti) = GWB.FRZ(ii+1,ti) + nansum(nansum(area.*ncread(wname,'frazil_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-    GWB.ETS(ii,ti) = GWB.ETS(ii+1,ti) + nansum(nansum(area.*ncread(wname,'temp_eta_smooth_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-    GWB.SFW(ii,ti) = GWB.SFW(ii+1,ti) + nansum(nansum(ncread(wname,'mass_pmepr_on_nrho',[1 1 ii ti],[xL yL 1 1])/rho0,1),2);
+    GWB.FRZ(ii,ti) = GWB.FRZ(ii+1,ti) + nansum(nansum(maskREG.*area.*ncread(wname,'frazil_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.ETS(ii,ti) = GWB.ETS(ii+1,ti) + nansum(nansum(maskREG.*area.*ncread(wname,'temp_eta_smooth_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    GWB.SFW(ii,ti) = GWB.SFW(ii+1,ti) + nansum(nansum(maskREG.*ncread(wname,'mass_pmepr_on_nrho',[1 1 ii ti],[xL yL 1 1])/rho0,1),2);
 end
 end
-save([outD model sprintf('_output%03d',output) '_GlobalHBud.mat'],'GWB','-v7.3');
+save([outD model sprintf('_output%03d',output) '_' region 'HBud.mat'],'GWB','-v7.3');
 
 %% Vertical Integrate down to level from online T-binned values -----------------------------------------------------------------------------------------------------------
 Tls = [0:2.5:27.5];
@@ -939,7 +950,7 @@ end
 end
 save([outD model sprintf('_output%03d',output) '_ZAHBud.mat'],'ZA','yto','-v7.3');
 
-% $$$ end
+end
 
 % $$$ 
 % $$$ %% Swap in non-NaN'd lon/lat:
