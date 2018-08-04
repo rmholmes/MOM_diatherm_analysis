@@ -39,10 +39,10 @@ else % MOM-SIS, transport in 1e9 kg/s
     tsc = 1e9;
 end
 
-for output = 75:79;
+for output = 86;
 restart = output-1;
 
-region = 'IndoPacific';
+region = 'Global';
 
 % file-names -----------------------------------------
 base = [baseD sprintf('output%03d/',output) post];
@@ -305,8 +305,10 @@ for ti=1:tL
         txtrans = txtrans + ncread(wname,'tx_trans_nrho_gm',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0;
         tytrans = tytrans + ncread(wname,'ty_trans_nrho_gm',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0;
     end
-    qxtrans = ncread(wname,'temp_xflux_adv_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
-    qytrans = ncread(wname,'temp_yflux_adv_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+    qxtrans = ncread(wname,'temp_xflux_adv_on_nrho',[1 1 Ti ti],[xL yL 1 1])+ ...
+              ncread(wname,'temp_xflux_submeso_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+    qytrans = ncread(wname,'temp_yflux_adv_on_nrho',[1 1 Ti ti],[xL yL 1 1])+ ...
+              ncread(wname,'temp_yflux_submeso_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
 
     JI = zeros(xL,yL);
     JI(2:end,2:end) = (txtrans(1:(end-1),2:end) - txtrans(2:end,2:end) ...
@@ -339,8 +341,10 @@ for ti=1:tL
             txtrans = txtrans + ncread(wname,'tx_trans_nrho_gm',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0;
             tytrans = tytrans + ncread(wname,'ty_trans_nrho_gm',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0;
         end
-        qxtrans = ncread(wname,'temp_xflux_adv_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
-        qytrans = ncread(wname,'temp_yflux_adv_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+        qxtrans = ncread(wname,'temp_xflux_adv_on_nrho',[1 1 Ti ti],[xL yL 1 1])+ ...
+                  ncread(wname,'temp_xflux_submeso_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+        qytrans = ncread(wname,'temp_yflux_adv_on_nrho',[1 1 Ti ti],[xL yL 1 1])+ ...
+                  ncread(wname,'temp_yflux_submeso_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
             
         JI(2:end,2:end) = JI(2:end,2:end)+(txtrans(1:(end-1),2:end) - txtrans(2:end,2:end) ...
                 +tytrans(2:end,1:(end-1)) - tytrans(2:end,2:end))./area(2:end,2:end);
