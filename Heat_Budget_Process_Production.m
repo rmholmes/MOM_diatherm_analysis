@@ -1,21 +1,21 @@
 % This script processes the heat budget and associated variables in
 % MOM025 or MOM01 simulations and save's into .mat files
 
-baseL = '/short/e14/rmh561/mom/archive/';
+% $$$ baseL = '/short/e14/rmh561/mom/archive/';
 % $$$ baseL = '/g/data/e14/rmh561/';
-% $$$ baseL = '/short/e14/rmh561/access-om2/archive/';
+baseL = '/short/e14/rmh561/access-om2/archive/';
 % $$$ baseL = '/srv/ccrc/data03/z3500785/';
 
 % MOM-SIS025-WOMBAT:
 % $$$ model = 'MOM025';
 % $$$ baseD = [baseL 'MOM_wombat/']; %Data Directory.
-% MOM-SIS025:
-model = 'MOM025_kb3seg';
-baseD = [baseL 'MOM_HeatDiag_kb3seg/']; %Data Directory.
+% $$$ % MOM-SIS025:
+% $$$ model = 'MOM025_kb3seg';
+% $$$ baseD = [baseL 'MOM_HeatDiag_kb3seg/']; %Data Directory.
 % ACCESS-OM2:
-% $$$ model = 'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may_Tcen';
-% $$$ baseD = [baseL '1deg_jra55_ryf8485_kds50_may/']; %Data Directory.
-% $$$ ICdir = '/g/data1/ua8/MOM/initial_conditions/WOA/10_KDS50/';
+model = 'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may';
+baseD = [baseL '1deg_jra55_ryf8485_kds50_may/']; %Data Directory.
+ICdir = '/g/data1/ua8/MOM/initial_conditions/WOA/10_KDS50/';
 % MOM-SIS01:
 % $$$ model = 'MOM01';
 % $$$ baseD = [baseL 'MOM01_HeatDiag/']; %Data Directory.
@@ -23,14 +23,14 @@ baseD = [baseL 'MOM_HeatDiag_kb3seg/']; %Data Directory.
 outD = [baseD 'mat_data/'];
 rstbaseD = baseD;
 
-% $$$ post = 'ocean/'; % For ACCESS-OM2 output coulpled;
-post = ''; % For MOM-SIS.
+post = 'ocean/'; % For ACCESS-OM2 output coulpled;
+% $$$ post = ''; % For MOM-SIS.
 
-haveRedi = 0; % 1 = Redi diffusion is on, 0 = off
-haveGM = 0; % 1 = GM is on, 0 = off;
-haveMDS = 0; % 1 = MDS is on, 0 = off;
+haveRedi = 1; % 1 = Redi diffusion is on, 0 = off
+haveGM = 1; % 1 = GM is on, 0 = off;
+haveMDS = 1; % 1 = MDS is on, 0 = off;
 haveMIX = 1; % 1 = Do mixing components (vdiffuse_diff_cbt_*), 0 = don't. 
-haveHND = 0; % 1 = Do numerical mixing via heat budget.
+haveHND = 1; % 1 = Do numerical mixing via heat budget.
 
 % scaling constant on the transports:
 if (strcmp(model(1),'A')) %ACCESS-OM2, transport in kg/s
@@ -39,7 +39,7 @@ else % MOM-SIS, transport in 1e9 kg/s
     tsc = 1e9;
 end
 
-for output = 86;
+for output = 37;
 restart = output-1;
 
 region = 'Global';
@@ -309,7 +309,10 @@ for ti=1:tL
               ncread(wname,'temp_xflux_submeso_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
     qytrans = ncread(wname,'temp_yflux_adv_on_nrho',[1 1 Ti ti],[xL yL 1 1])+ ...
               ncread(wname,'temp_yflux_submeso_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
-
+    if (haveGM)
+        qxtrans = qxtrans + ncread(wname,'temp_xflux_gm_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+        qytrans = qytrans + ncread(wname,'temp_xflux_gm_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+    end
     JI = zeros(xL,yL);
     JI(2:end,2:end) = (txtrans(1:(end-1),2:end) - txtrans(2:end,2:end) ...
                                          +tytrans(2:end,1:(end-1)) - tytrans(2:end,2:end))./area(2:end,2:end);
@@ -345,6 +348,10 @@ for ti=1:tL
                   ncread(wname,'temp_xflux_submeso_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
         qytrans = ncread(wname,'temp_yflux_adv_on_nrho',[1 1 Ti ti],[xL yL 1 1])+ ...
                   ncread(wname,'temp_yflux_submeso_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+        if (haveGM)
+            qxtrans = qxtrans + ncread(wname,'temp_xflux_gm_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+            qytrans = qytrans + ncread(wname,'temp_xflux_gm_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+        end
             
         JI(2:end,2:end) = JI(2:end,2:end)+(txtrans(1:(end-1),2:end) - txtrans(2:end,2:end) ...
                 +tytrans(2:end,1:(end-1)) - tytrans(2:end,2:end))./area(2:end,2:end);
@@ -866,12 +873,14 @@ ZA.PSI = zeros(yL,TL+1,tL); % m3s-1 northward transport
 yto = diff(ncread(gname,'yt_ocean'));
 yto = [yto(1); (yto(2:end)+yto(1:(end-1)))/2; yto(end)];
 
-% Get NUM:
-for ti=1:tL
-    for Ti = (TL+1):-1:1
-        sprintf('Calculating NUM heat budget time %03d of %03d, temp %03d of %03d',ti,tL,Ti,TL+1)
-        ZA.NUM(Ti,ti) = nansum(area.*ncread(wname, ...
+if (haveHND)
+    % Get NUM:
+    for ti=1:tL
+        for Ti = (TL+1):-1:1
+            sprintf('Calculating NUM heat budget time %03d of %03d, temp %03d of %03d',ti,tL,Ti,TL+1)
+            ZA.NUM(Ti,ti) = nansum(area.*ncread(wname, ...
                                                      'temp_numdiff_heat_on_nrho',[1 1 Ti ti],[xL yL 1 1]),1)'./yto;
+        end
     end
 end
 
