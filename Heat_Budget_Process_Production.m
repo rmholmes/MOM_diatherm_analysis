@@ -882,7 +882,7 @@ if (haveHND)
     for ti=1:tL
         for Ti = (TL+1):-1:1
             sprintf('Calculating NUM heat budget time %03d of %03d, temp %03d of %03d',ti,tL,Ti,TL+1)
-            ZA.NUM(Ti,ti) = nansum(area.*ncread(wname, ...
+            ZA.NUM(:,Ti,ti) = nansum(area.*ncread(wname, ...
                                                      'temp_numdiff_heat_on_nrho',[1 1 Ti ti],[xL yL 1 1]),1)'./yto;
         end
     end
@@ -969,7 +969,7 @@ save([outD model sprintf('_output%03d',output) '_ZAHBud.mat'],'ZA','yto','-v7.3'
 
 end
 
-% $$$ 
+
 % $$$ %% Swap in non-NaN'd lon/lat:
 % $$$ base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
 % $$$ model = 'MOM025';
@@ -979,11 +979,11 @@ end
 % $$$ region = 'Global';
 % $$$ 
 % $$$ base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
-% $$$ model = 'MOM025_kb3seg';
-% $$$ for output = [80:84]
+% $$$ model = 'MOM025_btide';
+% $$$ for output = [20:21]
 % $$$     save([base model sprintf('_output%03d_BaseVars.mat',output)], ...
 % $$$          'lon','lat','lonu','latu','area','-append');
 % $$$ end
 % $$$ 
-
+% $$$ 
 

@@ -67,7 +67,7 @@ HWMT(:,:,i) = HWMTM(:,:,i)+HWMTI(:,:,i);
 
 end
 
-months = 5;%2:length(M(1,:));
+months = 2:length(M(1,:));
 
 %%%%Heat Flux:
 % Production fields:
@@ -149,7 +149,7 @@ set(lg,'Position',[0.5881    0.5500    0.2041    0.2588]);
 %%% Spatial Structure:
 
 % $$$ VAR = 'FlMkppish';
-VAR = 'FlI';
+VAR = 'FlM';
 % $$$ VAR = 'FlSP';
 % $$$ VAR = 'WMTP';
 % $$$ VAR = 'WMTM';

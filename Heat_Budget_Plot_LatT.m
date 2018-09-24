@@ -6,23 +6,26 @@ clear all;
 
 base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
 
-% Load Base Variables:
-model = 'MOM025_kb3seg';
-outputs = [75:79];
+% $$$ % Load Base Variables:
+% $$$ model = 'MOM025_kb3seg';
+% $$$ outputs = [75:79];
 
-model = 'MOM025_kb1em5';
-outputs = 94;
+% $$$ model = 'MOM025_kb1em5';
+% $$$ outputs = 94;
 % $$$ 
 model = 'MOM025';
-outputs = [8:12];
+outputs = [15:19];
+
+% $$$ model = 'MOM025_btide';
+% $$$ outputs = [21];
 % $$$ outputs = [12]
 % $$$ 
 % $$$ 
 % $$$ model = 'MOM025_kb1em6';
 % $$$ outputs = 30;
 
-model = 'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may';
-outputs = 36;
+% $$$ model = 'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may';
+% $$$ outputs = 36;
 
 % $$$ model = 'MOM01';
 % $$$ outputs = [222];
@@ -123,10 +126,10 @@ fields = { ...
           {zJdia(:,:,months)/1e12, 'Diathermal Heat Flux $\mathcal{J}_{dia} = -\frac{\partial\mathcal{A}_I}{\partial\phi}$',[-50 50],5,'TW / $^\circ$'}, ...
           {(zF(:,:,months)+zPI(:,:,months))/1e12, 'Diathermal Surface Forcing $\frac{\partial\left(\mathcal{F}+\mathcal{P}_I\right)}{\partial\phi}$',[-50 50],5,'TW / $^\circ$'}, ...
           {zM(:,:,months)/1e12, 'Diathermal Vertical Mixing $\frac{\partial\mathcal{M}}{\partial\phi}$',[-50 50],5,'TW / $^\circ$'}, ...
-          {zNUM(:,:,months)/1e12, 'Diathermal Numerical Mixing $\frac{\partial\mathcal{I}}{\partial\phi}$',[-50 50],5,'TW / $^\circ$'}, ...
-% $$$           {zI(:,:,months)/1e12, 'Diathermal Numerical Mixing $\frac{\partial\mathcal{I}}{\partial\phi}$',[-50 50],5,'TW / $^\circ$'}, ...
-          {(zRED(:,:,months)+zK33(:,:,months))/1e12, 'Diathermal Redi Mixing $\frac{\partial\mathcal{R}}{\partial\phi}$',[-10 10],1,'TW / $^\circ$'}, ...
-% $$$           {zN(:,:,months)/1e12, 'Diathermal Internal Tendency $\frac{\partial\mathcal{N}}{\partial\phi}$',[-10 10],1,'TW / $^\circ$'}, ...
+% $$$           {zNUM(:,:,months)/1e12, 'Diathermal Numerical Mixing $\frac{\partial\mathcal{I}}{\partial\phi}$',[-50 50],5,'TW / $^\circ$'}, ...
+          {zI(:,:,months)/1e12, 'Diathermal Numerical Mixing $\frac{\partial\mathcal{I}}{\partial\phi}$',[-50 50],5,'TW / $^\circ$'}, ...
+% $$$           {(zRED(:,:,months)+zK33(:,:,months))/1e12, 'Diathermal Redi Mixing $\frac{\partial\mathcal{R}}{\partial\phi}$',[-10 10],1,'TW / $^\circ$'}, ...
+          {zN(:,:,months)/1e12, 'Diathermal Internal Tendency $\frac{\partial\mathcal{N}}{\partial\phi}$',[-10 10],1,'TW / $^\circ$'}, ...
           };
 
 % $$$ % Plot latitudinal integral:

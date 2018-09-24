@@ -12,10 +12,12 @@ RUNS = { ...
 % $$$     {'MOM01',[222]}, ...
 % $$$ % MOM025-SIS:
 % $$$     {'MOM025',[8:12]}, ...
-% $$$     {'MOM025',[15:19]}, ...
+    {'MOM025',[15:19]}, ...
 % $$$ % $$$     {'MOM025_kb1em6',[30]}, ...
-% $$$     {'MOM025_kb3seg',[80:84]}, ...
+% $$$     {'MOM025_kb3seg',[85]}, ...
+% $$$     {'MOM025_kb3seg',[86]}, ...
 % $$$     {'MOM025_kb1em5',[94]}, ...
+    {'MOM025_btide',[21]}, ...
 % $$$     {'MOM025_wombat',[1978]}, ...
 % ACCESS-OM2 025-degree:
 % $$$     {'ACCESS-OM2_025deg_jra55_ryf8485',[78]}, ...
@@ -25,15 +27,16 @@ RUNS = { ...
 % ACCESS-OM2 1-degree:
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may_Tcen',[36]}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may_TcenGMS',[36]}, ...
-         {'ACCESS-OM2_1deg_jra55_ryf8485_gfdl50_may',[36]}, ...
+% $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_gfdl50_may',[36]}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may',[36]}, ...
+% $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may',[37]}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds75_may',[36]}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds100_may',[36]}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds135_may',[36]}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may_kb1em5',[0]}, ...
        };
 
-rr = 1;
+% $$$ rr = 1;
 for rr = 1:length(RUNS);
     outputs = RUNS{rr}{2};
     model = RUNS{rr}{1};
@@ -54,9 +57,9 @@ for rr = 1:length(RUNS);
 
 
     %%% Spatial Structure:
-    VAR = 'FlI';
+    VAR = 'FlMwave';
     TYPE = 'VertInt';
-    Tl = 27.5;
+    Tl = 10;
     name = [base model sprintf('_output%03d',outputs(1)) '_' TYPE '_T' strrep(num2str(Tl),'.','p') 'C.mat']
     eval(['load(name,''' VAR ''');']);
     eval([VAR '(isnan(' VAR ')) = 0.0;']);
@@ -327,13 +330,13 @@ for rr = 1:length(RUNS);
 % $$$               '(b) March', ...
 % $$$               '(c) July', ...
 % $$$               '(d) November'};
-    months = {[1:12]}; labels = {'Annual'};
+    months = {[1:12]}; labels = {'(a) Total'};
 
     %Colormap and continents:
     sp = 1;
-    clim = [-20 20];
+    clim = [-50 0];
 
-    cCH = 0; % 0 = symmetric redblue
+    cCH = 1; % 0 = symmetric redblue
              % 1 = negative definite parula
              % 2 = negative parula with +ve's possible
     if (cCH==0)
@@ -376,6 +379,7 @@ for rr = 1:length(RUNS);
 %Mean of all months:
 figure;
 set(gcf,'Position',[3          59        1916         914]);
+set(gcf,'Position',[88         371        1625         603]);
 set(gcf,'defaulttextfontsize',20);
 set(gcf,'defaultaxesfontsize',20);
 
@@ -384,11 +388,11 @@ poss = [0.1300    0.4553    0.7693    0.4697; ...
         0.3951    0.1389    0.2343    0.2680; ...
         0.6681    0.1389    0.2343    0.2680];
 for i=1:length(months)
-    if (i == 1)
-        subplot(5,3,[1 9]);
-    else
-        subplot(5,3,[10 13]+(i-2));
-    end
+% $$$     if (i == 1)
+% $$$         subplot(5,3,[1 9]);
+% $$$     else
+% $$$         subplot(5,3,[10 13]+(i-2));
+% $$$     end
     X = lon(xvec,yvec);
     Y = lat(xvec,yvec);
     if (length(months{i})>1)
@@ -434,18 +438,80 @@ for i=1:length(months)
     ylabel('Latitude ($^\circ$N)');
     set(gca,'xtick',[-270:30:60]);
     set(gca,'ytick',[-75:15:75]);
-    set(gca,'Position',[poss(i,:)]);
-    ylim([-45 45]);
+% $$$     set(gca,'Position',[poss(i,:)]);
+% $$$     ylim([-45 45]);
 % $$$     ylim([-55 55]);
-% $$$     ylim([-75 75]);
-    set(gca,'FontSize',15);
+    ylim([-75 75]);
+    set(gca,'FontSize',17);
     colormap(cmap);
-    title([strrep(strrep(strrep(strrep(strrep(RUNS{rr}{1},'_',' '),'ACCESS-OM2 ','AOM'),' jra55',''),'ryf8485',''),' may','') ...
-           ' ' num2str(Tl) '$^\circ$C Numerical Mixing']);
+    text(-278,-40.5,labels{i},'BackgroundColor','w','Margin',0.5,'FontSize',17);
+% $$$     title([strrep(strrep(strrep(strrep(strrep(RUNS{rr}{1},'_',' '),'ACCESS-OM2 ','AOM'),' jra55',''),'ryf8485',''),' may','') ...
+% $$$            ' ' num2str(Tl) '$^\circ$C Numerical Mixing']);
 end
 end
 
-% $$$ %%% Plot spatial pattern of net heat flux and SST:
+% $$$ %%% Plot isotherm spacing:
+% $$$ Tlm = 22;
+% $$$ Tlp = 23;
+% $$$ name = [base model sprintf('_output%03d',outputs(1)) '_Ziso_T' strrep(num2str(Tlp),'.','p') 'C.mat'];
+% $$$ load(name);
+% $$$ Zp = ziso;
+% $$$ name = [base model sprintf('_output%03d',outputs(1)) '_Ziso_T' strrep(num2str(Tlm),'.','p') 'C.mat'];
+% $$$ load(name);
+% $$$ Zm = ziso;
+% $$$ 
+% $$$ try
+% $$$     obj = matfile([base model sprintf('_output%03d_SurfaceVars.mat',outputs(1))]);
+% $$$     LAND = obj.SST(:,:,1);
+% $$$ catch
+% $$$     LAND = zeros(size(FlM(:,:,1)));
+% $$$ end
+% $$$ 
+% $$$ months = {[1:12]}; labels = {'Annual'};
+% $$$ 
+% $$$ %Colormap and continents:
+% $$$ sp = 0.5;
+% $$$ clim = [0 50];
+% $$$ 
+% $$$ cpts = [-1e10 clim(1):sp:clim(2) 1e10];
+% $$$ npts = length(cpts);
+% $$$ cmap = parula(npts-3);
+% $$$ cmap(end,:) = [0.97 0.97 0.8];
+% $$$ cmap(end-1,:) = (cmap(end-1,:)+cmap(end,:))/2;
+% $$$ 
+% $$$ tmp = LAND;
+% $$$ tmp(isnan(LAND)) = clim(1)-sp/2;
+% $$$ tmp(~isnan(LAND)) = NaN;
+% $$$ LAND = tmp;
+% $$$ cmap(2:(end+1),:) = cmap;
+% $$$ cmap(1,:) = [0 0 0];
+% $$$ 
+% $$$ climn = [clim(1)-sp clim(2)];
+% $$$ 
+% $$$ % $$$ Zp(isnan(Zp)) == 0;
+% $$$ Zdel = Zm-Zp;
+% $$$ % $$$ figure;
+% $$$ Z = nanmonmean(Zdel,3,ndays);
+% $$$ Z(Z==0) = NaN;
+% $$$ Z(Z<clim(1)) = clim(1);
+% $$$ contourf(lon,lat,Z,cpts,'linestyle','none');
+% $$$ hold on;    
+% $$$ contourf(lon,lat,LAND,[clim(1)-sp clim(1)],'linestyle','none');
+% $$$ caxis(climn);
+% $$$ cb = colorbar;
+% $$$ ylabel(cb,'m');
+% $$$ ylim(cb,clim);
+% $$$ xlabel('Longitude ($^\circ$E)');
+% $$$ ylabel('Latitude ($^\circ$N)');
+% $$$ set(gca,'xtick',[-270:30:60]);
+% $$$ set(gca,'ytick',[-75:15:75]);
+% $$$ % $$$ set(gca,'Position',[poss(i,:)]);
+% $$$ ylim([-45 45]);
+% $$$ set(gca,'FontSize',15);
+% $$$ colormap(cmap);
+% $$$ title('MOM025 kb3seg $22^\circ$C and $23^\circ$C Isotherm Spacing');
+% $$$ 
+% $$$ % $$$ %%% Plot spatial pattern of net heat flux and SST:
 % $$$ 
 % $$$ % Load Variable and calculate mean:
 % $$$ load([base model sprintf('_output%03d_SurfaceVars.mat',outputs(1))]);
@@ -1017,7 +1083,7 @@ end
 % $$$ 
 % $$$ 
 % $$$ 
-% $$$ %%%%%%%%%%%%% Components of mixing plot:
+% $$$ %%%%% Components of mixing plot:
 % $$$ 
 % $$$ figure;
 % $$$ set(gcf,'Position',[3          59        1916         914]);
@@ -1032,8 +1098,8 @@ end
 % $$$ obj = matfile([base model sprintf('_output%03d_SurfaceVars.mat',outputs(1))]);
 % $$$ LAND = obj.SST(:,:,1);
 % $$$ 
-% $$$ clim = [-40 0];
-% $$$ sp = 2;
+% $$$ clim = [-30 0];
+% $$$ sp = 1;
 % $$$ doWMT = 0; % plot WMT instead of flux
 % $$$ cpts = [-1e10 clim(1):sp:clim(2) 1e10];
 % $$$ npts = length(cpts)
@@ -1064,10 +1130,10 @@ end
 % $$$ yvec = 1:1:yL;
 % $$$ txtmonth = {'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'};
 % $$$ months = [1:12];
-% $$$ labels = {'(a) Background', ...
-% $$$           '(b) Shear Instability', ...
-% $$$           '(c) KPP Boundary Layer', ...
-% $$$           '(d) Internal Wave'};
+% $$$ labels = {'(b) Background', ...
+% $$$           '(c) Shear Instability', ...
+% $$$           '(d) KPP Boundary Layer', ...
+% $$$           '(e) Internal Wave'};
 % $$$ VARS = {'FlMkppiw','FlMkppish','FlMkppbl','FlMwave'};
 % $$$ 
 % $$$ for ii=1:4
@@ -1135,8 +1201,8 @@ end
 % $$$     set(gca,'Position',poss(ii,:));
 % $$$ end 
 % $$$ colormap(cmap);
-% $$$ 
-% $$$ 
+
+
 % $$$ %%% Plot shflux difference between runs with SST contours:
 % $$$ 
 % $$$ base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag_kb1em5/mat_data/';
