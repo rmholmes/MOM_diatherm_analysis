@@ -7,14 +7,14 @@ clear all;
 base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
 
 % $$$ % Load Base Variables:
-% $$$ model = 'MOM025_kb3seg';
-% $$$ outputs = [75:79];
+model = 'MOM025_kb3seg';
+outputs = [86];
 
 % $$$ model = 'MOM025_kb1em5';
 % $$$ outputs = 94;
 % $$$ 
-model = 'MOM025';
-outputs = [15:19];
+% $$$ model = 'MOM025';
+% $$$ outputs = [15:19];
 
 % $$$ model = 'MOM025_btide';
 % $$$ outputs = [21];
@@ -33,49 +33,32 @@ outputs = [15:19];
 load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
 ndays = diff(time_snap);
 region = 'Global';
-% $$$ region = 'Pacific';
 
 %% Make Vars
-
-direc = 1; % 0 = all warmer than Theta (native)
-           % 1 = all colder than Theta
 load([base model sprintf('_output%03d_',outputs(1)) 'ZAHBud.mat']);
 names = fieldnames(ZA);
 
 for i=1:length(outputs)
     load([base model sprintf('_output%03d_',outputs(i)) 'ZAHBud.mat']);
     
+    % Flip sign of fluxes and save:
     for ii=1:length(names)
-        eval(['z' names{ii} '(:,:,:,i) = ZA.' names{ii} ';']);
-        if (direc)
-            eval(['z' names{ii} '(:,:,:,i) = repmat(z' names{ii} '(:,1,:,i),[1 length(z' ...
-                  names{ii} '(1,:,1)) 1 1]) - z' names{ii} '(:,:,:,i);']);
-        end
-    end
-    if (direc)
-        % Flip signs of fluxes:
-        zF(:,:,:,i) = -zF(:,:,:,i);zM(:,:,:,i) = -zM(:,:,:,i);zP(:,:,:,i) = -zP(:,:,:,i);
-        zSWH(:,:,:,i) = -zSWH(:,:,:,i);zJS(:,:,:,i) = -zJS(:,:,:,i);
-        if (isfield(ZA,'Mkppiw')) % Vertical mixing components
-            zMkppiw(:,:,:,i) = -zMkppiw(:,:,:,i);zMkppish(:,:,:,i) = -zMkppish(:,:,:,i);
-            zMwave(:,:,:,i) = -zMwave(:,:,:,i);zMkppbl(:,:,:,i) = -zMkppbl(:,:,:,i);
-            zMoth(:,:,:,i) = -zMoth(:,:,:,i);
-        end
-        if (isfield(ZA,'RED')) % Redi mixing
-            zRED(:,:,:,i) = -zRED(:,:,:,i);zK33(:,:,:,i) = -zK33(:,:,:,i);
-        end
-    end
-    % extras:
-    if (direc)
-        zAI(:,:,:,i) = cumsum(-rho0*Cp*zPSI(:,:,:,i)*dT,2); % Heat Function
-    else
-        zAI(:,:,:,i) = cumsum(rho0*Cp*zPSI(:,:,:,i)*dT,2,'reverse'); % Heat Function
+        eval(['z' names{ii} '(:,:,:,i) = -ZA.' names{ii} ';']);
     end
     
-    tmp = -diff(zAI(:,:,:,i),[],1)./repmat(diff(latv',[],1),[1 TL+1 12]); %Diathermal component of heat function
-    zJdia(:,:,:,i) = cat(1,cat(1,zeros(1,TL+1,tL),avg(tmp,1)),zeros(1,TL+1,tL));
-    zJSH(:,:,:,i) = zJS(:,:,:,i).*repmat(Te',[yL 1 tL])*rho0*Cp;% Surface Volume flux base flux:
-    zPI(:,:,:,i) = zP(:,:,:,i) - zJSH(:,:,:,i); % Interior heat source PI
+    % Non-fluxes (don't flip sign):
+    flbck = {'dVdt','dHdt','PSI','AHD'};
+    for iii = 1:length(flbck)
+        eval(['z' flbck{iii} '(:,:,:,i) = ZA.' flbck{iii} ';']);
+    end
+
+    % Heat Function:
+    zAIpsi(:,:,:,i) = -rho0*Cp*cumsum(zPSI(:,:,:,i)*dT,2); % Heat Function (defined on Tc, since Psi is on Te, and defined on v-points)
+    zAI(:,:,:,i) = zAHD(:,:,:,i) - rho0*Cp*repmat(Te',[yL 1 tL]).*zPSI(:,:,:,i); % (defined on Te and v-points)    
+    
+    zJdia(:,:,:,i) = -diff(cat(1,zeros(1,TL+1,tL),zAI(:,:,:,i)),[],1)./repmat(yuo,[1 TL+1 tL]);
+    zJSH(:,:,:,i) = zJS(:,:,:,i).*repmat(Te',[yL 1 tL])*rho0*Cp;
+    zPI(:,:,:,i) = zP(:,:,:,i) - zJSH(:,:,:,i);
     zN(:,:,:,i) = zdHdt(:,:,:,i) - zdVdt(:,:,:,i).*repmat(Te',[yL 1 tL])*rho0*Cp;
     zI(:,:,:,i) = zJdia(:,:,:,i)-zN(:,:,:,i)-zF(:,:,:,i)-zPI(:,:,:,i)-zM(:,:,:,i);
     if (isfield(ZA,'RED'))
@@ -84,20 +67,17 @@ for i=1:length(outputs)
 end
 months = [1:length(zP(1,1,:,1))];
 
-names = {names{:},'AI','Jdia','JSH','PI','N','I'};
+names = {names{:},'AI','AIpsi','Jdia','JSH','PI','N','I'};
 for i=1:length(names)
     % Take mean across years:
     eval(['z' names{i} ' = mean(z' names{i} ',4);']);
-% $$$ 
-% $$$     % Apply latitude smoothing:
-% $$$     eval(['z' names{i} ' = permute(filter_field(permute(mean(z' names{i} ...
-% $$$           ',4),[3 2 1]),11,''-t''),[3 2 1]);']);    
 end
 
-if (direc)
-    NaNs = monmean(zPSI,3,ndays) == repmat(monmean(zPSI(:,end,:),3,ndays),[1 TL+1 1]);
-else
-    NaNs = monmean(zPSI,3,ndays) == 0;
+% Generate a NaNs array:
+tmp = monmean(zPSI,3,ndays);
+NaNs = zeros(size(tmp));
+for i = 1:(TL+1)
+    NaNs(:,i) = tmp(:,i) == tmp(:,end);
 end
 
 %% Plot lat-temp
@@ -113,11 +93,15 @@ SST = SSTa/length(outputs);
 SST(SST==0) = NaN;
 meanSST = squeeze(nanmean(monmean(SST,3,ndays),1));
 minSST = squeeze(min(monmean(SST,3,ndays),[],1));
+maxSST = squeeze(max(monmean(SST,3,ndays),[],1));
 
 % $$$ % Plot Streamfunction and Heat Function:
 % $$$ fields = { ...
 % $$$           {zPSI(:,:,months)/1e6, 'Streamfunction $\Psi$',[-30 30],2,'Sv'}, ...
-% $$$           {zAI(:,:,months)/1e15, 'Heat Function $\mathcal{A}_I$',[-1.5 1.5],0.1,'PW'}, ...
+% $$$           {zAIpsi(:,:,months)/1e15, 'Heat Function $\mathcal{A}_I$ from $\Psi$',[-1.5 1.5],0.1,'PW'}, ...
+% $$$           {zAI(:,:,months)/1e15, 'Heat Function $\mathcal{A}_I$ from direct',[-1.5 1.5],0.1,'PW'}, ...
+% $$$           {zAHD(:,:,months)/1e15, 'Heat Function $\mathcal{A}$',[-1.5 1.5],0.1,'PW'}, ...
+% $$$           {(zAI(:,:,months)-zAIpsi(:,:,months))/1e15, 'Heat Function diff $\mathcal{A}$',[-0.01 0.01],0.005,'PW'}, ...
 % $$$ };
 
 % Plot overall fields:
@@ -177,7 +161,7 @@ cmap = redblue(npts-3);
 AIsp = 0.05;
 
 % $$$ latfilt = 5;
-latfilt = 11;
+latfilt = 1;
 
 %Fluxes only:
 figure;
@@ -195,17 +179,18 @@ for i=1:length(fields)
 
     VAR = monmean(fields{i}{1},3,ndays(months));
     VAR(VAR==0) = NaN;
-    VAR(NaNs) = NaN;
+    VAR(NaNs==1) = NaN;
     VAR = filter_field(VAR',latfilt,'-t')';
     contourf(Yg,Tg,VAR,cpts{i},'linestyle','none');
     hold on;
     col = [0 0 0];
 % $$$     plot(latv,filter_field(meanSST,latfilt,'-t'),'--','color',col,'linewidth',2);
 % $$$     plot(latv,filter_field(minSST,latfilt,'-t'),'--','color',col,'linewidth',2);
+    plot(latv,filter_field(maxSST,latfilt,'-t'),':','color',col,'linewidth',2);
 % $$$     plot(latv,21.5*ones(size(latv)),'--k');
     
     tmp = monmean(zAI,3,ndays)/1e15;
-    tmp(NaNs) = NaN;
+    tmp(NaNs==1) = NaN;
     tmp = filter_field(tmp',latfilt,'-t')';
 % $$$     [c,h] = contour(Yg,Tg,tmp,[-3:AIsp:-AIsp],'--k');
 % $$$     if (clab(i))
