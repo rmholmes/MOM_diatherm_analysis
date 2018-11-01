@@ -39,8 +39,8 @@ else % MOM-SIS, transport in 1e9 kg/s
     tsc = 1e9;
 end
 
-% $$$ for output = 86;
-    output=86;
+for output = 86:90;
+    %    output=86;
 restart = output-1;
 
 region = 'Global';
@@ -879,7 +879,7 @@ ZA.AHD = zeros(yL,TL+1,tL); % W A direct using heat fluxes
 
 yto = diff(ncread(gname,'yt_ocean'));
 yto = [yto(1); (yto(2:end)+yto(1:(end-1)))/2; yto(end)];
-yuo = diff([0; ncread(gname,'yu_ocean')]);
+yuo = diff([-90; ncread(gname,'yu_ocean')]);
 
 % ignoring tri-polar for now.
 for ti=1:tL
@@ -932,6 +932,32 @@ for ti=1:tL
     save([outD model sprintf('_output%03d',output) '_ZAHBud.mat'],'ZA','yuo','yto','-v7.3');
 
 end
+
+%% Annual average, zonal-average depth of isotherms:
+
+tempZA = zeros(yL,zL);
+
+for ti=1:tL
+    temp = ncread(fname,'temp',[1 1 1 ti],[xL yL zL 1]);
+    areaNAN = repmat(area,[1 1 zL]).*(~isnan(temp));
+    
+    tempZA = tempZA + squeeze(nansum(areaNAN.*temp,1))./squeeze(nansum(areaNAN,1));
+end
+tempZA = tempZA/tL;
+
+% Depth of isotherms:
+ZAtemp = zeros(yL,TL);
+for yi=1:yL
+    tvec = squeeze(tempZA(yi,:));
+    zvec = -z;
+    tvec(isnan(tvec)) = -1000;
+    tvec = tvec - 0.01*(1:zL);
+    ZAtemp(yi,:) = interp1(tvec,zvec,T,'linear');
+    ind = find(~isnan(ZAtemp(yi,:)),1,'last');
+    ZAtemp(yi,(ind+1):end) = max(zvec);
+end
+
+save([outD model sprintf('_output%03d',output) '_ZAHBud.mat'],'tempZA','ZAtemp','z','T','latv','-append');
 
 
 % $$$ %% Swap in non-NaN'd lon/lat:
