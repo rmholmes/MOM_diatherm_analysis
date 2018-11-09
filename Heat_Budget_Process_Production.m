@@ -39,7 +39,7 @@ else % MOM-SIS, transport in 1e9 kg/s
     tsc = 1e9;
 end
 
-for output = 86:90;
+for output = 87:90;
     %    output=86;
 restart = output-1;
 
@@ -840,7 +840,8 @@ SST = squeeze(ncread(fname,'temp',[1 1 1 1],[xL yL 1 tL]));
 
 save([outD model sprintf('_output%03d',output) '_SurfaceVars.mat'],'shflux','SST');%,'taux','tauy');
 
-% Do meridional heat flux:
+% Do meridional heat flux (note: Inferred from transports! Not
+% fully accurate):
 mhflux = zeros(yL,tL);
 for ti = 1:tL
     for Ti = 1:TL
@@ -933,32 +934,46 @@ for ti=1:tL
 
 end
 
-%% Annual average, zonal-average depth of isotherms:
+%% Annual average/max, zonal-average/max depth of isotherms:
 
 tempZA = zeros(yL,zL);
+tempZM = -100*zeros(yL,zL);
 
 for ti=1:tL
+    sprintf('Calculating zonally-averaged temperature %03d of %03d',ti,tL)
     temp = ncread(fname,'temp',[1 1 1 ti],[xL yL zL 1]);
     areaNAN = repmat(area,[1 1 zL]).*(~isnan(temp));
     
     tempZA = tempZA + squeeze(nansum(areaNAN.*temp,1))./squeeze(nansum(areaNAN,1));
+    maxt = squeeze(max(temp,[],1));
+    tempZM = max(tempZM,maxt);
 end
 tempZA = tempZA/tL;
 
 % Depth of isotherms:
-ZAtemp = zeros(yL,TL);
+ZAtemp = zeros(yL,TL+1);
+ZMtemp = zeros(yL,TL+1);
+'Calculating zonally-averaged isotherms'
 for yi=1:yL
     tvec = squeeze(tempZA(yi,:));
     zvec = -z;
     tvec(isnan(tvec)) = -1000;
     tvec = tvec - 0.01*(1:zL);
-    ZAtemp(yi,:) = interp1(tvec,zvec,T,'linear');
+    ZAtemp(yi,:) = interp1(tvec,zvec,Te,'linear');
     ind = find(~isnan(ZAtemp(yi,:)),1,'last');
     ZAtemp(yi,(ind+1):end) = max(zvec);
+
+    tvec = squeeze(tempZM(yi,:));
+    tvec(isnan(tvec)) = -1000;
+    tvec = tvec - 0.01*(1:zL);
+    ZMtemp(yi,:) = interp1(tvec,zvec,Te,'linear');
+    ind = find(~isnan(ZMtemp(yi,:)),1,'last');
+    ZMtemp(yi,(ind+1):end) = max(zvec);
 end
 
-save([outD model sprintf('_output%03d',output) '_ZAHBud.mat'],'tempZA','ZAtemp','z','T','latv','-append');
+save([outD model sprintf('_output%03d',output) '_ZAHBud.mat'],'tempZA','ZAtemp','tempZM','ZMtemp','z','Te','latv','-append');
 
+end
 
 % $$$ %% Swap in non-NaN'd lon/lat:
 % $$$ base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
