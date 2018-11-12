@@ -937,22 +937,33 @@ end
 %% Annual average/max, zonal-average/max depth of isotherms:
 
 tempZA = zeros(yL,zL);
+saltZA = zeros(yL,zL);
 tempZM = -100*zeros(yL,zL);
+tempZMA = -100*zeros(yL,zL);
 
 for ti=1:tL
     sprintf('Calculating zonally-averaged temperature %03d of %03d',ti,tL)
     temp = ncread(fname,'temp',[1 1 1 ti],[xL yL zL 1]);
+    salt = ncread(fname,'salt',[1 1 1 ti],[xL yL zL 1]);
     areaNAN = repmat(area,[1 1 zL]).*(~isnan(temp));
     
-    tempZA = tempZA + squeeze(nansum(areaNAN.*temp,1))./squeeze(nansum(areaNAN,1));
+    tempZ = squeeze(nansum(areaNAN.*temp,1))./squeeze(nansum(areaNAN,1));
+    tempZA = tempZA + tempZ;
+
+    saltZ = squeeze(nansum(areaNAN.*salt,1))./squeeze(nansum(areaNAN,1));
+    saltZA = saltZA + saltZ;
+
     maxt = squeeze(max(temp,[],1));
     tempZM = max(tempZM,maxt);
+    tempZMA = max(tempZMA,tempZ);
 end
 tempZA = tempZA/tL;
+saltZA = saltZA/tL;
 
 % Depth of isotherms:
 ZAtemp = zeros(yL,TL+1);
 ZMtemp = zeros(yL,TL+1);
+ZMAtemp = zeros(yL,TL+1);
 'Calculating zonally-averaged isotherms'
 for yi=1:yL
     tvec = squeeze(tempZA(yi,:));
@@ -969,9 +980,16 @@ for yi=1:yL
     ZMtemp(yi,:) = interp1(tvec,zvec,Te,'linear');
     ind = find(~isnan(ZMtemp(yi,:)),1,'last');
     ZMtemp(yi,(ind+1):end) = max(zvec);
+
+    tvec = squeeze(tempZMA(yi,:));
+    tvec(isnan(tvec)) = -1000;
+    tvec = tvec - 0.01*(1:zL);
+    ZMAtemp(yi,:) = interp1(tvec,zvec,Te,'linear');
+    ind = find(~isnan(ZMAtemp(yi,:)),1,'last');
+    ZMAtemp(yi,(ind+1):end) = max(zvec);
 end
 
-save([outD model sprintf('_output%03d',output) '_ZAHBud.mat'],'tempZA','ZAtemp','tempZM','ZMtemp','z','Te','latv','-append');
+save([outD model sprintf('_output%03d',output) '_ZAHBud.mat'],'tempZA','saltZA','ZAtemp','tempZM','ZMtemp','tempZMA','ZMAtemp','z','Te','latv','-append');
 
 end
 
