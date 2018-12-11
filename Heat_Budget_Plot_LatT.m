@@ -9,6 +9,7 @@ base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
 % $$$ % $$$ % Load Base Variables:
 model = 'MOM025_kb3seg';
 outputs = [86:90];
+output = 86;
 
 % $$$ model = 'MOM025_kb1em5';
 % $$$ outputs = [95:99];
@@ -543,5 +544,85 @@ end
 legend(lgh,lg);
 
 
-    
+%%%% Heat Uptake Experiment:
+
+% Plot SO zonal averages:
+[Y,Z] = ndgrid(latv,-z);
+figure;
+[c,h] = contourf(Y,Z,tempZA,[-2:1:34],'linestyle','none');
+clabel(c,h);
+hold on;
+[c,h] = contour(Y,Z,rho0,[1020:0.2:1028],'-k','linewidth',2);
+clabel(c,h);
+xlim([-60 -10]);
+ylim([-1200 0]);
+xlabel('Latitude ($^\circ$N)');
+ylabel('Depth (m)');
+caxis([0 24]);
+colorbar;
+colormap(jet);
+
+% Calculate volume in T-layers:
+load([base model sprintf('_output%03d_',outputs(1)) 'VHZAf.mat']);
+V = cat(2,zeros(yL,1,12),cumsum(V,2));
+HD = cat(2,zeros(yL,1,12),cumsum(rho0*Cp*repmat(T',[yL 1 tL]).*diff(V,[],2)/dT*dT,2));
+H = cat(2,zeros(yL,1,12),cumsum(H,2));
+HE = rho0*Cp*repmat(Te',[yL 1 tL]).*V;
+HI = H-He;
+
+reg = latv>-40 & latv<-15;
+Vreg = nansum(nanmean(V(reg,:,:),3),1)';
+
+Hreg = nansum(nanmean(H(reg,:,:),3),1)';
+HDreg = nansum(nanmean(HD(reg,:,:),3),1)';
+HEreg = nansum(nanmean(HE(reg,:,:),3),1)';
+HIreg = nansum(nanmean(HI(reg,:,:),3),1)';
+
+wc = 14;
+wid = 2;
+Vper = 0.1e17*(Te-(wc-wid))/(wid.^2).*exp(-(Te-(wc-wid)).^2/(wid.^2));
+
+VPreg = Vreg+cumsum(Vper,1);
+HPreg = cat(1,[0],cumsum(rho0*Cp*T.*diff(VPreg,[],1)/dT*dT,1));
+HEPreg = rho0*Cp*Te.*VPreg;
+HIPreg = HPreg-HEPreg;
+% $$$ HIPreg = -rho0*Cp*cumsum(VPreg*dT,1);
+
+% $$$ figure;
+clf;
+subplot(1,2,1);
+plot(Vreg/1e15,Te,'-k','linewidth',2);
+hold on;
+plot(VPreg/1e15,Te,'--k','linewidth',2);
+ylim([0 20]);
+xlim([0 300]);
+ylabel('Temperature $\Theta$ ($^\circ$C)');
+xlabel('Volume Below $\Theta$ ($10^{15}$m$^3$)');
+title('Volume $40^\circ$S-$15^\circ$S');
+legend('MOM025','Perturbed');
+% $$$ subplot(1,3,2);
+% $$$ plot(Hreg,Te,'-k');
+% $$$ hold on;
+% $$$ plot(HEreg,Te,'-m');
+% $$$ plot(HIreg,Te,'-c');
+% $$$ ylim([0 25]);
+% $$$ % $$$ plot(HDreg,Te,'-b');
+% $$$ plot(HPreg,Te,'--k');
+% $$$ hold on;
+% $$$ plot(HEPreg,Te,'--m');
+% $$$ plot(HIPreg,Te,'--c');
+% $$$ ylim([0 25]);
+subplot(1,2,2);
+plot((HPreg-Hreg)/1e21,Te,'-k','linewidth',2);
+hold on;
+plot((HEPreg-HEreg)/1e21,Te,'-b','linewidth',2);
+plot((HIPreg-HIreg)/1e21,Te,'-r','linewidth',2);
+ylim([0 20]);
+legend('Total Heat $\mathcal{H}$','External Heat $\mathcal{H}_E=\rho_0C_p\Theta\mathcal{V}$','Internal Heat $\mathcal{H}-\mathcal{H}_E$');
+title('Heat $40^\circ$S-$15^\circ$S');
+ylabel('Temperature ($^\circ$C)');
+xlabel('Change in Heat Below $\Theta$ ($10^{21}$J)');
+
+
+
 
