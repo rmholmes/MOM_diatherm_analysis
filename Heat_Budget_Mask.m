@@ -39,10 +39,12 @@ mask_Sx = 0*mask_t; %South x-trans mask
 mask_Wy = 0*mask_t; %West y-trans mask
 mask_Wx = 0*mask_t; %West x-trans mask
 
+made_mask = 0;
 
 %%%%%%%% PACIFIC REGION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if (strcmp(region,'Pacific'))
     ['Generating new mask to file ' outname]
+    made_mask = 1;
 
 % ITF segments:
 % 114.9E:
@@ -152,6 +154,7 @@ mask_t(isnan(SST)) = 0;
 
 %%%%%%%% INDO-PACIFIC REGION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 elseif (strcmp(region,'IndoPacific'))
+    made_mask = 1;
     % Get Pacific mask:
     [mask_t,mask_Ny,mask_Nx,mask_Sx,mask_Sy,mask_Wx,mask_Wy] = ...
     Heat_Budget_Mask('Pacific',gname,fname,wname,outD,model);
@@ -175,8 +178,9 @@ elseif (strcmp(region,'IndoPacific'))
     mask_t(isnan(SST)) = 0;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%%%%%%%% INDO-PACIFIC REGION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%% ATLANTIC REGION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 elseif (strcmp(region,'Atlantic'))
+    made_mask = 1;
     % Get Indo-Pacific mask:
     [mask_t,mask_Ny,mask_Nx,mask_Sx,mask_Sy,mask_Wx,mask_Wy] = ...
     Heat_Budget_Mask('IndoPacific',gname,fname,wname,outD,model);
@@ -193,10 +197,30 @@ elseif (strcmp(region,'Atlantic'))
 
     SST = ncread(fname,'temp',[1 1 1 1],[xL yL 1 1]);
     mask_t(isnan(SST)) = 0;
-
+    
+elseif (strcmp(region,'AtlanticNZ'))
+    made_mask = 1;
+    % Get Atlantic mask:
+    [mask_t,mask_Ny,mask_Nx,mask_Sx,mask_Sy,mask_Wx,mask_Wy] = ...
+    Heat_Budget_Mask('Atlantic',gname,fname,wname,outD,model);
+    
+    [~, t1] = min(abs(latv_u+34));
+    
+    mask_t(:,1:t1) = 0;
+elseif (strcmp(region,'IndoPacificNZ'))
+    made_mask = 1;
+    [mask_t,mask_Ny,mask_Nx,mask_Sx,mask_Sy,mask_Wx,mask_Wy] = ...
+    Heat_Budget_Mask('IndoPacific',gname,fname,wname,outD,model);
+    
+    [~, t1] = min(abs(latv_u+34));
+    
+    mask_t(:,1:t1) = 0;
 end
 
-save(outname,'mask_t','mask_Ny','mask_Nx','mask_Sx','mask_Sy','mask_Wx','mask_Wy','-v7.3');
+if (made_mask)
+    save(outname,'mask_t','mask_Ny','mask_Nx','mask_Sx','mask_Sy', ...
+         'mask_Wx','mask_Wy','-v7.3');
+end
 end
 
 end
