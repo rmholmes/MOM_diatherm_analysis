@@ -39,11 +39,11 @@ else % MOM-SIS, transport in 1e9 kg/s
     tsc = 1e9;
 end
 
-for output = 87:90;
-    %    output=86;
+% $$$ for output = 86:90;
+output=86;
 restart = output-1;
 
-region = 'Global';
+region = 'AtlanticNZ';
 
 % file-names -----------------------------------------
 base = [baseD sprintf('output%03d/',output) post];
@@ -103,7 +103,8 @@ mask(~isnan(mask)) = 1; mask(isnan(mask)) = 0;
 mask = mask == 1;
 
 if (~strcmp(region,'Global'))
-    [maskREG,~,~,~,~,~,~] = Heat_Budget_Mask(region,gname,fname,wname,outD,model);
+    [maskREG,~,~,~,~,~,~] = Heat_Budget_Mask(region,gname,fname, ...
+                                             wname,outD,model);
 else
     maskREG = ones(xL,yL);
 end
@@ -249,6 +250,30 @@ for ti=1:tL
     Hsnap = zeros(xL,yL,TL);
 end
 netcdf.close(ncid);
+
+% $$$ % Calculate non-snap zonal-average annual-average volumes:
+% $$$ V = zeros(yL,TL,tL);
+% $$$ H = zeros(yL,TL,tL);
+% $$$ for ti=1:tL
+% $$$     for zi=1:zL
+% $$$         sprintf('Calculating Vsnap and Hsnap later months time %03d of %03d, depth %02d of %02d',ti,tL,zi,zL)
+% $$$ 
+% $$$         temp = ncread(fname,'temp',[1 1 zi ti],[xL yL 1 1]);
+% $$$         temp(~mask(:,:,zi)) = NaN;
+% $$$         if (max(max(temp))>120);temp = temp-273.15;end;
+% $$$         Vol = ncread(fname,'dzt',[1 1 zi ti],[xL yL 1 1]).*area;
+% $$$         Vol(isnan(Vol)) = 0;
+% $$$         
+% $$$         for Ti=1:TL
+% $$$             %Accumulate sums:
+% $$$             inds = temp>=Te(Ti) & temp<Te(Ti+1);
+% $$$             V(:,Ti,ti) = V(:,Ti,ti) + nansum(Vol.*inds,1)';
+% $$$             Hlay = Vol.*temp.*inds*rho0*Cp;
+% $$$             Hlay(isnan(Hlay)) = 0;
+% $$$             H(:,Ti,ti) = H(:,Ti,ti) + nansum(Hlay,1)';
+% $$$         end
+% $$$     end
+% $$$ end
 
 %% Calculate numerical mixing by residual from heat budget and save
 %% back into netcdf file:
@@ -886,52 +911,51 @@ yuo = diff([-90; ncread(gname,'yu_ocean')]);
 for ti=1:tL
     for ii = 1:TL
     sprintf('Calculating zonally-averaged water-mass heat budget time %03d of %03d, temp %03d of %03d',ti,tL,ii,TL)
-    ZA.F(:,ii+1,ti) = ZA.F(:,ii,ti) + (nansum(area.*ncread(wname,'temp_vdiffuse_sbc_on_nrho',[1 1 ii ti],[xL yL 1 1]),1) + ...
-                    nansum(area.*ncread(wname,'frazil_on_nrho',[1 1 ii ti],[xL yL 1 1]),1) + ...
-                    nansum(area.*ncread(wname,'temp_eta_smooth_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yuo;
-    ZA.P(:,ii+1,ti) = ZA.P(:,ii,ti) + (nansum(area.*ncread(wname,'sfc_hflux_pme_on_nrho',[1 1 ii ti],[xL yL 1 1]),1) + ...
-                    nansum(area.*ncread(wname,'temp_rivermix_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yuo;
-    ZA.M(:,ii+1,ti) = ZA.M(:,ii,ti) + (nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 ii ti],[xL yL 1 1]),1) + ...
-                    nansum(area.*ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yuo;
+    ZA.F(:,ii+1,ti) = ZA.F(:,ii,ti) + (nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_sbc_on_nrho',[1 1 ii ti],[xL yL 1 1]),1) + ...
+                    nansum(maskREG.*area.*ncread(wname,'frazil_on_nrho',[1 1 ii ti],[xL yL 1 1]),1) + ...
+                    nansum(maskREG.*area.*ncread(wname,'temp_eta_smooth_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yuo;
+    ZA.P(:,ii+1,ti) = ZA.P(:,ii,ti) + (nansum(maskREG.*area.*ncread(wname,'sfc_hflux_pme_on_nrho',[1 1 ii ti],[xL yL 1 1]),1) + ...
+                    nansum(maskREG.*area.*ncread(wname,'temp_rivermix_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yuo;
+    ZA.M(:,ii+1,ti) = ZA.M(:,ii,ti) + (nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 ii ti],[xL yL 1 1]),1) + ...
+                    nansum(maskREG.*area.*ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yuo;
     if (haveMDS)
-        ZA.M(:,ii+1,ti) = ZA.M(:,ii+1,ti) + nansum(area.*ncread(wname,'mixdownslope_temp_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)'./yuo;
+        ZA.M(:,ii+1,ti) = ZA.M(:,ii+1,ti) + nansum(maskREG.*area.*ncread(wname,'mixdownslope_temp_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)'./yuo;
     end
-    ZA.dVdt(:,ii+1,ti) = ZA.dVdt(:,ii,ti) + nansum(ncread(wname,'dVdt',[1 1 ii ti],[xL yL 1 1])*1e9/rho0,1)'./yuo;
-    ZA.dHdt(:,ii+1,ti) = ZA.dHdt(:,ii,ti) + nansum(ncread(wname,'dHdt',[1 1 ii ti],[xL yL 1 1]),1)'./yuo;
-    ZA.PSI(:,ii+1,ti) =  ZA.PSI(:,ii,ti) + nansum(ncread(wname,'ty_trans_nrho',[1 1 ii ti],[xL yL 1 1]) + ...
-                              ncread(wname,'ty_trans_nrho_submeso',[1 1 ii ti],[xL yL 1 1]),1)'*tsc/rho0;
+    ZA.dVdt(:,ii+1,ti) = ZA.dVdt(:,ii,ti) + nansum(maskREG.*ncread(wname,'dVdt',[1 1 ii ti],[xL yL 1 1])*1e9/rho0,1)'./yuo;
+    ZA.dHdt(:,ii+1,ti) = ZA.dHdt(:,ii,ti) + nansum(maskREG.*ncread(wname,'dHdt',[1 1 ii ti],[xL yL 1 1]),1)'./yuo;
+    ZA.PSI(:,ii+1,ti) =  ZA.PSI(:,ii,ti) + nansum(maskREG.*ncread(wname,'ty_trans_nrho',[1 1 ii ti],[xL yL 1 1]) + ...
+                              maskREG.*ncread(wname,'ty_trans_nrho_submeso',[1 1 ii ti],[xL yL 1 1]),1)'*tsc/rho0;
     if (haveGM) 
-        ZA.PSI(:,ii+1,ti) = ZA.PSI(:,ii+1,ti) + nansum(ncread(wname,'ty_trans_nrho_gm',[1 1 ii ti],[xL yL 1 1]),1)'*tsc/rho0;
+        ZA.PSI(:,ii+1,ti) = ZA.PSI(:,ii+1,ti) + nansum(maskREG.*ncread(wname,'ty_trans_nrho_gm',[1 1 ii ti],[xL yL 1 1]),1)'*tsc/rho0;
     end
     if (haveHND)
-        ZA.AHD(:,ii+1,ti) = ZA.AHD(:,ii,ti) + nansum(ncread(wname,'temp_yflux_adv_on_nrho',[1 1 ii ti],[xL yL 1 1])+ ...
-                                 ncread(wname,'temp_yflux_submeso_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)';
+        ZA.AHD(:,ii+1,ti) = ZA.AHD(:,ii,ti) + nansum(maskREG.*ncread(wname,'temp_yflux_adv_on_nrho',[1 1 ii ti],[xL yL 1 1])+ ...
+                                 maskREG.*ncread(wname,'temp_yflux_submeso_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)';
 
         if (haveGM)
-            ZA.AHD(:,ii+1,ti) = ZA.AHD(:,ii+1,ti) + nansum(ncread(wname,'temp_yflux_gm_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)';
+            ZA.AHD(:,ii+1,ti) = ZA.AHD(:,ii+1,ti) + nansum(maskREG.*ncread(wname,'temp_yflux_gm_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)';
         end
     end
 
-    ZA.SWH(:,ii+1,ti) = ZA.SWH(:,ii,ti) + nansum(area.*ncread(wname,'sw_heat_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)'./yuo;
-    ZA.F(:,ii+1,ti) = ZA.F(:,ii+1,ti) + nansum(area.*ncread(wname,'sw_heat_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)'./yuo;
+    ZA.SWH(:,ii+1,ti) = ZA.SWH(:,ii,ti) + nansum(maskREG.*area.*ncread(wname,'sw_heat_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)'./yuo;
+    ZA.F(:,ii+1,ti) = ZA.F(:,ii+1,ti) + nansum(maskREG.*area.*ncread(wname,'sw_heat_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)'./yuo;
     if (haveMIX)
-        ZA.Mkppiw(:,ii+1,ti) = ZA.Mkppiw(:,ii,ti) + (nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppiw_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yuo;
-        ZA.Mkppish(:,ii+1,ti) = ZA.Mkppish(:,ii,ti) + (nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppish_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yuo;
-        ZA.Mwave(:,ii+1,ti) = ZA.Mwave(:,ii,ti) + (nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_wave_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yuo;
-        ZA.Mkppbl(:,ii+1,ti) = ZA.Mkppbl(:,ii,ti) + (nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppbl_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yuo;
-        ZA.Moth(:,ii+1,ti) = ZA.Moth(:,ii,ti) + (nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppicon_on_nrho',[1 1 ii ti],[xL yL 1 1]),1) + ...
-                            nansum(area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppdd_on_nrho',[1 1 ii ti],[xL yL 1 1]),1) + ...
-                            nansum(area.*ncread(wname, ...
+        ZA.Mkppiw(:,ii+1,ti) = ZA.Mkppiw(:,ii,ti) + (nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppiw_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yuo;
+        ZA.Mkppish(:,ii+1,ti) = ZA.Mkppish(:,ii,ti) + (nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppish_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yuo;
+        ZA.Mwave(:,ii+1,ti) = ZA.Mwave(:,ii,ti) + (nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_wave_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yuo;
+        ZA.Mkppbl(:,ii+1,ti) = ZA.Mkppbl(:,ii,ti) + (nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppbl_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yuo;
+        ZA.Moth(:,ii+1,ti) = ZA.Moth(:,ii,ti) + (nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppicon_on_nrho',[1 1 ii ti],[xL yL 1 1]),1) + ...
+                            nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppdd_on_nrho',[1 1 ii ti],[xL yL 1 1]),1) + ...
+                            nansum(maskREG.*area.*ncread(wname, ...
                                                 'temp_nonlocal_KPP_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yuo;
     end
     if (haveRedi)
-        ZA.K33(:,ii+1,ti) = ZA.K33(:,ii,ti) + (nansum(area.*ncread(wname,'temp_vdiffuse_k33_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yuo;
-        ZA.RED(:,ii+1,ti) = ZA.RED(:,ii,ti) + (nansum(area.*ncread(wname,'neutral_diffusion_on_nrho_temp',[1 1 ii ti],[xL yL 1 1]),1))'./yuo;
+        ZA.K33(:,ii+1,ti) = ZA.K33(:,ii,ti) + (nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_k33_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))'./yuo;
+        ZA.RED(:,ii+1,ti) = ZA.RED(:,ii,ti) + (nansum(maskREG.*area.*ncread(wname,'neutral_diffusion_on_nrho_temp',[1 1 ii ti],[xL yL 1 1]),1))'./yuo;
     end        
-    ZA.JS(:,ii+1,ti) = ZA.JS(:,ii,ti) + (nansum(ncread(wname,'mass_pmepr_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)/rho0)'./yuo;
+    ZA.JS(:,ii+1,ti) = ZA.JS(:,ii,ti) + (nansum(maskREG.*ncread(wname,'mass_pmepr_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)/rho0)'./yuo;
     end
-    save([outD model sprintf('_output%03d',output) '_ZAHBud.mat'],'ZA','yuo','yto','-v7.3');
-
+    save([outD model sprintf('_output%03d',output) '_' region '_ZAHBud.mat'],'ZA','yuo','yto','-v7.3');
 end
 
 %% Annual average/max, zonal-average/max depth of isotherms:
