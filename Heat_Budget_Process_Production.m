@@ -10,15 +10,15 @@ baseL = '/short/e14/rmh561/mom/archive/';
 % $$$ model = 'MOM025';
 % $$$ baseD = [baseL 'MOM_wombat/']; %Data Directory.
 % $$$ % MOM-SIS025:
-model = 'MOM025_kb3seg';
-baseD = [baseL 'MOM_HeatDiag_kb3seg/']; %Data Directory.
+% $$$ model = 'MOM025_kb3seg';
+% $$$ baseD = [baseL 'MOM_HeatDiag_kb3seg/']; %Data Directory.
 % ACCESS-OM2:
 % $$$ model = 'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may';
 % $$$ baseD = [baseL '1deg_jra55_ryf8485_kds50_may/']; %Data Directory.
 % $$$ ICdir = '/g/data1/ua8/MOM/initial_conditions/WOA/10_KDS50/';
 % MOM-SIS01:
-% $$$ model = 'MOM01';
-% $$$ baseD = [baseL 'MOM01_HeatDiag/']; %Data Directory.
+model = 'MOM01';
+baseD = [baseL 'MOM01_HeatDiag/']; %Data Directory.
 
 outD = [baseD 'mat_data/'];
 rstbaseD = baseD;
@@ -40,10 +40,10 @@ else % MOM-SIS, transport in 1e9 kg/s
 end
 
 % $$$ for output = 86:90;
-output=86;
+output=4;
 restart = output-1;
 
-region = 'AtlanticNZ';
+region = 'Global';
 
 % file-names -----------------------------------------
 base = [baseD sprintf('output%03d/',output) post];
@@ -865,21 +865,21 @@ SST = squeeze(ncread(fname,'temp',[1 1 1 1],[xL yL 1 tL]));
 
 save([outD model sprintf('_output%03d',output) '_SurfaceVars.mat'],'shflux','SST');%,'taux','tauy');
 
-% Do meridional heat flux (note: Inferred from transports! Not
-% fully accurate):
-mhflux = zeros(yL,tL);
-for ti = 1:tL
-    for Ti = 1:TL
-        sprintf('Calculating meridional heat flux time %03d of %03d, temp %03d of %03d',ti,tL,Ti,TL)
-        tytrans = ncread(wname,'ty_trans_nrho',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0 + ...
-                  ncread(wname,'ty_trans_nrho_submeso',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0;
-        if (haveGM)
-            tytrans = tytrans + ncread(wname,'ty_trans_nrho_gm',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0;
-        end
-        mhflux(:,ti) = mhflux(:,ti) + rho0*Cp*T(Ti)*nansum(tytrans,1)';
-    end
-end
-save([outD model sprintf('_output%03d',output) '_SurfaceVars.mat'],'mhflux','-append');
+% $$$ % Do meridional heat flux (note: Inferred from transports! Not
+% $$$ % fully accurate):
+% $$$ mhflux = zeros(yL,tL);
+% $$$ for ti = 1:tL
+% $$$     for Ti = 1:TL
+% $$$         sprintf('Calculating meridional heat flux time %03d of %03d, temp %03d of %03d',ti,tL,Ti,TL)
+% $$$         tytrans = ncread(wname,'ty_trans_nrho',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0 + ...
+% $$$                   ncread(wname,'ty_trans_nrho_submeso',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0;
+% $$$         if (haveGM)
+% $$$             tytrans = tytrans + ncread(wname,'ty_trans_nrho_gm',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0;
+% $$$         end
+% $$$         mhflux(:,ti) = mhflux(:,ti) + rho0*Cp*T(Ti)*nansum(tytrans,1)';
+% $$$     end
+% $$$ end
+% $$$ save([outD model sprintf('_output%03d',output) '_SurfaceVars.mat'],'mhflux','-append');
 
 %% Zonally-averaged fluxes -------------------------------------------------------------
 ZA.F = zeros(yL,TL+1,tL); % Wdeg-1 due to F
@@ -958,64 +958,64 @@ for ti=1:tL
     save([outD model sprintf('_output%03d',output) '_' region '_ZAHBud.mat'],'ZA','yuo','yto','-v7.3');
 end
 
-%% Annual average/max, zonal-average/max depth of isotherms:
+% $$$ %% Annual average/max, zonal-average/max depth of isotherms:
+% $$$ 
+% $$$ tempZA = zeros(yL,zL);
+% $$$ saltZA = zeros(yL,zL);
+% $$$ tempZM = -100*zeros(yL,zL);
+% $$$ tempZMA = -100*zeros(yL,zL);
+% $$$ 
+% $$$ for ti=1:tL
+% $$$     sprintf('Calculating zonally-averaged temperature %03d of %03d',ti,tL)
+% $$$     temp = ncread(fname,'temp',[1 1 1 ti],[xL yL zL 1]);
+% $$$     salt = ncread(fname,'salt',[1 1 1 ti],[xL yL zL 1]);
+% $$$     areaNAN = repmat(area,[1 1 zL]).*(~isnan(temp));
+% $$$     
+% $$$     tempZ = squeeze(nansum(areaNAN.*temp,1))./squeeze(nansum(areaNAN,1));
+% $$$     tempZA = tempZA + tempZ;
+% $$$ 
+% $$$     saltZ = squeeze(nansum(areaNAN.*salt,1))./squeeze(nansum(areaNAN,1));
+% $$$     saltZA = saltZA + saltZ;
+% $$$ 
+% $$$     maxt = squeeze(max(temp,[],1));
+% $$$     tempZM = max(tempZM,maxt);
+% $$$     tempZMA = max(tempZMA,tempZ);
+% $$$ end
+% $$$ tempZA = tempZA/tL;
+% $$$ saltZA = saltZA/tL;
+% $$$ 
+% $$$ % Depth of isotherms:
+% $$$ ZAtemp = zeros(yL,TL+1);
+% $$$ ZMtemp = zeros(yL,TL+1);
+% $$$ ZMAtemp = zeros(yL,TL+1);
+% $$$ 'Calculating zonally-averaged isotherms'
+% $$$ for yi=1:yL
+% $$$     tvec = squeeze(tempZA(yi,:));
+% $$$     zvec = -z;
+% $$$     tvec(isnan(tvec)) = -1000;
+% $$$     tvec = tvec - 0.01*(1:zL);
+% $$$     ZAtemp(yi,:) = interp1(tvec,zvec,Te,'linear');
+% $$$     ind = find(~isnan(ZAtemp(yi,:)),1,'last');
+% $$$     ZAtemp(yi,(ind+1):end) = max(zvec);
+% $$$ 
+% $$$     tvec = squeeze(tempZM(yi,:));
+% $$$     tvec(isnan(tvec)) = -1000;
+% $$$     tvec = tvec - 0.01*(1:zL);
+% $$$     ZMtemp(yi,:) = interp1(tvec,zvec,Te,'linear');
+% $$$     ind = find(~isnan(ZMtemp(yi,:)),1,'last');
+% $$$     ZMtemp(yi,(ind+1):end) = max(zvec);
+% $$$ 
+% $$$     tvec = squeeze(tempZMA(yi,:));
+% $$$     tvec(isnan(tvec)) = -1000;
+% $$$     tvec = tvec - 0.01*(1:zL);
+% $$$     ZMAtemp(yi,:) = interp1(tvec,zvec,Te,'linear');
+% $$$     ind = find(~isnan(ZMAtemp(yi,:)),1,'last');
+% $$$     ZMAtemp(yi,(ind+1):end) = max(zvec);
+% $$$ end
+% $$$ 
+% $$$ save([outD model sprintf('_output%03d',output) '_ZAHBud.mat'],'tempZA','saltZA','ZAtemp','tempZM','ZMtemp','tempZMA','ZMAtemp','z','Te','latv','-append');
 
-tempZA = zeros(yL,zL);
-saltZA = zeros(yL,zL);
-tempZM = -100*zeros(yL,zL);
-tempZMA = -100*zeros(yL,zL);
-
-for ti=1:tL
-    sprintf('Calculating zonally-averaged temperature %03d of %03d',ti,tL)
-    temp = ncread(fname,'temp',[1 1 1 ti],[xL yL zL 1]);
-    salt = ncread(fname,'salt',[1 1 1 ti],[xL yL zL 1]);
-    areaNAN = repmat(area,[1 1 zL]).*(~isnan(temp));
-    
-    tempZ = squeeze(nansum(areaNAN.*temp,1))./squeeze(nansum(areaNAN,1));
-    tempZA = tempZA + tempZ;
-
-    saltZ = squeeze(nansum(areaNAN.*salt,1))./squeeze(nansum(areaNAN,1));
-    saltZA = saltZA + saltZ;
-
-    maxt = squeeze(max(temp,[],1));
-    tempZM = max(tempZM,maxt);
-    tempZMA = max(tempZMA,tempZ);
-end
-tempZA = tempZA/tL;
-saltZA = saltZA/tL;
-
-% Depth of isotherms:
-ZAtemp = zeros(yL,TL+1);
-ZMtemp = zeros(yL,TL+1);
-ZMAtemp = zeros(yL,TL+1);
-'Calculating zonally-averaged isotherms'
-for yi=1:yL
-    tvec = squeeze(tempZA(yi,:));
-    zvec = -z;
-    tvec(isnan(tvec)) = -1000;
-    tvec = tvec - 0.01*(1:zL);
-    ZAtemp(yi,:) = interp1(tvec,zvec,Te,'linear');
-    ind = find(~isnan(ZAtemp(yi,:)),1,'last');
-    ZAtemp(yi,(ind+1):end) = max(zvec);
-
-    tvec = squeeze(tempZM(yi,:));
-    tvec(isnan(tvec)) = -1000;
-    tvec = tvec - 0.01*(1:zL);
-    ZMtemp(yi,:) = interp1(tvec,zvec,Te,'linear');
-    ind = find(~isnan(ZMtemp(yi,:)),1,'last');
-    ZMtemp(yi,(ind+1):end) = max(zvec);
-
-    tvec = squeeze(tempZMA(yi,:));
-    tvec(isnan(tvec)) = -1000;
-    tvec = tvec - 0.01*(1:zL);
-    ZMAtemp(yi,:) = interp1(tvec,zvec,Te,'linear');
-    ind = find(~isnan(ZMAtemp(yi,:)),1,'last');
-    ZMAtemp(yi,(ind+1):end) = max(zvec);
-end
-
-save([outD model sprintf('_output%03d',output) '_ZAHBud.mat'],'tempZA','saltZA','ZAtemp','tempZM','ZMtemp','tempZMA','ZMAtemp','z','Te','latv','-append');
-
-end
+% $$$ end
 
 % $$$ %% Swap in non-NaN'd lon/lat:
 % $$$ base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
