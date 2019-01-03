@@ -240,10 +240,12 @@ for ti=1:tL
     % Integrate to get to T'>T:
     TENMON(:,ti) = flipud(cumsum(flipud(TENMON(:,ti))));
     
-    netcdf.putVar(ncid,dVdtID,[0 0 0 ti-1],[xL yL TL 1],(Vsnap-VsnapM) ...
-                  /(time_snap(ti+1)-time_snap(ti))/86400*rho0/1e9);
-    netcdf.putVar(ncid,dHdtID,[0 0 0 ti-1],[xL yL TL 1],(Hsnap-HsnapM) ...
-                  /(time_snap(ti+1)-time_snap(ti))/86400);
+    for Ti=1:TL
+    netcdf.putVar(ncid,dVdtID,[0 0 Ti-1 ti-1],[xL yL 1 1],(Vsnap(:,:,Ti)-VsnapM(:,:,Ti)) ...
+                        /(time_snap(ti+1)-time_snap(ti))/86400*rho0/1e9);
+    netcdf.putVar(ncid,dVdtID,[0 0 Ti-1 ti-1],[xL yL 1 1],(Hsnap(:,:,Ti)-HsnapM(:,:,Ti)) ...
+                        /(time_snap(ti+1)-time_snap(ti))/86400);
+    end
     VsnapM = Vsnap;
     HsnapM = Hsnap;
     Vsnap = zeros(xL,yL,TL);
