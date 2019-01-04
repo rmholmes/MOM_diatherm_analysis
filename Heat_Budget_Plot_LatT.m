@@ -9,7 +9,7 @@ base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
 % $$$ % $$$ % Load Base Variables:
 model = 'MOM025_kb3seg';
 outputs = [86:90];
-output = 86;
+% $$$ outputs = 86;
 
 % $$$ model = 'MOM025_kb1em5';
 % $$$ outputs = [95:99];
@@ -33,14 +33,16 @@ output = 86;
 
 load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
 ndays = diff(time_snap);
-region = 'Global';
+region = '';
+% $$$ region = 'AtlanticNZ_';
+region = 'IndoPacificNZ_';
 
 %% Make Vars
-load([base model sprintf('_output%03d_',outputs(1)) 'ZAHBud.mat']);
+load([base model sprintf('_output%03d_',outputs(1)) region 'ZAHBud.mat']);
 names = fieldnames(ZA);
 
 for i=1:length(outputs)
-    load([base model sprintf('_output%03d_',outputs(i)) 'ZAHBud.mat']);
+    load([base model sprintf('_output%03d_',outputs(i)) region 'ZAHBud.mat']);
     
     % Flip sign of fluxes and save:
     for ii=1:length(names)
@@ -57,6 +59,7 @@ for i=1:length(outputs)
     zAIpsi(:,:,:,i) = -rho0*Cp*cumsum(zPSI(:,:,:,i)*dT,2); % Heat Function (defined on Tc, since Psi is on Te, and defined on v-points)
     zAI(:,:,:,i) = zAHD(:,:,:,i) - rho0*Cp*repmat(Te',[yL 1 tL]).*zPSI(:,:,:,i); % (defined on Te and v-points)  USE THIS!
     
+    
     zJdia(:,:,:,i) = -diff(cat(1,zeros(1,TL+1,tL),zAI(:,:,:,i)),[],1)./repmat(yuo,[1 TL+1 tL]);
     zJSH(:,:,:,i) = zJS(:,:,:,i).*repmat(Te',[yL 1 tL])*rho0*Cp;
     zPI(:,:,:,i) = zP(:,:,:,i) - zJSH(:,:,:,i);
@@ -66,24 +69,24 @@ for i=1:length(outputs)
         zI(:,:,:,i) = zI(:,:,:,i) - zRED(:,:,:,i) - zK33(:,:,:,i);
     end
     
-    zZT(:,:,i) = ZAtemp;
-    zT(:,:,i) = tempZA;
-    zZTx(:,:,i) = ZMtemp;
-    zTx(:,:,i) = tempZM;
-    zZTxa(:,:,i) = ZMAtemp;
-    zTxa(:,:,i) = tempZMA;
+% $$$     zZT(:,:,i) = ZAtemp;
+% $$$     zT(:,:,i) = tempZA;
+% $$$     zZTx(:,:,i) = ZMtemp;
+% $$$     zTx(:,:,i) = tempZM;
+% $$$     zZTxa(:,:,i) = ZMAtemp;
+% $$$     zTxa(:,:,i) = tempZMA;
     
     MHT(:,:,i) = zAHD(:,end,:,i);
 end
 months = [1:length(zP(1,1,:,1))];
 
 % Take mean across years:
-zZT = mean(zZT,3);
-zT = mean(zT,3);
-zZTx = mean(zZTx,3);
-zTx = mean(zTx,3);
-zZTxa = mean(zZTxa,3);
-zTxa = mean(zTxa,3);
+% $$$ zZT = mean(zZT,3);
+% $$$ zT = mean(zT,3);
+% $$$ zZTx = mean(zZTx,3);
+% $$$ zTx = mean(zTx,3);
+% $$$ zZTxa = mean(zZTxa,3);
+% $$$ zTxa = mean(zTxa,3);
 MHT = mean(MHT,3);
 names = {names{:},'AI','AIpsi','Jdia','JSH','PI','N','I'};
 for i=1:length(names)
@@ -118,19 +121,26 @@ for i=2:length(outputs)
     SSTa = SSTa+SST;
 end
 SST = SSTa/length(outputs);
+if (~strcmp(region,''))
+    [maskREG,~,~,~,~,~,~] = Heat_Budget_Mask(region(1:end-1),'','','',base, ...
+                                             model);
+else
+    maskREG = ones(size(SST(:,:,1)));
+end
+SST = SST.*repmat(maskREG,[1 1 tL]);
 SST(SST==0) = NaN;
 meanSST = squeeze(nanmean(monmean(SST,3,ndays),1));
 minSST = squeeze(min(monmean(SST,3,ndays),[],1));
 % $$$ maxSST = squeeze(max(monmean(SST,3,ndays),[],1));
 
-% $$$ % Plot Streamfunction and Heat Function:
-% $$$ fields = { ...
-% $$$           {zPSI(:,:,months)/1e6, 'Streamfunction $\Psi$',[-30 30],2,'Sv'}, ...
-% $$$           {zAI(:,:,months)/1e15, 'Heat Function $\mathcal{A}_I$',[-1.5 1.5],0.1,'PW'}, ...
-% $$$ % $$$           {zAIpsi(:,:,months)/1e15, 'Heat Function $\mathcal{A}_I$ from $\Psi$',[-1.5 1.5],0.1,'PW'}, ...
-% $$$ % $$$           {zAHD(:,:,months)/1e15, 'Heat Function $\mathcal{A}$',[-1.5 1.5],0.1,'PW'}, ...
-% $$$ % $$$           {(zAI(:,:,months)-zAIpsi(:,:,months))/1e15, 'Heat Function diff $\mathcal{A}$',[-0.01 0.01],0.005,'PW'}, ...
-% $$$ };
+% Plot Streamfunction and Heat Function:
+fields = { ...
+          {zPSI(:,:,months)/1e6, 'Streamfunction $\Psi$',[-30 30],1,'Sv'}, ...
+          {zAI(:,:,months)/1e15, 'Heat Function $\mathcal{A}_I$',[-1.5 1.5],0.05,'PW'}, ...
+% $$$           {zAIpsi(:,:,months)/1e15, 'Heat Function $\mathcal{A}_I$ from $\Psi$',[-1.5 1.5],0.1,'PW'}, ...
+% $$$           {zAHD(:,:,months)/1e15, 'Heat Function $\mathcal{A}$',[-1.5 1.5],0.1,'PW'}, ...
+% $$$           {(zAI(:,:,months)-zAIpsi(:,:,months))/1e15, 'Heat Function diff $\mathcal{A}$',[-0.01 0.01],0.005,'PW'}, ...
+};
 
 % Plot overall fields:
 % $$$ fields = { ...
@@ -143,10 +153,10 @@ minSST = squeeze(min(monmean(SST,3,ndays),[],1));
 % $$$           };
 fields = { ...
 % $$$           {-rho0*Cp*zPSI(:,:,months)/1e12, 'Isothermal Heat Flux $\mathcal{J}_{iso} = -\rho_0C_p\Psi$',[-150 150],15,'TW / $^\circ$C'}, ...
-          {zJdia(:,:,months)/1e12, 'Diathermal Heat Flux $\mathcal{J}_{dia} = -\frac{\partial\mathcal{A}_I}{\partial\phi}$',[-50 50],5,'TW / $^\circ$'}, ...
-          {zN(:,:,months)/1e12, 'Tendency $\frac{\partial}{\partial\phi}\frac{\partial\mathcal{H}_I}{\partial t}$',[-25 25],1.25,'TW / $^\circ$'}, ...
-          {(zF(:,:,months)+zPI(:,:,months))/1e12, 'Surface Forcing $\frac{\partial\left(\mathcal{F}+\mathcal{P}_I\right)}{\partial\phi}$',[-50 50],5,'TW / $^\circ$'}, ...
-          {zM(:,:,months)/1e12+zI(:,:,months)/1e12, 'Mixing $\frac{\partial(\mathcal{M}+\mathcal{I})}{\partial\phi}$',[-50 50],5,'TW / $^\circ$'}, ...
+% $$$           {zJdia(:,:,months)/1e12, 'Diathermal Heat Flux $\mathcal{J}_{dia} = -\frac{\partial\mathcal{A}_I}{\partial\phi}$',[-50 50],5,'TW / $^\circ$'}, ...
+          {zN(:,:,months)/1e12, 'Tendency $\frac{\partial}{\partial\phi}\frac{\partial\mathcal{H}_I}{\partial t}$',[-25 25],0.5,'TW / $^\circ$'}, ...
+% $$$           {(zF(:,:,months)+zPI(:,:,months))/1e12, 'Surface Forcing $\frac{\partial\left(\mathcal{F}+\mathcal{P}_I\right)}{\partial\phi}$',[-50 50],5,'TW / $^\circ$'}, ...
+% $$$           {zM(:,:,months)/1e12+zI(:,:,months)/1e12, 'Mixing $\frac{\partial(\mathcal{M}+\mathcal{I})}{\partial\phi}$',[-50 50],5,'TW / $^\circ$'}, ...
 % $$$           {zNUM(:,:,months)/1e12, 'Diathermal Numerical Mixing $\frac{\partial\mathcal{I}}{\partial\phi}$',[-50 50],5,'TW / $^\circ$'}, ...
 % $$$           {zI(:,:,months)/1e12, 'Diathermal Numerical Mixing $\frac{\partial\mathcal{I}}{\partial\phi}$',[-50 50],5,'TW / $^\circ$'}, ...
 % $$$           {(zRED(:,:,months)+zK33(:,:,months))/1e12, 'Diathermal Redi Mixing $\frac{\partial\mathcal{R}}{\partial\phi}$',[-10 10],1,'TW / $^\circ$'}, ...
@@ -171,6 +181,11 @@ fields = { ...
 % $$$ lats = zeros(TL+1,1);
 % $$$ for i=1:TL+1
 % $$$     ind = find(tmp(:,i)<0,1,'last');
+% $$$     if (strcmp(region,'IndoPacificNZ_'))
+% $$$         ind = find(tmp(:,i)>0,1,'first');
+% $$$     elseif (strcmp(region,'AtlanticNZ_'))
+% $$$         ind = find(tmp(:,i)>0,1,'first')+1;
+% $$$     end
 % $$$     if (length(ind)>0)
 % $$$         zinds(i) = ind;
 % $$$     else
@@ -178,7 +193,7 @@ fields = { ...
 % $$$     end
 % $$$     lats(i) = latv(zinds(i));
 % $$$ end
-% $$$ for i=2:length(fields)
+% $$$ for i=1:length(fields)
 % $$$     for ii=1:TL+1
 % $$$     fields{i}{1}(:,ii,:) = fields{i}{1}(:,ii,:) - repmat(fields{i}{1}(zinds(ii),ii,:),[yL ...
 % $$$                         1 1]);
@@ -205,7 +220,7 @@ fields = { ...
 % $$$           {zMkppbl(:,:,months)/1e12, 'KPP Boundary Layer',[-20 0],0.5,'TW / $^\circ$'}, ...
 % $$$           {zMwave(:,:,months)/1e12, 'Internal Tide',[-20 0],0.5,'TW / $^\circ$'}, ...
 % $$$           };
-
+% $$$ 
 % $$$ % Plot perturbations from MOM025 control:
 % $$$ zFc = monmean(zF+zPI,3,ndays(months));
 % $$$ zMc = monmean(zM,3,ndays(months));
@@ -232,7 +247,8 @@ cmap = redblue(npts-3);
 % $$$ cmap(end,:) = [0.97 0.97 0.8];
 % $$$ cmap(end-1,:) = (cmap(end-1,:)+cmap(end,:))/2;
 
-AIsp = 0.25;
+%AIsp = 0.25;
+AIsp = 0.1;
 % $$$ AIsp = 0.025;
 
 % $$$ latfilt = 5;
@@ -253,12 +269,12 @@ set(gcf,'defaulttextfontsize',15);
 % $$$ set(gcf,'Position',[1728          93        1101         815]);
 
 for i=1:length(fields)
-    if (i >=3)
-        subplot(2,3,i+1);
-    else
+% $$$     if (i >=3)
+% $$$         subplot(2,3,i+1);
+% $$$     else
         subplot(2,3,i);
 % $$$         subplot(3,1,i);
-    end
+% $$$     end
     if (length(fields{i}{1}(1,:,1)) == length(Te))
         x = Te;
     else
@@ -280,7 +296,7 @@ for i=1:length(fields)
     col = [0 0 0];
 
     if (~doZAremap)
-        plot(latv,filter_field(meanSST,latfilt,'-t'),'--','color',col,'linewidth',2);
+% $$$         plot(latv,filter_field(meanSST,latfilt,'-t'),'--','color',col,'linewidth',2);
         plot(latv,filter_field(minSST,latfilt,'-t'),'--','color',col,'linewidth',2);
     plot(latv,filter_field(maxT,latfilt,'-t'),':k');
 % $$$     plot(latv,21.5*ones(size(latv)),'--k');
@@ -324,7 +340,7 @@ for i=1:length(fields)
     xlabel('Latitude ($^\circ$N)');
     cb = colorbar;
     ylabel(cb,fields{i}{5});
-    title(fields{i}{2});
+    title(['Atlantic ' fields{i}{2}]);
     LabelAxes(gca,i,15,0.006,0.95);
 end
 colormap(cmap);
@@ -345,6 +361,11 @@ zinds = zeros(TL+1,1);
 lats = zeros(TL+1,1);
 for i=1:TL+1
     ind = find(tmp(:,i)<0,1,'last');
+    if (strcmp(region,'IndoPacificNZ_'))
+        ind = find(tmp(:,i)>0,1,'first');
+    elseif (strcmp(region,'AtlanticNZ_'))
+        ind = find(tmp(:,i)>0,1,'first')+1;
+    end
     if (length(ind)>0)
         zinds(i) = ind;
     else
@@ -373,7 +394,7 @@ end
 figure;
 colors = {'-k','-b','-r','-m','-c'};
 lfilt = 11;
-plot(latv,filter_field(MHT,lfilt,'-t'),'--k','linewidth',3);
+plot(latv,filter_field(mean(MHT,2)/1e15,lfilt,'-t'),'--k','linewidth',3);
 hold on; 
 plot(latv,filter_field(rho0*Cp*psiT.*maxT,lfilt,'-t')/1e15,':k','linewidth',3);
 for i=1:4
@@ -387,6 +408,36 @@ ylabel('PW');
 xlim([-90 90]);
 grid on;
 
+% Add observations:
+obsfile = '../Observations/ANNUAL_TRANSPORTS_1985_1989.ascii.txt';
+data = importdata(obsfile);
+obs_lat = data.data(:,1)/100;
+obs_total_ncep = data.data(:,7)/100;
+obs_atl_ncep = data.data(:,8)/100;
+obs_pac_ncep = data.data(:,9)/100;
+obs_ind_ncep = data.data(:,10)/100;
+obs_total_ecmwf = data.data(:,15)/100;
+obs_atl_ecmwf = data.data(:,16)/100;
+obs_pac_ecmwf = data.data(:,17)/100;
+obs_ind_ecmwf = data.data(:,18)/100;
+
+obs_total_ncep(abs(obs_total_ncep)>5) = 0;
+obs_atl_ncep(abs(obs_atl_ncep)>5) = 0;
+obs_pac_ncep(abs(obs_pac_ncep)>5) = 0;
+obs_ind_ncep(abs(obs_ind_ncep)>5) = 0;
+obs_total_ecmwf(abs(obs_total_ecmwf)>5) = 0;
+obs_atl_ecmwf(abs(obs_atl_ecmwf)>5) = 0;
+obs_pac_ecmwf(abs(obs_pac_ecmwf)>5) = 0;
+obs_ind_ecmwf(abs(obs_ind_ecmwf)>5) = 0;
+
+hold on;
+plot(obs_lat,obs_total_ncep,'xk');
+plot(obs_lat,obs_total_ecmwf,'ok');
+plot(obs_lat,obs_atl_ncep,'xr');
+plot(obs_lat,obs_pac_ncep+obs_ind_ncep,'xb');
+plot(obs_lat,obs_atl_ecmwf,'or');
+plot(obs_lat,obs_pac_ecmwf+obs_ind_ecmwf,'ob');
+% $$$ plot(obs_lat,data.data(:,5)/100,'om');
 
 
 
