@@ -1,17 +1,19 @@
 
 %This script combines the MOM01 3-month files into yearly files.
-% $$$ base = '/srv/ccrc/data03/z3500785/MOM01_HeatDiag/mat_data/';
-base = '/g/data/e14/rmh561/MOM01_HeatDiag/mat_data/';
+base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
+% $$$ base = '/g/data/e14/rmh561/MOM01_HeatDiag/mat_data/';
 model = 'MOM01';
 
-for tttt=[1 2]
-    if (tttt==1)
-        outputs = [266 267 268 269];
-        onum = 111;
-    else
-        outputs = [0 1 2 3];
-        onum = 222;
-    end
+% $$$ for tttt=[1 2]
+% $$$     if (tttt==1)
+% $$$         outputs = [266 267 268 269];
+% $$$         onum = 111;
+% $$$     else
+% $$$         outputs = [0 1 2 3];
+% $$$         onum = 222;
+% $$$     end
+outputs = [4 5 6 7]
+onum = 444;
 
 % BaseVars: ---------------------------
 fname1 = [base model sprintf('_output%03d_BaseVars.mat', ...
@@ -50,8 +52,31 @@ end
 GWB = GWBa;
 save(oname,'GWB');
 
+% ZA: ---------------------------
+regions = {'Global','IndoPacificNZ','AtlanticNZ'};
+for reg = 1:length(regions)
+    region = regions{reg};
+fname1 = [base model sprintf('_output%03d_', ...
+                             outputs(1)) region '_ZAHBud.mat'];
+oname = [base model sprintf('_output%03d_',onum) region '_ZAHBud.mat']
+copyfile(fname1,oname);
+
+load(fname1);
+ZAa = ZA;
+names = fieldnames(ZAa);
+for i=2:length(outputs)
+    load([base model sprintf('_output%03d_', ...
+                             outputs(i)) region '_ZAHBud.mat']);
+    for ii=1:length(names)
+        eval(['ZAa.' names{ii} ' = cat(3,ZAa.' names{ii} ',ZA.' names{ii} ');']);
+    end
+end
+ZA = ZAa;
+save(oname,'ZA','yuo','yto');
+end
+
 % VertInt and WMT: ----------------------
-type = {'VertInt','WMT'};
+type = {'VertInt'};
 for typ = 1:length(type)
     for Ti=Te(1):(dT/2):Te(end)
         
@@ -88,7 +113,7 @@ end
 
 % Any others that don't have temp -----------------------
 
-type = {'SurfaceVars','varsat_110W','varsat_Eq'};
+type = {'SurfaceVars'}%,'varsat_110W','varsat_Eq'};
 for typ = 1:length(type)
 
     fname1 = [base model sprintf(['_output%03d_' type{typ} '.mat'], ...
