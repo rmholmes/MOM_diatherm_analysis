@@ -1,3 +1,4 @@
+
 % This script makes plots of the heat budget in the MOM
 % simulations.
 
@@ -6,16 +7,16 @@ clear all;
 
 base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
 
-% $$$ % $$$ % Load Base Variables:
-model = 'MOM025_kb3seg';
-outputs = [86:90];
+% Load Base Variables:
+% $$$ model = 'MOM025_kb3seg';
+% $$$ outputs = [86:90];
 % $$$ outputs = 86;
 
 % $$$ model = 'MOM025_kb1em5';
 % $$$ outputs = [95:99];
 % $$$ 
-% $$$ model = 'MOM025';
-% $$$ outputs = [15:19];
+model = 'MOM025';
+outputs = [15:19];
 
 % $$$ model = 'MOM025_btide';
 % $$$ outputs = [21];
@@ -29,13 +30,14 @@ outputs = [86:90];
 % $$$ outputs = 36;
 
 % $$$ model = 'MOM01';
-% $$$ outputs = [222];
+% $$$ outputs = [444];
 
 load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
 ndays = diff(time_snap);
+% $$$ region = 'Global_';
 region = '';
 % $$$ region = 'AtlanticNZ_';
-region = 'IndoPacificNZ_';
+% $$$ region = 'IndoPacificNZ_';
 
 %% Make Vars
 load([base model sprintf('_output%03d_',outputs(1)) region 'ZAHBud.mat']);
@@ -151,16 +153,17 @@ fields = { ...
 % $$$           {zI(:,:,months)/1e12, 'Diathermal Numerical Mixing $\frac{\partial\mathcal{I}}{\partial\phi}$',[-50 50],5,'TW / $^\circ$'}, ...
 % $$$           {zN(:,:,months)/1e12, 'Diathermal Internal Tendency $\frac{\partial}{\partial\phi}\frac{\partial\mathcal{H}_I}{\partial t}$',[-10 10],1,'TW / $^\circ$'}, ...
 % $$$           };
-fields = { ...
-% $$$           {-rho0*Cp*zPSI(:,:,months)/1e12, 'Isothermal Heat Flux $\mathcal{J}_{iso} = -\rho_0C_p\Psi$',[-150 150],15,'TW / $^\circ$C'}, ...
-% $$$           {zJdia(:,:,months)/1e12, 'Diathermal Heat Flux $\mathcal{J}_{dia} = -\frac{\partial\mathcal{A}_I}{\partial\phi}$',[-50 50],5,'TW / $^\circ$'}, ...
-          {zN(:,:,months)/1e12, 'Tendency $\frac{\partial}{\partial\phi}\frac{\partial\mathcal{H}_I}{\partial t}$',[-25 25],0.5,'TW / $^\circ$'}, ...
-% $$$           {(zF(:,:,months)+zPI(:,:,months))/1e12, 'Surface Forcing $\frac{\partial\left(\mathcal{F}+\mathcal{P}_I\right)}{\partial\phi}$',[-50 50],5,'TW / $^\circ$'}, ...
-% $$$           {zM(:,:,months)/1e12+zI(:,:,months)/1e12, 'Mixing $\frac{\partial(\mathcal{M}+\mathcal{I})}{\partial\phi}$',[-50 50],5,'TW / $^\circ$'}, ...
-% $$$           {zNUM(:,:,months)/1e12, 'Diathermal Numerical Mixing $\frac{\partial\mathcal{I}}{\partial\phi}$',[-50 50],5,'TW / $^\circ$'}, ...
-% $$$           {zI(:,:,months)/1e12, 'Diathermal Numerical Mixing $\frac{\partial\mathcal{I}}{\partial\phi}$',[-50 50],5,'TW / $^\circ$'}, ...
-% $$$           {(zRED(:,:,months)+zK33(:,:,months))/1e12, 'Diathermal Redi Mixing $\frac{\partial\mathcal{R}}{\partial\phi}$',[-10 10],1,'TW / $^\circ$'}, ...
-          };
+% $$$ fields = { ...
+% $$$ % $$$           {-rho0*Cp*zPSI(:,:,months)/1e12, 'Isothermal Heat Flux $\mathcal{J}_{iso} = -\rho_0C_p\Psi$',[-150 150],15,'TW / $^\circ$C'}, ...
+% $$$ % $$$           {zJdia(:,:,months)/1e12, 'Diathermal Heat Flux $\mathcal{J}_{dia} = -\frac{\partial\mathcal{A}_I}{\partial\phi}$',[-50 50],5,'TW / $^\circ$'}, ...
+% $$$           {zN(:,:,months)/1e12, 'Tendency $\frac{\partial}{\partial\phi}\frac{\partial\mathcal{H}_I}{\partial t}$',[-10 10],0.5,'TW / $^\circ$'}, ...
+% $$$ % $$$           {(zF(:,:,months)+zPI(:,:,months))/1e12, 'Surface Forcing $\frac{\partial\left(\mathcal{F}+\mathcal{P}_I\right)}{\partial\phi}$',[-50 50],5,'TW / $^\circ$'}, ...
+% $$$ % $$$           {zM(:,:,months)/1e12+zI(:,:,months)/1e12, 'Mixing $\frac{\partial(\mathcal{M}+\mathcal{I})}{\partial\phi}$',[-50 50],5,'TW / $^\circ$'}, ...
+% $$$ % $$$           {zM(:,:,months)/1e12, 'Vertical Mixing $\frac{\partial(\mathcal{M}+\mathcal{I})}{\partial\phi}$',[-50 50],5,'TW / $^\circ$'}, ...
+% $$$ % $$$           {zNUM(:,:,months)/1e12, 'Diathermal Numerical Mixing $\frac{\partial\mathcal{I}}{\partial\phi}$',[-50 50],5,'TW / $^\circ$'}, ...
+% $$$ % $$$           {zI(:,:,months)/1e12, 'Diathermal Numerical Mixing $\frac{\partial\mathcal{I}}{\partial\phi}$',[-50 50],5,'TW / $^\circ$'}, ...
+% $$$ % $$$           {(zRED(:,:,months)+zK33(:,:,months))/1e12, 'Diathermal Redi Mixing $\frac{\partial\mathcal{R}}{\partial\phi}$',[-10 10],1,'TW / $^\circ$'}, ...
+% $$$           };
 
 % $$$ % Plot latitudinal integral:
 % $$$ fields = { ...
@@ -211,16 +214,16 @@ fields = { ...
 % $$$     MHTtot{i,2} = fields{i}{2};
 % $$$ end     
 
-% $$$ % Plot mixing components:
-% $$$ fields = { ...
-% $$$           {zM(:,:,months)/1e12, 'Total Vertical Mixing $\frac{\partial\mathcal{M}}{\partial\phi}$',[-40 0],2,'TW / $^\circ$'}, ...
-% $$$           {zMkppiw(:,:,months)/1e12, 'Background Mixing',[-20 0],0.5,'TW / $^\circ$'}, ...
-% $$$           {zMkppish(:,:,months)/1e12, 'Interior Shear Instability',[-20 0],0.5,'TW / $^\circ$'}, ...
-% $$$           {zI(:,:,months)/1e12, 'Numerical Mixing $\frac{\partial\mathcal{I}}{\partial\phi}$',[-40 0],2,'TW / $^\circ$'}, ...
-% $$$           {zMkppbl(:,:,months)/1e12, 'KPP Boundary Layer',[-20 0],0.5,'TW / $^\circ$'}, ...
-% $$$           {zMwave(:,:,months)/1e12, 'Internal Tide',[-20 0],0.5,'TW / $^\circ$'}, ...
-% $$$           };
-% $$$ 
+% Plot mixing components:
+fields = { ...
+          {zM(:,:,months)/1e12, 'Total Vertical Mixing $\frac{\partial\mathcal{M}}{\partial\phi}$',[-40 0],2,'TW / $^\circ$'}, ...
+          {zMkppiw(:,:,months)/1e12, 'Background Mixing',[-20 0],0.5,'TW / $^\circ$'}, ...
+          {zMkppish(:,:,months)/1e12, 'Interior Shear Instability',[-20 0],0.5,'TW / $^\circ$'}, ...
+          {zI(:,:,months)/1e12, 'Numerical Mixing $\frac{\partial\mathcal{I}}{\partial\phi}$',[-40 0],2,'TW / $^\circ$'}, ...
+          {zMkppbl(:,:,months)/1e12, 'KPP Boundary Layer',[-20 0],0.5,'TW / $^\circ$'}, ...
+          {zMwave(:,:,months)/1e12, 'Internal Tide',[-20 0],0.5,'TW / $^\circ$'}, ...
+          };
+
 % $$$ % Plot perturbations from MOM025 control:
 % $$$ zFc = monmean(zF+zPI,3,ndays(months));
 % $$$ zMc = monmean(zM,3,ndays(months));
@@ -240,15 +243,16 @@ for i=1:length(fields)
     cpts{i} = [-1e10 fields{i}{3}(1):fields{i}{4}:fields{i}{3}(2) 1e10];
 end
 npts = length(cpts{1});
+%clab = [1 1 1 1 1 1];
 clab = [1 0 0 0 0 0];
 
 cmap = redblue(npts-3);
-% $$$ cmap = parula(npts-3);
-% $$$ cmap(end,:) = [0.97 0.97 0.8];
-% $$$ cmap(end-1,:) = (cmap(end-1,:)+cmap(end,:))/2;
+cmap = parula(npts-3);
+cmap(end,:) = [0.97 0.97 0.8];
+cmap(end-1,:) = (cmap(end-1,:)+cmap(end,:))/2;
 
-%AIsp = 0.25;
-AIsp = 0.1;
+AIsp = 0.25;
+% $$$ AIsp = 0.1;
 % $$$ AIsp = 0.025;
 
 % $$$ latfilt = 5;
@@ -296,8 +300,8 @@ for i=1:length(fields)
     col = [0 0 0];
 
     if (~doZAremap)
-% $$$         plot(latv,filter_field(meanSST,latfilt,'-t'),'--','color',col,'linewidth',2);
-        plot(latv,filter_field(minSST,latfilt,'-t'),'--','color',col,'linewidth',2);
+% $$$         plot(latv,filter_field(meanSST,latfilt,'-t'),':','color',col);
+        plot(latv,filter_field(minSST,latfilt,'-t'),':','color',col);
     plot(latv,filter_field(maxT,latfilt,'-t'),':k');
 % $$$     plot(latv,21.5*ones(size(latv)),'--k');
 % $$$         plot(lats,Te,'-k','linewidth',2);%'color',[0 0.5 0]);
@@ -340,7 +344,7 @@ for i=1:length(fields)
     xlabel('Latitude ($^\circ$N)');
     cb = colorbar;
     ylabel(cb,fields{i}{5});
-    title(['Atlantic ' fields{i}{2}]);
+    title([fields{i}{2}]);
     LabelAxes(gca,i,15,0.006,0.95);
 end
 colormap(cmap);
@@ -394,7 +398,7 @@ end
 figure;
 colors = {'-k','-b','-r','-m','-c'};
 lfilt = 11;
-plot(latv,filter_field(mean(MHT,2)/1e15,lfilt,'-t'),'--k','linewidth',3);
+plot(latv,filter_field(monmean(MHT,2,ndays)/1e15,lfilt,'-t'),'--k','linewidth',3);
 hold on; 
 plot(latv,filter_field(rho0*Cp*psiT.*maxT,lfilt,'-t')/1e15,':k','linewidth',3);
 for i=1:4
@@ -438,6 +442,15 @@ plot(obs_lat,obs_pac_ncep+obs_ind_ncep,'xb');
 plot(obs_lat,obs_atl_ecmwf,'or');
 plot(obs_lat,obs_pac_ecmwf+obs_ind_ecmwf,'ob');
 % $$$ plot(obs_lat,data.data(:,5)/100,'om');
+
+obsfile = '../Observations/GW2000_MeridionalHeatTransportData.mat';
+load(obsfile);
+hold on;
+errorbar(GLOlat,GLOHT,GLOHTe,'dk','linewidth',2,'MarkerSize',10);
+errorbar(IPAClat,IPACHT,IPACHTe,'db','linewidth',2,'MarkerSize',10);
+errorbar(ATLlat,ATLHT,ATLHTe,'dr','linewidth',2,'MarkerSize',10);
+
+
 
 
 
