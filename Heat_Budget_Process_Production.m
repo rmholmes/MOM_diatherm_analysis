@@ -98,7 +98,7 @@ if (output ==0)
 end
 
 % 3D mask ------------------------------------------------
-mask = ncread(fname,'temp',[1 1 1 rstti],[xL yL zL 1]);
+mask = ncread(fname,'temp',[1 1 1 1],[xL yL zL 1]);
 mask(~isnan(mask)) = 1; mask(isnan(mask)) = 0;
 mask = mask == 1;
 
