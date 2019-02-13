@@ -2,7 +2,7 @@
 % MOM025 or MOM01 simulations and save's into .mat files
 
 baseL = '/short/e14/rmh561/mom/archive/';
-% $$$ baseL = '/g/data/e14/rmh561/';
+% $$$ baseL = '/g/data/e14/rmh561/mom/';
 % $$$ baseL = '/short/e14/rmh561/access-om2/archive/';
 % $$$ baseL = '/srv/ccrc/data03/z3500785/';
 
@@ -10,15 +10,15 @@ baseL = '/short/e14/rmh561/mom/archive/';
 % $$$ model = 'MOM025';
 % $$$ baseD = [baseL 'MOM_wombat/']; %Data Directory.
 % $$$ % MOM-SIS025:
-% $$$ model = 'MOM025_kb3seg';
-% $$$ baseD = [baseL 'MOM_HeatDiag_kb3seg/']; %Data Directory.
+model = 'MOM025_kb3seg_nosubmeso';
+baseD = [baseL 'MOM_HeatDiag_kb3seg_nosubmeso/']; %Data Directory.
 % ACCESS-OM2:
 % $$$ model = 'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may';
 % $$$ baseD = [baseL '1deg_jra55_ryf8485_kds50_may/']; %Data Directory.
 % $$$ ICdir = '/g/data1/ua8/MOM/initial_conditions/WOA/10_KDS50/';
 % MOM-SIS01:
-model = 'MOM01';
-baseD = [baseL 'MOM01_HeatDiag/']; %Data Directory.
+% $$$ model = 'MOM01';
+% $$$ baseD = [baseL 'MOM01_HeatDiag/']; %Data Directory.
 
 outD = [baseD 'mat_data/'];
 rstbaseD = baseD;
@@ -28,6 +28,7 @@ post = ''; % For MOM-SIS.
 
 haveRedi = 0; % 1 = Redi diffusion is on, 0 = off
 haveGM = 0; % 1 = GM is on, 0 = off;
+haveSUB = 0; % 1 = submeso is on, 0 = off;
 haveMDS = 0; % 1 = MDS is on, 0 = off;
 haveMIX = 1; % 1 = Do mixing components (vdiffuse_diff_cbt_*), 0 = don't. 
 haveHND = 1; % 1 = Do numerical mixing via heat budget.
@@ -40,7 +41,7 @@ else % MOM-SIS, transport in 1e9 kg/s
 end
 
 % $$$ for output = 86:90;
-output=4;
+output=91;
 restart = output-1;
 
 region = 'Global';
@@ -325,18 +326,22 @@ for ti=1:tL
         dift = dift + ncread(wname,'mixdownslope_temp_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
     end    
     
-    txtrans = ncread(wname,'tx_trans_nrho',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0 + ...
-              ncread(wname,'tx_trans_nrho_submeso',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0;
-    tytrans = ncread(wname,'ty_trans_nrho',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0 + ...
-              ncread(wname,'ty_trans_nrho_submeso',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0;
+    txtrans = ncread(wname,'tx_trans_nrho',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0;
+    tytrans = ncread(wname,'ty_trans_nrho',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0;
+    if (haveSUB)
+        txtrans = txtrans + ncread(wname,'tx_trans_nrho_submeso',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0;
+        tytrans = tytrans + ncread(wname,'ty_trans_nrho_submeso',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0;
+    end
     if (haveGM)
         txtrans = txtrans + ncread(wname,'tx_trans_nrho_gm',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0;
         tytrans = tytrans + ncread(wname,'ty_trans_nrho_gm',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0;
     end
-    qxtrans = ncread(wname,'temp_xflux_adv_on_nrho',[1 1 Ti ti],[xL yL 1 1])+ ...
-              ncread(wname,'temp_xflux_submeso_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
-    qytrans = ncread(wname,'temp_yflux_adv_on_nrho',[1 1 Ti ti],[xL yL 1 1])+ ...
-              ncread(wname,'temp_yflux_submeso_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+    qxtrans = ncread(wname,'temp_xflux_adv_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+    qytrans = ncread(wname,'temp_yflux_adv_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+    if (haveSUB)
+        qxtrans = qxtrans + ncread(wname,'temp_xflux_submeso_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+        qytrans = qytrans + ncread(wname,'temp_yflux_submeso_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+    end 
     if (haveGM)
         qxtrans = qxtrans + ncread(wname,'temp_xflux_gm_on_nrho',[1 1 Ti ti],[xL yL 1 1]);% + ...
 % $$$                   ncread(wname,'temp_xflux_ndiffuse_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
@@ -366,18 +371,22 @@ for ti=1:tL
                             yL 1 1]))*1e9/rho0./area;
         dHdt = dHdt + double(ncread(wname,'dHdt',[1 1 Ti ti],[xL ...
                             yL 1 1]))./area;
-        txtrans = ncread(wname,'tx_trans_nrho',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0 + ...
-                  ncread(wname,'tx_trans_nrho_submeso',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0;
-        tytrans = ncread(wname,'ty_trans_nrho',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0 + ...
-                  ncread(wname,'ty_trans_nrho_submeso',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0;
+        txtrans = ncread(wname,'tx_trans_nrho',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0;
+        tytrans = ncread(wname,'ty_trans_nrho',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0;
+        if (haveSUB)
+            txtrans = txtrans + ncread(wname,'tx_trans_nrho_submeso',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0;
+            tytrans = tytrans + ncread(wname,'ty_trans_nrho_submeso',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0;
+        end
         if (haveGM)
             txtrans = txtrans + ncread(wname,'tx_trans_nrho_gm',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0;
             tytrans = tytrans + ncread(wname,'ty_trans_nrho_gm',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0;
         end
-        qxtrans = ncread(wname,'temp_xflux_adv_on_nrho',[1 1 Ti ti],[xL yL 1 1])+ ...
-                  ncread(wname,'temp_xflux_submeso_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
-        qytrans = ncread(wname,'temp_yflux_adv_on_nrho',[1 1 Ti ti],[xL yL 1 1])+ ...
-                  ncread(wname,'temp_yflux_submeso_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+        qxtrans = ncread(wname,'temp_xflux_adv_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+        qytrans = ncread(wname,'temp_yflux_adv_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+        if (haveSUB)
+            qxtrans = qxtrans + ncread(wname,'temp_xflux_submeso_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+            qytrans = qytrans + ncread(wname,'temp_yflux_submeso_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+        end 
         if (haveGM)
             qxtrans = qxtrans + ncread(wname,'temp_xflux_gm_on_nrho',[1 1 Ti ti],[xL yL 1 1]);% + ...
 % $$$                   ncread(wname,'temp_xflux_ndiffuse_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
@@ -576,9 +585,11 @@ GWB.RMX    = zeros(TL+1,tL); % W due to rivermix.
 GWB.PME    = zeros(TL+1,tL); % W due to P-E.
 GWB.FRZ    = zeros(TL+1,tL); % W due to frazil.
 GWB.ETS    = zeros(TL+1,tL); % W due to eta_smoothing.
-GWB.SUB    = zeros(TL+1,tL); % W due to submesoscale.
 GWB.VDF    = zeros(TL+1,tL); % W due to vdiffusion
 GWB.KNL    = zeros(TL+1,tL); % W due to KPP non-local
+if (haveSUB)
+    GWB.SUB    = zeros(TL+1,tL); % W due to submesoscale.
+end
 if (haveMIX)
     GWB.VDFkppiw = zeros(TL+1,tL); % W due to KPP Internal Wave
     GWB.VDFkppish = zeros(TL+1,tL); % W due to KPP Shear
@@ -620,13 +631,15 @@ for ti=1:tL
     GWB.dHdt(ii,ti) = nansum(nansum(maskREG.*ncread(wname,'dHdt',[1 1 ii ti],[xL yL 1 1]),1),2);
     GWB.TEN(ii,ti) = nansum(nansum(maskREG.*area.*ncread(wname,'temp_tendency_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     GWB.ADV(ii,ti) = nansum(nansum(maskREG.*area.*ncread(wname,'temp_advection_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-    GWB.SUB(ii,ti) = nansum(nansum(maskREG.*area.*ncread(wname,'temp_submeso_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     GWB.PME(ii,ti) = nansum(nansum(maskREG.*area.*ncread(wname,'sfc_hflux_pme_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     GWB.RMX(ii,ti) = nansum(nansum(maskREG.*area.*ncread(wname,'temp_rivermix_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     GWB.VDS(ii,ti) = nansum(nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_sbc_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     GWB.SWH(ii,ti) = nansum(nansum(maskREG.*area.*ncread(wname,'sw_heat_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     GWB.VDF(ii,ti) = nansum(nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     GWB.KNL(ii,ti) = nansum(nansum(maskREG.*area.*ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    if (haveSUB)
+    GWB.SUB(ii,ti) = nansum(nansum(maskREG.*area.*ncread(wname,'temp_submeso_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    end
     if (haveMIX)
     GWB.VDFkppiw(ii,ti) = nansum(nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppiw_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     GWB.VDFkppish(ii,ti) = nansum(nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppish_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
@@ -654,13 +667,15 @@ for ii=TL-1:-1:1
     GWB.dHdt(ii,ti) = GWB.dHdt(ii+1,ti) + nansum(nansum(maskREG.*ncread(wname,'dHdt',[1 1 ii ti],[xL yL 1 1]),1),2);
     GWB.TEN(ii,ti) = GWB.TEN(ii+1,ti) + nansum(nansum(maskREG.*area.*ncread(wname,'temp_tendency_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     GWB.ADV(ii,ti) = GWB.ADV(ii+1,ti) + nansum(nansum(maskREG.*area.*ncread(wname,'temp_advection_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
-    GWB.SUB(ii,ti) = GWB.SUB(ii+1,ti) + nansum(nansum(maskREG.*area.*ncread(wname,'temp_submeso_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     GWB.PME(ii,ti) = GWB.PME(ii+1,ti) + nansum(nansum(maskREG.*area.*ncread(wname,'sfc_hflux_pme_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     GWB.RMX(ii,ti) = GWB.RMX(ii+1,ti) + nansum(nansum(maskREG.*area.*ncread(wname,'temp_rivermix_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     GWB.VDS(ii,ti) = GWB.VDS(ii+1,ti) + nansum(nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_sbc_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     GWB.SWH(ii,ti) = GWB.SWH(ii+1,ti) + nansum(nansum(maskREG.*area.*ncread(wname,'sw_heat_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     GWB.VDF(ii,ti) = GWB.VDF(ii+1,ti) + nansum(nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     GWB.KNL(ii,ti) = GWB.KNL(ii+1,ti) + nansum(nansum(maskREG.*area.*ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    if (haveSUB)
+    GWB.SUB(ii,ti) = GWB.SUB(ii+1,ti) + nansum(nansum(maskREG.*area.*ncread(wname,'temp_submeso_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    end
     if (haveMIX)
     GWB.VDFkppiw(ii,ti)   = GWB.VDFkppiw(ii+1,ti)   + nansum(nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppiw_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     GWB.VDFkppish(ii,ti)  = GWB.VDFkppish(ii+1,ti)  + nansum(nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppish_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
@@ -1022,17 +1037,16 @@ end
 % $$$ %% Swap in non-NaN'd lon/lat:
 % $$$ base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
 % $$$ model = 'MOM025';
-% $$$ outputs = [8:12];
 % $$$ 
 % $$$ load([base model sprintf('_output%03d_BaseVars.mat',8)]);
 % $$$ region = 'Global';
 % $$$ 
 % $$$ base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
-% $$$ model = 'MOM025_btide';
-% $$$ for output = [20:21]
+% $$$ model = 'MOM025_kb3seg';
+% $$$ for output = [86:90]
 % $$$     save([base model sprintf('_output%03d_BaseVars.mat',output)], ...
 % $$$          'lon','lat','lonu','latu','area','-append');
 % $$$ end
-% $$$ 
-% $$$ 
+
+
 
