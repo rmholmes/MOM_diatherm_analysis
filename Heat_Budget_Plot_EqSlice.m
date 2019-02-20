@@ -13,8 +13,9 @@ RUNS = { ...
 % $$$     {'MOM025',[8:12]}, ...
 % $$$     {'MOM025',[15:19]}, ...
 % $$$     {'MOM025_kb1em6',[30]}, ...
-    {'MOM025_kb3seg',[80:84]}, ...
-% $$$     {'MOM025_kb1em5',[94]}, ...
+% $$$     {'MOM025_kb3seg',[86:90]}, ...
+% $$$     {'MOM025_kb3seg',[75:79]}, ...
+    {'MOM025_kb1em5',[94]}, ...
 % $$$     {'MOM025_wombat',[1978]}, ...
 % ACCESS-OM2 025-degree:
 % $$$     {'ACCESS-OM2_025deg_jra55_ryf8485',[78]}, ...
@@ -33,7 +34,7 @@ RUNS = { ...
        };
 
 rr = 1;
-for rr = 1:length(RUNS);
+% $$$ for rr = 1:length(RUNS);
     outputs = RUNS{rr}{2};
     model = RUNS{rr}{1};
 
@@ -54,7 +55,8 @@ for rr = 1:length(RUNS);
 % Load Variable and calculate mean:
 reg = '110W';
 load([base model sprintf(['_output%03d_varsat_' reg '.mat'],outputs(1))]);
-vars = {'temp','mld','vdif','vnlc','ndif'};
+%vars = {'temp','mld','vdif','vnlc','ndif'};
+vars = {'temp','mld','vdif','vnlc'}%,'ndif'};
 
 for i=1:length(vars)
     eval(['sz = size(' vars{i} ');']);
@@ -81,59 +83,70 @@ TL = length(T);
 % $$$ %ACCESS-OM2:
 % $$$ temp = temp-273.15;
 
-% $$$ %% Plot Temp bias against WWV:
-% $$$ months = [1:12];
-% $$$ temp = monmean(temp(:,:,months),3,ndays(months));
-% $$$ 
-% $$$ % WOA13:
-% $$$ WOAname = '/srv/ccrc/data03/z3500785/WOA13/woa13_decav_t00_04v2.nc';
-% $$$ WOAlat = ncread(WOAname,'lat');
-% $$$ WOAlon = ncread(WOAname,'lon');
-% $$$ WOAdep = ncread(WOAname,'depth');
+%% Plot Temp bias against WOA13:
+months = [1:12];
+temp = monmean(temp(:,:,months),3,ndays(months));
+
+% WOA13:
+WOAname = '/srv/ccrc/data03/z3500785/WOA13/woa13_decav_t00_04v2.nc';
+WOAlat = ncread(WOAname,'lat');
+WOAlon = ncread(WOAname,'lon');
+WOAdep = ncread(WOAname,'depth');
 % $$$ [tmp Eqind] = min(abs(WOAlat));
-% $$$ 
+[tmp ln140ind] = min(abs(WOAlon+110));
+
 % $$$ WOAT = squeeze(ncread(WOAname,'t_an',[1 Eqind 1 1],[1440 1 102 1]));
+WOAT = squeeze(ncread(WOAname,'t_an',[ln140ind 1 1 1],[1 720 102 1]));
 % $$$ 
 % $$$ %Shift longitudes:
 % $$$ [tmp ind] = min(abs(WOAlon-80));
 % $$$ WOAT = cat(1,WOAT(ind+1:end,:),WOAT(1:ind,:));
 % $$$ WOAlon = cat(1,WOAlon(ind+1:end)-360,WOAlon(1:ind));
 % $$$ [WOAlon,WOAdep] = ndgrid(WOAlon,WOAdep);
+[WOAlat,WOAdep] = ndgrid(WOAlat,WOAdep);
 % $$$ 
-% $$$ % Calculate bias from WOA:
+% Calculate bias from WOA:
 % $$$ Tbias = temp-interp2(WOAlon',-WOAdep',WOAT',Xt,-Zt,'linear');
-% $$$ 
-% $$$ %Colormap:
-% $$$ clim = [-3 3];
-% $$$ sp = 0.25;
-% $$$ cpts = [-1e10 clim(1):sp:clim(2) 1e10];
-% $$$ npts = length(cpts)
-% $$$ cmap = redblue(npts-3);
-% $$$     
-% $$$ % $$$ figure;
-% $$$ % $$$ set(gcf,'Position',[1          36        1920         970]);
-% $$$ subplot(2,3,rr);
+Tbias = temp-interp2(WOAlat',-WOAdep',WOAT',Yt,-Zt,'linear');
+
+%Colormap:
+clim = [-5 5];
+sp = 0.25;
+cpts = [-1e10 clim(1):sp:clim(2) 1e10];
+npts = length(cpts)
+cmap = redblue(npts-3);
+    
+% $$$ figure;
+% $$$ set(gcf,'Position',[1          36        1920         970]);
+subplot(2,3,rr);
 % $$$ contourf(Xt,-Zt,Tbias,cpts,'linestyle','none');
-% $$$ hold on;
+contourf(Yt,-Zt,Tbias,cpts,'linestyle','none');
+hold on;
 % $$$ [c,h] = contour(WOAlon,-WOAdep,WOAT,[0:2:35],'-k');
-% $$$ clabel(c,h,[0:2:35]);
+[c,h] = contour(WOAlat,-WOAdep,WOAT,[0:2:35],'-k');
+clabel(c,h,[0:2:35]);
 % $$$ [c,h] = contour(WOAlon,-WOAdep,WOAT,[20 20],'-k','linewidth',2);
-% $$$ hold on;
+[c,h] = contour(WOAlat,-WOAdep,WOAT,[20 20],'-k','linewidth',2);
+hold on;
 % $$$ [c,h] = contour(Xt,-Zt,temp,[20 20],'--k','linewidth',2);
+[c,h] = contour(Yt,-Zt,temp,[20 20],'--k','linewidth',2);
 % $$$ ylim([-250 0]);
 % $$$ xlim([-220 -80]);
+ylim([-300 0]);
+xlim([-15 15]);
 % $$$ if (rr == 3)
-% $$$     cb = colorbar;
+    cb = colorbar;
 % $$$ end
 % $$$ xlabel('Longitude ($^\circ$E)');
-% $$$ ylabel('Depth (m)');
-% $$$ caxis(clim);
-% $$$ colormap(cmap);
+xlabel('Latitude ($^\circ$N)');
+ylabel('Depth (m)');
+caxis(clim);
+colormap(cmap);
 % $$$ set(gca,'FontSize',15);
-% $$$ title([strrep(strrep(strrep(strrep(strrep(RUNS{rr}{1},'_',' '),'ACCESS-OM2 ' ...
-% $$$                     ,'AOM'),'deg jra55',''),' may',''),'ryf8485 ','') ' - WOA13 Equatorial T ($^\circ$C)']);
-% $$$ 
-% $$$ end
+title([strrep(strrep(strrep(strrep(strrep(RUNS{rr}{1},'_',' '),'ACCESS-OM2 ' ...
+                    ,'AOM'),'deg jra55',''),' may',''),'ryf8485 ','') ' - WOA13 Equatorial T ($^\circ$C)']);
+
+end
 
 %%% Plot Diathermal fluxes:
 
@@ -153,7 +166,7 @@ end
 Xi = repmat(Xt(:,1),[1 TL]);
 
 var = cumsum(vdif+vnlc,2,'reverse'); % Vertical Mixing Flux
-% $$$ var = ndif; % Vertical Mixing Flux
+% $$$ var = ndif; % Numerical mixing
 
 months = {[1:12]};
 % $$$ months = {[1:12],[3],[7],[11]};
@@ -203,7 +216,7 @@ for i=1:length(months)
     hold on;
     [c,h] = contour(Xt,-Zt,nanmonmean(temp(:,:,months{i}),3,ndays(months{i})),[0:1:35],'-k');
     clabel(c,h,[0:2:35]);
-    [c,h] = contour(Xt,-Zt,nanmonmean(temp(:,:,months{i}),3,ndays(months{i})),[23 23],'-k','linewidth',2);
+    [c,h] = contour(Xt,-Zt,nanmonmean(temp(:,:,months{i}),3,ndays(months{i})),[22.5 22.5],'-k','linewidth',2);
 % $$$ if (strcmp(model,'MOM01'))
 % $$$     mnu = monthsu01{i};
 % $$$ else
