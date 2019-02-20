@@ -975,6 +975,82 @@ for ti=1:tL
     save([outD model sprintf('_output%03d',output) '_' region '_ZAHBud.mat'],'ZA','yuo','yto','-v7.3');
 end
 
+%% Meridionally-averaged fluxes -------------------------------------------------------------
+MA.F = zeros(xL,TL+1,tL); % Wdeg-1 due to F
+MA.P = zeros(xL,TL+1,tL); % Wdeg-1 due to P
+MA.M = zeros(xL,TL+1,tL); % Wdeg-1 due to M
+MA.dVdt = zeros(xL,TL+1,tL); % Wdeg-1 dVdt
+MA.dHdt = zeros(xL,TL+1,tL); % Wdeg-1 dHdt
+MA.SWH = zeros(xL,TL+1,tL); % Wdeg-1 due to SW redistribution
+if (haveMIX)
+    MA.Mkppiw = zeros(xL,TL+1,tL); %Wdeg-1 due to kppiw;
+    MA.Mkppish = zeros(xL,TL+1,tL); %Wdeg-1 due to kppiw;
+    MA.Mwave = zeros(xL,TL+1,tL); %Wdeg-1 due to kppiw;
+    MA.Mkppbl = zeros(xL,TL+1,tL); %Wdeg-1 due to kppiw;
+    MA.Moth   = zeros(xL,TL+1,tL); %Wdeg-1 due to kppicon+kppdd+KPPnloc;
+end
+if (haveRedi)
+    MA.K33    = zeros(xL,TL+1,tL); % W due to K33
+    MA.RED    = zeros(xL,TL+1,tL); % W due to Redi diffusion
+end
+MA.JS = zeros(xL,TL+1,tL); % m3s-1deg-1 due to surface volume flux
+MA.PSI = zeros(xL,TL+1,tL); % m3s-1 eastward transport
+MA.AHD = zeros(xL,TL+1,tL); % W A direct using heat fluxes
+
+xto = diff(ncread(gname,'xt_ocean'));
+xto = [xto(1); (xto(2:end)+xto(1:(end-1)))/2; xto(end)];
+xuo = diff([-180; ncread(gname,'xu_ocean')]);
+
+% ignoring tri-polar for now.
+for ti=1:tL
+    for ii = 1:TL
+    sprintf('Calculating zonally-averaged water-mass heat budget time %03d of %03d, temp %03d of %03d',ti,tL,ii,TL)
+    MA.F(:,ii+1,ti) = MA.F(:,ii,ti) + (nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_sbc_on_nrho',[1 1 ii ti],[xL yL 1 1]),2) + ...
+                    nansum(maskREG.*area.*ncread(wname,'frazil_on_nrho',[1 1 ii ti],[xL yL 1 1]),2) + ...
+                    nansum(maskREG.*area.*ncread(wname,'temp_eta_smooth_on_nrho',[1 1 ii ti],[xL yL 1 1]),2))./xuo;
+    MA.P(:,ii+1,ti) = MA.P(:,ii,ti) + (nansum(maskREG.*area.*ncread(wname,'sfc_hflux_pme_on_nrho',[1 1 ii ti],[xL yL 1 1]),2) + ...
+                    nansum(maskREG.*area.*ncread(wname,'temp_rivermix_on_nrho',[1 1 ii ti],[xL yL 1 1]),2))./xuo;
+    MA.M(:,ii+1,ti) = MA.M(:,ii,ti) + (nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 ii ti],[xL yL 1 1]),2) + ...
+                    nansum(maskREG.*area.*ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 ii ti],[xL yL 1 1]),2))./xuo;
+    if (haveMDS)
+        MA.M(:,ii+1,ti) = MA.M(:,ii+1,ti) + nansum(maskREG.*area.*ncread(wname,'mixdownslope_temp_on_nrho',[1 1 ii ti],[xL yL 1 1]),2)./xuo;
+    end
+    MA.dVdt(:,ii+1,ti) = MA.dVdt(:,ii,ti) + nansum(maskREG.*ncread(wname,'dVdt',[1 1 ii ti],[xL yL 1 1])*1e9/rho0,2)./xuo;
+    MA.dHdt(:,ii+1,ti) = MA.dHdt(:,ii,ti) + nansum(maskREG.*ncread(wname,'dHdt',[1 1 ii ti],[xL yL 1 1]),2)./xuo;
+    MA.PSI(:,ii+1,ti) =  MA.PSI(:,ii,ti) + nansum(maskREG.*ncread(wname,'tx_trans_nrho',[1 1 ii ti],[xL yL 1 1]) + ...
+                              maskREG.*ncread(wname,'tx_trans_nrho_submeso',[1 1 ii ti],[xL yL 1 1]),2)*tsc/rho0;
+    if (haveGM) 
+        MA.PSI(:,ii+1,ti) = MA.PSI(:,ii+1,ti) + nansum(maskREG.*ncread(wname,'tx_trans_nrho_gm',[1 1 ii ti],[xL yL 1 1]),2)*tsc/rho0;
+    end
+    if (haveHND)
+        MA.AHD(:,ii+1,ti) = MA.AHD(:,ii,ti) + nansum(maskREG.*ncread(wname,'temp_xflux_adv_on_nrho',[1 1 ii ti],[xL yL 1 1])+ ...
+                                 maskREG.*ncread(wname,'temp_xflux_submeso_on_nrho',[1 1 ii ti],[xL yL 1 1]),2);
+
+        if (haveGM)
+            MA.AHD(:,ii+1,ti) = MA.AHD(:,ii+1,ti) + nansum(maskREG.*ncread(wname,'temp_xflux_gm_on_nrho',[1 1 ii ti],[xL yL 1 1]),2);
+        end
+    end
+
+    MA.SWH(:,ii+1,ti) = MA.SWH(:,ii,ti) + nansum(maskREG.*area.*ncread(wname,'sw_heat_on_nrho',[1 1 ii ti],[xL yL 1 1]),2)./xuo;
+    MA.F(:,ii+1,ti) = MA.F(:,ii+1,ti) + nansum(maskREG.*area.*ncread(wname,'sw_heat_on_nrho',[1 1 ii ti],[xL yL 1 1]),2)./xuo;
+    if (haveMIX)
+        MA.Mkppiw(:,ii+1,ti) = MA.Mkppiw(:,ii,ti) + (nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppiw_on_nrho',[1 1 ii ti],[xL yL 1 1]),2))./xuo;
+        MA.Mkppish(:,ii+1,ti) = MA.Mkppish(:,ii,ti) + (nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppish_on_nrho',[1 1 ii ti],[xL yL 1 1]),2))./xuo;
+        MA.Mwave(:,ii+1,ti) = MA.Mwave(:,ii,ti) + (nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_wave_on_nrho',[1 1 ii ti],[xL yL 1 1]),2))./xuo;
+        MA.Mkppbl(:,ii+1,ti) = MA.Mkppbl(:,ii,ti) + (nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppbl_on_nrho',[1 1 ii ti],[xL yL 1 1]),2))./xuo;
+        MA.Moth(:,ii+1,ti) = MA.Moth(:,ii,ti) + (nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppicon_on_nrho',[1 1 ii ti],[xL yL 1 1]),2) + ...
+                            nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_kppdd_on_nrho',[1 1 ii ti],[xL yL 1 1]),2) + ...
+                            nansum(maskREG.*area.*ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 ii ti],[xL yL 1 1]),2))./xuo;
+    end
+    if (haveRedi)
+        MA.K33(:,ii+1,ti) = MA.K33(:,ii,ti) + (nansum(maskREG.*area.*ncread(wname,'temp_vdiffuse_k33_on_nrho',[1 1 ii ti],[xL yL 1 1]),2))./xuo;
+        MA.RED(:,ii+1,ti) = MA.RED(:,ii,ti) + (nansum(maskREG.*area.*ncread(wname,'neutral_diffusion_on_nrho_temp',[1 1 ii ti],[xL yL 1 1]),2))./xuo;
+    end        
+    MA.JS(:,ii+1,ti) = MA.JS(:,ii,ti) + (nansum(maskREG.*ncread(wname,'mass_pmepr_on_nrho',[1 1 ii ti],[xL yL 1 1]),2)/rho0)./xuo;
+    end
+    save([outD model sprintf('_output%03d',output) '_' region '_MAHBud.mat'],'MA','xuo','xto','-v7.3');
+end
+
 % $$$ %% Annual average/max, zonal-average/max depth of isotherms:
 % $$$ 
 % $$$ tempZA = zeros(yL,zL);
@@ -1042,11 +1118,11 @@ end
 % $$$ region = 'Global';
 % $$$ 
 % $$$ base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
-% $$$ model = 'MOM025_kb3seg';
-% $$$ for output = [86:90]
+% $$$ model = 'MOM025_kb3seg_nosubmeso';
+% $$$ for output = [91:95]
 % $$$     save([base model sprintf('_output%03d_BaseVars.mat',output)], ...
 % $$$          'lon','lat','lonu','latu','area','-append');
 % $$$ end
-
+% $$$ 
 
 

@@ -18,3 +18,7 @@ NIPO_ALL/
 Diagnostic_Strategy\.txt
 
 *.m#
+
+1D_tendency/
+
+*.mat
