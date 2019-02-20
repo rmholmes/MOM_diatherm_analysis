@@ -1,7 +1,7 @@
 % This script extracts specified data from MOM025 and MOM01 runs 
 
-baseL = '/short/e14/rmh561/mom/archive/';
-% $$$ baseL = '/g/data/e14/rmh561/';
+% $$$ baseL = '/short/e14/rmh561/mom/archive/';
+baseL = '/g/data/e14/rmh561/mom/';
 % $$$ baseL = '/short/e14/rmh561/access-om2/archive/';
 % $$$ baseL = '/srv/ccrc/data03/z3500785/';
 % $$$ types = {'kds50','gfdl50','kds75','kds100','kds135'};
@@ -12,7 +12,7 @@ baseD = [baseL 'MOM_HeatDiag_kb3seg/'];
 outD = [baseD];
 
 % $$$ output = 36;
-for output=80:84
+for output=86:90
     if (output==0)
         restart=0;
     else

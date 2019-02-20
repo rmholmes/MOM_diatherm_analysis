@@ -12,12 +12,13 @@ RUNS = { ...
 % $$$     {'MOM01',[222]}, ...
 % $$$ % MOM025-SIS:
 % $$$     {'MOM025',[8:12]}, ...
-    {'MOM025',[15:19]}, ...
+% $$$     {'MOM025',[15:19]}, ...
 % $$$ % $$$     {'MOM025_kb1em6',[30]}, ...
-% $$$     {'MOM025_kb3seg',[85]}, ...
+% $$$     {'MOM025_kb3seg',[86:90]}, ...
+    {'MOM025_kb3seg_nosubmeso',[91:95]}, ...
 % $$$     {'MOM025_kb3seg',[86]}, ...
 % $$$     {'MOM025_kb1em5',[94]}, ...
-    {'MOM025_btide',[21]}, ...
+% $$$     {'MOM025_btide',[21]}, ...
 % $$$     {'MOM025_wombat',[1978]}, ...
 % ACCESS-OM2 025-degree:
 % $$$     {'ACCESS-OM2_025deg_jra55_ryf8485',[78]}, ...
@@ -36,8 +37,8 @@ RUNS = { ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may_kb1em5',[0]}, ...
        };
 
-% $$$ rr = 1;
-for rr = 1:length(RUNS);
+rr = 1;
+% $$$ for rr = 1:length(RUNS);
     outputs = RUNS{rr}{2};
     model = RUNS{rr}{1};
 
@@ -48,7 +49,6 @@ for rr = 1:length(RUNS);
     ndays = ndays(1:12);
     if (ndays(end) <= 0); ndays(end) = 365-ndays(end);end;
     region = 'Global';
-% $$$ region = 'Pacific';
     nyrs = tL/12;szTe = [TL+1 12 nyrs];szT  = [TL 12 nyrs];
     yrs = 1:nyrs;
     months = 1:12;
@@ -57,7 +57,7 @@ for rr = 1:length(RUNS);
 
 
     %%% Spatial Structure:
-    VAR = 'FlMwave';
+    VAR = 'FlI';
     TYPE = 'VertInt';
     Tl = 10;
     name = [base model sprintf('_output%03d',outputs(1)) '_' TYPE '_T' strrep(num2str(Tl),'.','p') 'C.mat']
@@ -320,6 +320,10 @@ for rr = 1:length(RUNS);
     [xL,yL] = size(lon);
     xvec = 1:1:xL;
     yvec = 1:1:yL;
+% $$$     xvec = 720:1:1320; %-100 -> +50
+% $$$     yvec = 540:1:940; % +15 -> +75
+% $$$     xvec = 880:1:1280; %-60 -> +40
+% $$$     yvec = 266:1:396; % -50 -> -25
     txtmonth = {'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'};
 
 % $$$     months = {[1:12], ...
@@ -330,13 +334,15 @@ for rr = 1:length(RUNS);
 % $$$               '(b) March', ...
 % $$$               '(c) July', ...
 % $$$               '(d) November'};
-    months = {[1:12]}; labels = {'(a) Total'};
+    months = {[1:12]}; labels = {'(b) $10^\circ$C no submesoscale'};
 
     %Colormap and continents:
-    sp = 1;
-    clim = [-50 0];
+    sp = 5;
+    clim = [-100 0];
+% $$$     sp = 5;
+% $$$     clim = [-125 125];
 
-    cCH = 1; % 0 = symmetric redblue
+    cCH = 2; % 0 = symmetric redblue
              % 1 = negative definite parula
              % 2 = negative parula with +ve's possible
     if (cCH==0)
@@ -356,7 +362,7 @@ for rr = 1:length(RUNS);
         cmap(end-1,:) = (cmap(end-1,:)+cmap(end,:))/2;
     end
     if (cCH == 2)
-        buf = 6;
+        buf = 3;
         clim = [clim(1) buf*sp];
         cpts = [-1e10 clim(1):sp:clim(2) 1e10];
         cmap(end+1,:) = cmap(end,:); % 1st positive bin
@@ -380,8 +386,8 @@ for rr = 1:length(RUNS);
 figure;
 set(gcf,'Position',[3          59        1916         914]);
 set(gcf,'Position',[88         371        1625         603]);
-set(gcf,'defaulttextfontsize',20);
-set(gcf,'defaultaxesfontsize',20);
+set(gcf,'defaulttextfontsize',15);
+set(gcf,'defaultaxesfontsize',15);
 
 poss = [0.1300    0.4553    0.7693    0.4697; ...
         0.1300    0.1389    0.2343    0.2680; ...
@@ -441,10 +447,13 @@ for i=1:length(months)
 % $$$     set(gca,'Position',[poss(i,:)]);
 % $$$     ylim([-45 45]);
 % $$$     ylim([-55 55]);
-    ylim([-75 75]);
-    set(gca,'FontSize',17);
+% $$$     xlim([-100 40]);
+% $$$     ylim([15 65]);
+    ylim([-60 75]);
+% $$$     set(gca,'FontSize',17);
     colormap(cmap);
-    text(-278,-40.5,labels{i},'BackgroundColor','w','Margin',0.5,'FontSize',17);
+    text(-277,-54,labels{i},'BackgroundColor','w','Margin',0.5,'FontSize',20);
+% $$$     text(-59.25,-26.5,labels{i},'BackgroundColor','w','Margin',0.5,'FontSize',17);
 % $$$     title([strrep(strrep(strrep(strrep(strrep(RUNS{rr}{1},'_',' '),'ACCESS-OM2 ','AOM'),' jra55',''),'ryf8485',''),' may','') ...
 % $$$            ' ' num2str(Tl) '$^\circ$C Numerical Mixing']);
 end
