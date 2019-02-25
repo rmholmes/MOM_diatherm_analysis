@@ -1,5 +1,5 @@
-function [mask_t,mask_Ny,mask_Nx,mask_Sx,mask_Sy,mask_Wx,mask_Wy] = ...
-    Heat_Budget_Mask(region,gname,fname,wname,outD,model)
+function [mask_t,mask_u,mask_Ny,mask_Nx,mask_Sx,mask_Sy,mask_Wx,mask_Wy] = ...
+    Heat_Budget_Mask(region,gname,wname,outD,model)
 % This function provides masks for different regions for analysing
 % the heat budget. 
 
@@ -25,13 +25,20 @@ else
 
 lonv_u = ncread(gname,'xu_ocean');
 latv_u = ncread(gname,'yu_ocean');
-T = ncread(wname,'neutral');
-TL = length(T);
+if (exist(wname))
+    T = ncread(wname,'neutral');
+    TL = length(T);
+end
 lon = ncread(gname,'geolon_t');
 lat = ncread(gname,'geolat_t');
+mask_t_full = ~isnan(ncread(gname,'kmt'));
+mask_u_full = ~isnan(ncread(gname,'kmu')); %kmu mask is the same as
+                                           %kmt mask
 [xL,yL] = size(lon);
 
-mask_t = ones(xL,yL); %Pacific Mask: 1 = Pacific water, 0 = Elsewhere
+mask_t = ones(xL,yL); %Mask: 1 = water in region, 0 = outside
+                      %region/not water
+mask_u = ones(xL,yL); % mask on u-points
 mask_Ny = 0*mask_t; %North y-trans mask
 mask_Nx = 0*mask_t; %North x-trans mask
 mask_Sy = 0*mask_t; %South y-trans mask
@@ -99,8 +106,7 @@ mask_t(t1:t2,t3:end) = 0;[~, t1] = min(abs(lonv_u+78.25));
 [~, t1] = min(abs(lonv_u+258.5));[~, t2] = min(abs(latv_u-6.5));mask_t(1:t1,1:t2) = 0;
 mask_t(81,525) = 0;mask_t(799,535)=0;
 
-SST = ncread(fname,'temp',[1 1 1 1],[xL yL 1 1]);
-mask_t(isnan(SST)) = 0;
+mask_t(mask_t_full == 0) = 0;
 
 % $$$ txtrans = sum(ncread(wname,'tx_trans_nrho',[1 1 1 1],[xL yL TL 1]),3);
 % $$$ tytrans = sum(ncread(wname,'ty_trans_nrho',[1 1 1 1],[xL yL TL 1]),3);
@@ -157,7 +163,7 @@ elseif (strcmp(region,'IndoPacific'))
     made_mask = 1;
     % Get Pacific mask:
     [mask_t,mask_Ny,mask_Nx,mask_Sx,mask_Sy,mask_Wx,mask_Wy] = ...
-    Heat_Budget_Mask('Pacific',gname,fname,wname,outD,model);
+    Heat_Budget_Mask('Pacific',gname,wname,outD,model);
 
     % Add eastern Indian:
     [~, t1] = min(abs(latv_u+46));[~, t3] = min(abs(lonv_u+73));
@@ -174,16 +180,13 @@ elseif (strcmp(region,'IndoPacific'))
     [~, t3] = min(abs(lonv_u-47));[~, t2] = min(abs(latv_u-32));
     mask_t(t3:end,(t1+1):t2) = 1;
 
-    SST = ncread(fname,'temp',[1 1 1 1],[xL yL 1 1]);
-    mask_t(isnan(SST)) = 0;
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+    mask_t(mask_t_full == 0) = 0;
 %%%%%%%% ATLANTIC REGION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 elseif (strcmp(region,'Atlantic'))
     made_mask = 1;
     % Get Indo-Pacific mask:
     [mask_t,mask_Ny,mask_Nx,mask_Sx,mask_Sy,mask_Wx,mask_Wy] = ...
-    Heat_Budget_Mask('IndoPacific',gname,fname,wname,outD,model);
+    Heat_Budget_Mask('IndoPacific',gname,wname,outD,model);
     
     % Invert:
     tmp = mask_t;
@@ -195,14 +198,94 @@ elseif (strcmp(region,'Atlantic'))
     mask_t(:,1:t1) = 0;
     mask_t(:,(t2+1):end) = 0;
 
-    SST = ncread(fname,'temp',[1 1 1 1],[xL yL 1 1]);
-    mask_t(isnan(SST)) = 0;
+    mask_t(mask_t_full == 0) = 0;
     
+
+%%%%%%% Zonal-average two-basin masks: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+elseif (strcmp(region,'IndoPacific2BAS'))
+    ['Generating new mask to file ' outname]
+    made_mask = 1;
+
+    % Northern boundary at 66N:
+    [~, t1] = min(abs(latv_u-66));
+    mask_t(:,(t1+1):end) = 0;
+    mask_u(:,(t1+1):end) = 0;
+    
+    % Southern boundary at 34S:
+    [~, t1] = min(abs(latv_u+34));
+    mask_t(:,1:t1) = 0;
+    mask_u(:,1:(t1-1)) = 0;
+    
+    % Fix Bering straight bit:
+    [~, t1] = min(abs(latv_u-66.5));
+    [~, t2] = min(abs(latv_u-65));
+    [~, t3] = min(abs(lonv_u+180));
+    [~, t4] = min(abs(lonv_u+178));
+    mask_t(t3:t4,t2:t1) = 1;
+    mask_u((t3-1):t4,(t2-1):t1) = 1;
+
+    % Zonal definitions:
+    [~, t1] = min(abs(lonv_u+68));mask_t(t1:end,:) = 0;mask_u(t1:end,:) = 0;
+    [~, t1] = min(abs(lonv_u+98));[~, t2] = min(abs(latv_u-18));mask_t(t1:end,t2:end) = 0;mask_u(t1:end,t2:end) = 0;
+    [~, t1] = min(abs(lonv_u+89));[~, t2] = min(abs(latv_u-15));
+    mask_t(t1:end,t2:end) = 0;mask_u(t1:end,t2:end) = 0;
+    [~, t1] = min(abs(lonv_u+84));
+    [~, t2] = min(abs(latv_u-10));mask_t(t1:end,t2:end) = 0;mask_u(t1:end,t2:end) = 0;
+    [~, t1] = min(abs(lonv_u+82.5));[~, t2] = min(abs(latv_u-9.5));mask_t(t1:end,t2:end) = 0;mask_u(t1:end,t2:end) = 0;
+    [~, t2] = min(abs(lonv_u+80.5));[~, t3] = min(abs(latv_u-9));
+    mask_t(t1:t2,t3:end) = 0;mask_u(t1:(t2-1),t3:end) = 0;
+    [~, t1] = min(abs(lonv_u+78.25));
+    [~, t2] = min(abs(latv_u-9));mask_t(t1:end,t2:end) = 0;mask_u(t1:end,t2:end) = 0;
+    [~, t1] = min(abs(lonv_u+77.5));[~, t2] = min(abs(latv_u-7.25));mask_t(t1:end,t2:end) = 0;mask_u(t1:end,t2:end) = 0;
+    mask_t(799,535)=0;
+    mask_u(798:800,534:536)=0;
+    
+    % Add western Indian:
+    [~, t1] = min(abs(latv_u+34));
+    [~, t3] = min(abs(lonv_u-20));[~, t2] = min(abs(latv_u-30));
+    mask_t(t3:end,(t1+1):t2) = 1;
+    mask_u((t3-1):end,t1:t2) = 1;
+    [~, t3] = min(abs(lonv_u-47));[~, t2] = min(abs(latv_u-32));
+    mask_t(t3:end,(t1+1):t2) = 1;
+    mask_u((t3-1):end,t1:t2) = 1;
+
+    mask_t(mask_t_full == 0) = 0;
+    mask_u(mask_u_full == 0) = 0;
+    
+elseif (strcmp(region,'Atlantic2BAS'))
+
+    % Get IndoPacific2BAS:
+    [mask_t,mask_u,mask_Ny,mask_Nx,mask_Sx,mask_Sy,mask_Wx,mask_Wy] = ...
+    Heat_Budget_Mask('IndoPacific2BAS',gname,wname,outD,model);
+    
+    % Invert:
+    tmp = mask_t;
+    tmp(mask_t == 1) = 0;
+    tmp(mask_t == 0) = 1;
+    mask_t = tmp;
+    tmp = mask_u;
+    tmp(mask_u == 1) = 0;
+    tmp(mask_u == 0) = 1;
+    mask_u = tmp;
+    
+    % Only North of 34S:
+    [~, t1] = min(abs(latv_u+34));
+    mask_t(:,1:t1) = 0;
+    mask_u(:,1:(t1-1)) = 0;
+
+    % For u-mask add Bering Strait u-points:
+    [~, t2] = min(abs(lonv_u+178));
+    [~, t1] = min(abs(latv_u-66));
+    mask_u(t2:end,t1) = 1;
+    
+    mask_t(mask_t_full == 0) = 0;
+    mask_u(mask_u_full == 0) = 0;
+
 elseif (strcmp(region,'AtlanticNZ'))
     made_mask = 1;
     % Get Atlantic mask:
     [mask_t,mask_Ny,mask_Nx,mask_Sx,mask_Sy,mask_Wx,mask_Wy] = ...
-    Heat_Budget_Mask('Atlantic',gname,fname,wname,outD,model);
+    Heat_Budget_Mask('Atlantic',gname,wname,outD,model);
     
     [~, t1] = min(abs(latv_u+34));
     
@@ -210,7 +293,7 @@ elseif (strcmp(region,'AtlanticNZ'))
 elseif (strcmp(region,'IndoPacificNZ'))
     made_mask = 1;
     [mask_t,mask_Ny,mask_Nx,mask_Sx,mask_Sy,mask_Wx,mask_Wy] = ...
-    Heat_Budget_Mask('IndoPacific',gname,fname,wname,outD,model);
+    Heat_Budget_Mask('IndoPacific',gname,wname,outD,model);
     
     [~, t1] = min(abs(latv_u+34));
     
@@ -218,7 +301,7 @@ elseif (strcmp(region,'IndoPacificNZ'))
 end
 
 if (made_mask)
-    save(outname,'mask_t','mask_Ny','mask_Nx','mask_Sx','mask_Sy', ...
+    save(outname,'mask_t','mask_u','mask_Ny','mask_Nx','mask_Sx','mask_Sy', ...
          'mask_Wx','mask_Wy','-v7.3');
 end
 end
