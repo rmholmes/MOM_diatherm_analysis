@@ -15,7 +15,8 @@ RUNS = { ...
 % $$$     {'MOM025',[15:19]}, ...
 % $$$ % $$$     {'MOM025_kb1em6',[30]}, ...
 % $$$     {'MOM025_kb3seg',[86:90]}, ...
-    {'MOM025_kb3seg_nosubmeso',[91:95]}, ...
+    {'MOM025_kb3seg',[94]}, ...
+% $$$     {'MOM025_kb3seg_nosubmeso',[91:95]}, ...
 % $$$     {'MOM025_kb3seg',[86]}, ...
 % $$$     {'MOM025_kb1em5',[94]}, ...
 % $$$     {'MOM025_btide',[21]}, ...
@@ -57,8 +58,10 @@ rr = 1;
 
 
     %%% Spatial Structure:
-    VAR = 'FlI';
-    TYPE = 'VertInt';
+% $$$     VAR = 'FlI';
+% $$$     TYPE = 'VertInt';
+    VAR = 'EKE';
+    TYPE = 'variances';
     Tl = 10;
     name = [base model sprintf('_output%03d',outputs(1)) '_' TYPE '_T' strrep(num2str(Tl),'.','p') 'C.mat']
     eval(['load(name,''' VAR ''');']);
@@ -457,7 +460,113 @@ for i=1:length(months)
 % $$$     title([strrep(strrep(strrep(strrep(strrep(RUNS{rr}{1},'_',' '),'ACCESS-OM2 ','AOM'),' jra55',''),'ryf8485',''),' may','') ...
 % $$$            ' ' num2str(Tl) '$^\circ$C Numerical Mixing']);
 end
+
+
+%% Variances:
+Tl = 10;
+
+VARS = {'EKE','wvar','Tdxsq','Tdysq','Tdzsq'};
+TYPE = 'variances';
+name = [base model sprintf('_output%03d',outputs(1)) '_' TYPE '_T' strrep(num2str(Tl),'.','p') 'C.mat']
+for ii=1:length(VARS)
+    VAR = VARS{ii}
+    eval(['load(name,''' VAR ''');']);
+    eval([VAR '(isnan(' VAR ')) = 0.0;']);
+    if (length(outputs)==1)
+        eval([VAR ' = reshape(' VAR ',[length(' VAR '(:,1,1)) length(' VAR '(1,:,1)) 12 nyrs]);']);
+    else
+        eval([VAR 'a = ' VAR ';']);
+        for i=2:length(outputs)
+            name = [base model sprintf('_output%03d',outputs(i)) '_' TYPE '_T' strrep(num2str(Tl),'.','p') 'C.mat']
+            eval(['load(name,''' VAR ''');']);
+            eval([VAR '(isnan(' VAR ')) = 0.0;']);
+            eval([VAR 'a = ' VAR 'a + ' VAR ';']);
+        end
+        eval([VAR ' = ' VAR 'a/length(outputs);']);
+    end
+    eval([VAR ' = monmean(' VAR ',3,ndays);']);
+    eval([VAR '(' VAR '==0) = NaN;']);
 end
+Tdhsq = Tdxsq+Tdysq;
+
+VARS = {'EKE','wvar','Tdhsq','Tdzsq'};
+names = {'$\overline{u''u''}+\overline{v''v''}$',['$\' ...
+                    'overline{w''w''}$'],'$|\Delta_x T|^2 + |\Delta_y T|^2$','$|\Delta_z T|^2$'};
+units = {'$m^2s^{-1}$','$m^2s^{-1}$','$^\circ C^2$','$^\circ C^2$'};
+
+%%% Plot spatial pattern:
+
+    try
+        obj = matfile([base model sprintf('_output%03d_SurfaceVars.mat',outputs(1))]);
+        LAND = obj.SST(:,:,1);
+    catch
+        LAND = zeros(size(FlM(:,:,1)));
+    end
+
+    [xL,yL] = size(lon);
+    xvec = 1:1:xL;
+    yvec = 1:1:yL;
+
+    %Colormaps:
+% $$$     clims = {[0 0.08],[0 0.3e-7],[0 4e-9],[0 20]};
+    clims = {[0 0.02],[0 0.3e-7],[0 4e-9],[0 20]};
+    nlv = 25;
+
+
+    cmapbase = parula(nlv-3);
+    cmapbase(end,:) = [0.97 0.97 0.8];
+    cmapbase(end-1,:) = (cmapbase(end-1,:)+cmapbase(end,:))/2;
+    cmapbase = flipud(cmapbase);
+    for i=1:4
+        sp = (clims{i}(2)-clims{i}(1))/(nlv-3);
+        cpts{i} = [-1e10 clims{i}(1):sp:clims{i}(2) 1e10];
+        cmap{i} = cmapbase;
+        LANDmask{i} = LAND;
+        LANDmask{i}(isnan(LAND)) = clims{i}(1)-sp/2;
+        LANDmask{i}(~isnan(LAND)) = NaN;
+        cmap{i}(2:(end+1),:) = cmapbase;
+        cmap{i}(1,:) = [0 0 0];
+        climns{i} = [clims{i}(1)-sp clims{i}(2)];
+    end
+    
+% $$$ %Mean of all months:
+% $$$ figure;
+% $$$ set(gcf,'Position',[1921           1        1920        1005]);
+% $$$ set(gcf,'defaulttextfontsize',15);
+% $$$ set(gcf,'defaultaxesfontsize',15);
+% $$$ 
+    poss = [0.1300    0.58      0.3548    0.3692; ...
+            0.5700    0.58      0.3548    0.3692; ...
+            0.1300    0.1100    0.3548    0.3692; ...
+            0.5700    0.1100    0.3548    0.3692];
+            
+for i=1:4
+    subplot(2,2,i);
+    X = lon(xvec,yvec);
+    Y = lat(xvec,yvec);
+    eval(['Z = ' VARS{i} '(xvec,yvec);']);
+    Z(Z<clims{i}(1)) = clims{i}(1);
+    contourf(X,Y,Z,cpts{i},'linestyle','none');
+    hold on;    
+    contourf(X,Y,LANDmask{i}(xvec,yvec),climns{i},'linestyle','none');
+    caxis(climns{i});
+    cb = colorbar;
+    ylabel(cb,units{i});
+    ylim(cb,clims{i});
+    if (i>=3)
+        xlabel('Longitude ($^\circ$E)');
+    end
+    if (i==1 | i == 3)
+        ylabel('Latitude ($^\circ$N)');
+    end
+    set(gca,'xtick',[-270:30:60]);
+    set(gca,'ytick',[-75:15:75]);
+    ylim([-60 75]);
+    colormap(gca,cmap{i});
+    title([names{i} ' on ' num2str(Tl) '$^\circ$C isotherm']);
+    set(gca,'Position',poss(i,:));
+end
+
 
 % $$$ %%% Plot isotherm spacing:
 % $$$ Tlm = 22;
