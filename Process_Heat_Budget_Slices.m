@@ -1,7 +1,7 @@
 % This script extracts specified data from MOM025 and MOM01 runs 
 
-% $$$ baseL = '/short/e14/rmh561/mom/archive/';
-baseL = '/g/data/e14/rmh561/mom/';
+baseL = '/short/e14/rmh561/mom/archive/';
+% $$$ baseL = '/g/data/e14/rmh561/mom/';
 % $$$ baseL = '/short/e14/rmh561/access-om2/archive/';
 % $$$ baseL = '/srv/ccrc/data03/z3500785/';
 % $$$ types = {'kds50','gfdl50','kds75','kds100','kds135'};
@@ -11,8 +11,8 @@ baseD = [baseL 'MOM_HeatDiag_kb3seg/'];
 
 outD = [baseD];
 
-% $$$ output = 36;
-for output=86:90
+output = 95;
+% $$$ for output=86:90
     if (output==0)
         restart=0;
     else
@@ -37,6 +37,7 @@ area = ncread(gname,'area_t');[xL,yL] = size(lon);
 lonu = ncread(gname,'geolon_c');latu = ncread(gname,'geolat_c');
 
 z = ncread(fname,'st_ocean');zL = length(z);
+zw = ncread(fname,'sw_ocean');
 
 time = ncread(fname,'time');
 tL = length(time);
@@ -88,12 +89,20 @@ save(name,'Yt','Zt','Yu','Zu','temp','kappa','taux','tauy','mld', ...
      'vdif','vnlc','pmer','sufc','swrd','ndif');
 end
 
-%% Get equatorial slices of variables:
+%% Get lon-depth slices of variables:
+% Equatorial Pacific:
+rname = 'EqPM2';
 [tmp lt1] = min(abs(lat(1,:)+2));
 [tmp lt2] = min(abs(lat(1,:)-2));
 [tmp ln1] = min(abs(lon(:,lt1)+240));
 [tmp ln2] = min(abs(lon(:,lt1)+70));
 
+% Gulf Stream:
+rname = 'GulfSt';
+[tmp lt1] = min(abs(lat(1,:)+2));
+[tmp lt2] = min(abs(lat(1,:)-2));
+[tmp ln1] = min(abs(lon(:,lt1)+240));
+[tmp ln2] = min(abs(lon(:,lt1)+70));
 
 temp = squeeze(mean(ncread(fname,'temp',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL tL]),2));
 if (strfind(baseD,'01'))
@@ -102,11 +111,20 @@ if (strfind(baseD,'01'))
 else
     u = squeeze(mean(ncread(fname,'u',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL tL]),2));
     v = squeeze(mean(ncread(fname,'v',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL tL]),2));
+    u_sq = squeeze(mean(ncread(fname,'u_sq',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL tL]),2));
+    v_sq = squeeze(mean(ncread(fname,'v_sq',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL tL]),2));
 end
 kappa = squeeze(mean(ncread(fname,'diff_cbt_t',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL tL]),2));
 taux = squeeze(mean(ncread(fname,'tau_x',[ln1 lt1 1],[ln2-ln1+1 lt2-lt1+1 tL]),2));
 tauy = squeeze(mean(ncread(fname,'tau_y',[ln1 lt1 1],[ln2-ln1+1 lt2-lt1+1 tL]),2));
 mld = squeeze(mean(ncread(fname,'mld',[ln1 lt1 1],[ln2-ln1+1 lt2-lt1+1 tL]),2));
+w = squeeze(mean(ncread(fname,'wt',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL tL]),2));
+w_sq = squeeze(mean(ncread(fname,'wt_sq',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL tL]),2));
+Tdxsq = squeeze(mean(ncread(fname,'temp_dxsq',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL tL]),2));
+Tdysq = squeeze(mean(ncread(fname,'temp_dysq',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL tL]),2));
+Tdzsq = squeeze(mean(ncread(fname,'temp_dzsq',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL tL]),2));
+
+% On isotherm terms:
 vdif = squeeze(mean(ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 TL tL]),2));
 ndif = squeeze(mean(ncread(wname,'temp_numdiff_heat_on_nrho',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 TL tL]),2));
 vnlc = squeeze(mean(ncread(wname,'temp_nonlocal_KPP_on_nrho',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 TL tL]),2));
@@ -120,9 +138,14 @@ swrd = squeeze(mean(ncread(wname,'sw_heat_on_nrho',[ln1 lt1 1 1],[ln2-ln1+1 lt2-
 
 [Xt,Zt] = ndgrid(mean(lon(ln1:ln2,lt1:lt2),2),z);
 [Xu,Zu] = ndgrid(mean(lonu(ln1:ln2,lt1:lt2),2),z);
+[Xw,Zw] = ndgrid(mean(lon(ln1:ln2,lt1:lt2),2),zw);
 
-name = [outD 'mat_data/' model sprintf('_output%03d',output) '_varsat_EqPM2.mat']
-save(name,'Xt','Zt','Xu','Zu','temp','kappa','taux','tauy','mld', ...
-     'vdif','vnlc','pmer','sufc','swrd','ndif');
+name = [outD 'mat_data/' model sprintf('_output%03d',output) ...
+        '_varsat_' rname '.mat']
+% Non-isotherm only:
+save(name,'Xt','Zt','Xu','Zu','Xw','Zw','temp','mld','u','v','u_sq','v_sq','w','w_sq','Tdxsq','Tdysq','Tdzsq');
+% Isotherm only:
+% $$$ save(name,'Xt','Zt','Xu','Zu','temp','kappa','taux','tauy','mld', ...
+% $$$      'vdif','vnlc','pmer','sufc','swrd','ndif');
 end
 
