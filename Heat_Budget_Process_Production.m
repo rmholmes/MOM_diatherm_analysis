@@ -687,6 +687,12 @@ if (haveMIX)
     FlMkppdd  = zeros(xL,yL,tL);
     FlMwave  = zeros(xL,yL,tL);
 end
+if (haveSUB)
+    FlSUB = zeros(xL,yL,tL);
+end
+if (haveGM)
+    FlGM  = zeros(xL,yL,tL);
+end
 if (doXYall)
     FlF = zeros(xL,yL,tL); % surface forcing
     FlP = zeros(xL,yL,tL); % P-E+R
@@ -718,6 +724,12 @@ while (Nremain > 0 & Ti >= 1)
         end            
         FlSP(:,:,ti) = FlSP(:,:,ti)+ncread(wname,'sw_heat_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
         FlI(:,:,ti) = ncread(wname,'temp_numdiff_heat_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+        if (haveSUB)
+            FlSUB(:,:,ti) = FlSUB(:,:,ti)+ncread(wname,'temp_submeso_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+        end
+        if (haveGM)
+            FlGM(:,:,ti) = FlGM(:,:,ti)+ncread(wname,'temp_gm_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+        end
         if (doXYall)
             if (haveRedi)
                 FlK(:,:,ti) = FlK(:,:,ti)+ncread(wname,'temp_vdiffuse_k33_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
@@ -741,6 +753,12 @@ while (Nremain > 0 & Ti >= 1)
         if (haveMIX)
             save(name,'FlMdif','FlMkppiw','FlMkppish', ...
                  'FlMkppicon','FlMkppbl','FlMkppdd','FlMwave','-append');
+        end
+        if (haveSUB)
+            save(name,'FlSUB','-append');
+        end
+        if (haveGM)
+            save(name,'FlGM','-append');
         end
         if (doXYall)
             save(name,'FlF','FlP','-append');
@@ -871,16 +889,28 @@ ZA.JS = zeros(yL,TL+1,tL); % m3s-1deg-1 due to surface volume flux
 ZA.PSI = zeros(yL,TL+1,tL); % m3s-1 northward transport
 ZA.AHD = zeros(yL,TL+1,tL); % W A direct using heat fluxes
 if (haveSUB)
+    ZA.SUB    = zers(yL,TL+1,tL);
     ZA.PSISUB = zeros(yL,TL+1,tL);
     ZA.AHDSUB = zeros(yL,TL+1,tL);
 end
 if (haveGM)
+    ZA.GM    = zeros(yL,TL+1,tL);
     ZA.PSIGM = zeros(yL,TL+1,tL);
     ZA.AHDGM = zeros(yL,TL+1,tL);
+end
+if (doHND)
+    ZA.NUM   = zeros(yL,TL+1,tL);
 end
 
 % ignoring tri-polar for now.
 for ti=1:tL
+    if (doHND)
+        for ii = 1:(TL+1)
+            sprintf('Calculating NUMH heat budget time %03d of %03d, temp %03d of %03d',ti,tL,Ti,TL)
+            ZA.NUM(:,ii,ti) = nansum(tmaskREG.*area.*ncread(wname,'temp_numdiff_heat_on_nrho',[1 1 Ti ti],[xL yL 1 1]),1)';
+        end
+    end
+
     for ii = 1:TL
     sprintf('Calculating zonally-averaged water-mass heat budget time %03d of %03d, temp %03d of %03d',ti,tL,ii,TL)
     ZA.F(:,ii+1,ti) = ZA.F(:,ii,ti) + (nansum(tmaskREG.*area.*ncread(wname,'temp_vdiffuse_sbc_on_nrho',[1 1 ii ti],[xL yL 1 1]),1) + ...
@@ -898,10 +928,12 @@ for ti=1:tL
     ZA.PSI(:,ii+1,ti)  = ZA.PSI(:,ii,ti) + nansum(umaskREG.*ncread(wname,'ty_trans_nrho',[1 1 ii ti],[xL yL 1 1]);
     ZA.AHD(:,ii+1,ti)  = ZA.AHD(:,ii,ti) + nansum(umaskREG.*ncread(wname,'temp_yflux_adv_on_nrho',[1 1 ii ti],[xL yL 1 1]);
     if (haveSUB)
+        ZA.SUB(:,ii+1,ti) = ZA.SUB(:,ii,ti) + nansum(tmaskREG.*ncread(wname,'temp_submeso_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)';
         ZA.PSISUB(:,ii+1,ti) = ZA.PSISUB(:,ii,ti) + nansum(umaskREG.*ncread(wname,'ty_trans_nrho_submeso',[1 1 ii ti],[xL yL 1 1]),1)'*tsc/rho0;
         ZA.AHDSUB(:,ii+1,ti) = ZA.AHDSUB(:,ii,ti) + nansum(umaskREG.*ncread(wname,'temp_yflux_submeso_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)';
     end
     if (haveGM) 
+        ZA.GM(:,ii+1,ti) = ZA.GM(:,ii,ti) + nansum(tmaskREG.*ncread(wname,'temp_gm_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)';
         ZA.PSIGM(:,ii+1,ti) = ZA.PSIGM(:,ii+1,ti) + nansum(umaskREG.*ncread(wname,'ty_trans_nrho_gm',[1 1 ii ti],[xL yL 1 1]),1)'*tsc/rho0;
         ZA.AHDGM(:,ii+1,ti) = ZA.AHDGM(:,ii+1,ti) + nansum(umaskREG.*ncread(wname,'temp_yflux_gm_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)';
     end
