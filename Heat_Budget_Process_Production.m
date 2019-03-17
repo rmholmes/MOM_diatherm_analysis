@@ -747,7 +747,7 @@ while (Nremain > 0 & Ti >= 1)
     % Save heat flux terms:
     [sp,ind] = min(abs(Tls-Tl));
     if (abs(sp) <= dT/4)
-        name = [outD model sprintf('_output%03d',output) '_VertInt_T' strrep(num2str(Tls(ind)),'.','p') 'C_trredo.mat']
+        name = [outD model sprintf('_output%03d',output) '_VertInt_T' strrep(num2str(Tls(ind)),'.','p') 'C.mat']
 
         save(name,'FlM','FlSP','FlI','Tl','-v7.3');
         if (haveMIX)
@@ -925,8 +925,8 @@ for ti=1:tL
     end
     ZA.dVdt(:,ii+1,ti) = ZA.dVdt(:,ii,ti) + nansum(tmaskREG.*ncread(wname,'dVdt',[1 1 ii ti],[xL yL 1 1])*1e9/rho0,1)';
     ZA.dHdt(:,ii+1,ti) = ZA.dHdt(:,ii,ti) + nansum(tmaskREG.*ncread(wname,'dHdt',[1 1 ii ti],[xL yL 1 1]),1)';
-    ZA.PSI(:,ii+1,ti)  = ZA.PSI(:,ii,ti) + nansum(umaskREG.*ncread(wname,'ty_trans_nrho',[1 1 ii ti],[xL yL 1 1]);
-    ZA.AHD(:,ii+1,ti)  = ZA.AHD(:,ii,ti) + nansum(umaskREG.*ncread(wname,'temp_yflux_adv_on_nrho',[1 1 ii ti],[xL yL 1 1]);
+    ZA.PSI(:,ii+1,ti)  = ZA.PSI(:,ii,ti) + nansum(umaskREG.*ncread(wname,'ty_trans_nrho',[1 1 ii ti],[xL yL 1 1]))'*tsc/rho0;
+    ZA.AHD(:,ii+1,ti)  = ZA.AHD(:,ii,ti) + nansum(umaskREG.*ncread(wname,'temp_yflux_adv_on_nrho',[1 1 ii ti],[xL yL 1 1]))';
     if (haveSUB)
         ZA.SUB(:,ii+1,ti) = ZA.SUB(:,ii,ti) + nansum(tmaskREG.*ncread(wname,'temp_submeso_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)';
         ZA.PSISUB(:,ii+1,ti) = ZA.PSISUB(:,ii,ti) + nansum(umaskREG.*ncread(wname,'ty_trans_nrho_submeso',[1 1 ii ti],[xL yL 1 1]),1)'*tsc/rho0;
@@ -956,7 +956,7 @@ for ti=1:tL
     end        
     ZA.JS(:,ii+1,ti) = ZA.JS(:,ii,ti) + (nansum(tmaskREG.*ncread(wname,'mass_pmepr_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)/rho0)';
     end
-    save([outD model sprintf('_output%03d',output) '_' region '_ZAHBud_trredo.mat'],'ZA','yu','yt','-v7.3');
+    save([outD model sprintf('_output%03d',output) '_' region '_ZAHBud.mat'],'ZA','yu','yt','-v7.3');
 end
 
 end
