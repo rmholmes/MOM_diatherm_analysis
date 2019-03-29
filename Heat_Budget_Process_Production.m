@@ -123,14 +123,7 @@ end
 
 % Time  -----------------------------------------
 time = ncread(fname,'time');
-
-dys = [31 28 31 30 31 30 31 31 30 31 30 31];
-C = textread(tname, '%s','delimiter', '\n');
-C = strsplit(C{1});
-rtime = [str2num(C{1}) str2num(C{2}) str2num(C{3}) str2num(C{4}) str2num(C{5}) str2num(C{6})];
-time_snap = [(rtime(1)-1)*365+sum(dys(1:(rtime(2)-1)))+(rtime(3)-1)+rtime(4)/24+rtime(5)/24/60+rtime(6)/24/60/60;
-             ncread(sname,'time')];
-
+ndays = ncread(fname,'average_DT');
 tL = length(time);
 
 Cp = 3992.10322329649; % J kg-1 degC-1
@@ -142,7 +135,7 @@ TL = length(T);dT = T(2)-T(1);
 
 if (doBASE)
 save([outD model sprintf('_output%03d',output) '_BaseVars.mat'], ...
-     'T','Te','TL','dT','Cp','rho0','time','time_snap','tL', ...
+     'T','Te','TL','dT','Cp','rho0','time','ndays','tL', ...
      'z','zL','lon','lat','area','xL','yL','yt','yu', 'xt','xu','lonu','latu','-v7.3');
 end
 

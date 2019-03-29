@@ -32,7 +32,9 @@ outputs = [87:90 96];
 % $$$ outputs = [444];
 
 load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
-ndays = diff(time_snap);
+if (~exist(ndays))
+    ndays = diff(time_snap);
+end
 % $$$ regions = {'Global'};
 % $$$ regLets = {''};
 regions = {'Atlantic2BAS','IndoPacific2BAS','Global'};
