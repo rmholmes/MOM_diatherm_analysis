@@ -908,7 +908,7 @@ end
 for ti=1:tL
     if (doHND)
         for ii = 1:(TL+1)
-            ZA.NUM(:,ii,ti) = nansum(tmaskREG.*area.*ncread(wname,'temp_numdiff_heat_on_nrho',[1 1 Ti ti],[xL yL 1 1]),1)';
+            ZA.NUM(:,ii,ti) = nansum(tmaskREG.*area.*ncread(wname,'temp_numdiff_heat_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)';
         end
     end
 
@@ -1023,7 +1023,6 @@ end % End doZA
 
 
 % $$$ end
-
 % $$$ %% Swap in non-NaN'd lon/lat:
 % $$$ base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
 % $$$ model = 'MOM025';
@@ -1032,9 +1031,9 @@ end % End doZA
 % $$$ region = 'Global';
 % $$$ 
 % $$$ base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
-% $$$ model = 'MOM025_kb3seg_nosubmeso';
-% $$$ for output = [91:95]
+% $$$ model = 'MOM025_kb3seg';
+% $$$ for output = [87:90]
 % $$$     save([base model sprintf('_output%03d_BaseVars.mat',output)], ...
 % $$$          'lon','lat','lonu','latu','area','-append');
 % $$$ end
-
+% $$$ 
