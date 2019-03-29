@@ -52,10 +52,10 @@ else % MOM-SIS, transport in 1e9 kg/s
     tsc = 1e9;
 end
 
-for output = 86:90;
+% $$$ for output = 86;
 restart = output-1;
 
-region = 'Global';
+% $$$ region = 'Global';
 
 % file-names -----------------------------------------
 base = [baseD sprintf('output%03d/',output) post];
@@ -256,8 +256,10 @@ for ti=1:tL
         end
     end
     
-    % Integrate to get to T'>T:
-    TENMON(:,ti) = flipud(cumsum(flipud(TENMON(:,ti))));
+    if (doTENMON)
+        % Integrate to get to T'>T:
+        TENMON(:,ti) = flipud(cumsum(flipud(TENMON(:,ti))));
+    end
     
     for Ti=1:TL
     netcdf.putVar(ncid,dVdtID,[0 0 Ti-1 ti-1],[xL yL 1 1],(Vsnap(:,:,Ti)-VsnapM(:,:,Ti)) ...
@@ -333,9 +335,9 @@ for ti=1:tL
     dVdt = zeros(xL,yL);
     dHdt = zeros(xL,yL);
     dift = zeros(xL,yL);
-    netcdf.putVar(ncid,ndifID,[0 0 Ti ti-1],[xL yL 1 1],zeros(xL,yL));
+    netcdf.putVar(ncid,ndifID,[0 0 TL ti-1],[xL yL 1 1],zeros(xL,yL));
 
-    for Ti=TL-1:-1:1
+    for Ti=TL:-1:1
         sprintf('Calculating numdif time %03d of %03d, Temp %03d of %03d',ti,tL,Ti,TL)
         JS = JS + ncread(wname,'mass_pmepr_on_nrho',[1 1 Ti ti],[xL yL 1 1])./area/rho0;
         dVdt = dVdt + double(ncread(wname,'dVdt',[1 1 Ti ti],[xL yL 1 1]))*1e9/rho0./area;
@@ -530,7 +532,7 @@ for i=1:length(names)
           names{i} '(:,ti))));']);
 end
 
-save([outD model sprintf('_output%03d',output) '_GlobalHBud_MonAnBin.mat'],'GWBmon','GWBann','-v7.3');
+save([outD model sprintf('_output%03d',output) '_' region '_HBud_MonAnBin.mat'],'GWBmon','GWBann','-v7.3');
 
 end
 
@@ -665,13 +667,13 @@ for ii=TL-1:-1:1
     GWB.SFW(ii,ti) = GWB.SFW(ii+1,ti) + nansum(nansum(tmaskREG.*ncread(wname,'mass_pmepr_on_nrho',[1 1 ii ti],[xL yL 1 1])/rho0,1),2);
 end
 end
-save([outD model sprintf('_output%03d',output) '_' region 'HBud.mat'],'GWB','-v7.3');
+save([outD model sprintf('_output%03d',output) '_' region '_HBud.mat'],'GWB','-v7.3');
 
 end
 
 %% Vertical Integrate down to level from online T-binned values -----------------------------------------------------------------------------------------------------------
 if (doXY)
-Tls = [0:2.5:27.5];
+Tls = [0 5 10 15 20 22.5 25 27.5];
 Nremain = length(Tls);
 Ti = TL;
 
@@ -889,7 +891,7 @@ ZA.JS = zeros(yL,TL+1,tL); % m3s-1deg-1 due to surface volume flux
 ZA.PSI = zeros(yL,TL+1,tL); % m3s-1 northward transport
 ZA.AHD = zeros(yL,TL+1,tL); % W A direct using heat fluxes
 if (haveSUB)
-    ZA.SUB    = zers(yL,TL+1,tL);
+    ZA.SUB    = zeros(yL,TL+1,tL);
     ZA.PSISUB = zeros(yL,TL+1,tL);
     ZA.AHDSUB = zeros(yL,TL+1,tL);
 end
@@ -906,8 +908,7 @@ end
 for ti=1:tL
     if (doHND)
         for ii = 1:(TL+1)
-            sprintf('Calculating NUMH heat budget time %03d of %03d, temp %03d of %03d',ti,tL,Ti,TL)
-            ZA.NUM(:,ii,ti) = nansum(tmaskREG.*area.*ncread(wname,'temp_numdiff_heat_on_nrho',[1 1 Ti ti],[xL yL 1 1]),1)';
+            ZA.NUM(:,ii,ti) = nansum(tmaskREG.*area.*ncread(wname,'temp_numdiff_heat_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)';
         end
     end
 
@@ -958,8 +959,7 @@ for ti=1:tL
     end
     save([outD model sprintf('_output%03d',output) '_' region '_ZAHBud.mat'],'ZA','yu','yt','-v7.3');
 end
-
-end
+end % End doZA
 
 % $$$ %% Annual average/max, zonal-average/max depth of isotherms:
 % $$$ 
@@ -1022,8 +1022,8 @@ end
 
 
 
-end
-
+% $$$ end
+% $$$ 
 % $$$ %% Swap in non-NaN'd lon/lat:
 % $$$ base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
 % $$$ model = 'MOM025';
@@ -1032,9 +1032,9 @@ end
 % $$$ region = 'Global';
 % $$$ 
 % $$$ base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
-% $$$ model = 'MOM025_kb3seg_nosubmeso';
-% $$$ for output = [91:95]
+% $$$ model = 'MOM025_kb3seg';
+% $$$ for output = [87:90]
 % $$$     save([base model sprintf('_output%03d_BaseVars.mat',output)], ...
 % $$$          'lon','lat','lonu','latu','area','-append');
 % $$$ end
-
+% $$$ 
