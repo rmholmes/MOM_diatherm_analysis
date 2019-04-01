@@ -723,7 +723,7 @@ while (Nremain > 0 & Ti >= 1)
             FlSUB(:,:,ti) = FlSUB(:,:,ti)+ncread(wname,'temp_submeso_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
         end
         if (haveGM)
-            FlGM(:,:,ti) = FlGM(:,:,ti)+ncread(wname,'temp_gm_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+            FlGM(:,:,ti) = FlGM(:,:,ti)+ncread(wname,'neutral_gm_on_nrho_temp',[1 1 Ti ti],[xL yL 1 1]);
         end
         if (doXYall)
             if (haveRedi)
@@ -927,7 +927,7 @@ for ti=1:tL
         ZA.AHDSUB(:,ii+1,ti) = ZA.AHDSUB(:,ii,ti) + nansum(umaskREG.*ncread(wname,'temp_yflux_submeso_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)';
     end
     if (haveGM) 
-        ZA.GM(:,ii+1,ti) = ZA.GM(:,ii,ti) + nansum(tmaskREG.*ncread(wname,'temp_gm_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)';
+        ZA.GM(:,ii+1,ti) = ZA.GM(:,ii,ti) + nansum(tmaskREG.*ncread(wname,'neutral_gm_on_nrho_temp',[1 1 ii ti],[xL yL 1 1]),1)';
         ZA.PSIGM(:,ii+1,ti) = ZA.PSIGM(:,ii+1,ti) + nansum(umaskREG.*ncread(wname,'ty_trans_nrho_gm',[1 1 ii ti],[xL yL 1 1]),1)'*tsc/rho0;
         ZA.AHDGM(:,ii+1,ti) = ZA.AHDGM(:,ii+1,ti) + nansum(umaskREG.*ncread(wname,'temp_yflux_gm_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)';
     end
