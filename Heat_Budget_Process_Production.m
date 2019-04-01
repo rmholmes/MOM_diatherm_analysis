@@ -2,16 +2,16 @@
 % MOM025 or MOM01 simulations and save's into .mat files
 
 % $$$ baseL = '/short/e14/rmh561/mom/archive/';
-baseL = '/g/data/e14/rmh561/mom/';
-% $$$ baseL = '/short/e14/rmh561/access-om2/archive/';
+% $$$ baseL = '/g/data/e14/rmh561/mom/';
+baseL = '/short/e14/rmh561/access-om2/archive/';
 % $$$ baseL = '/srv/ccrc/data03/z3500785/';
 
 % $$$ % MOM-SIS025:
-model = 'MOM025_kb3seg';
-baseD = [baseL 'MOM_HeatDiag_kb3seg/']; %Data Directory.
+% $$$ model = 'MOM025_kb3seg';
+% $$$ baseD = [baseL 'MOM_HeatDiag_kb3seg/']; %Data Directory.
 % ACCESS-OM2:
-% $$$ model = 'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may';
-% $$$ baseD = [baseL '1deg_jra55_ryf8485_kds50_may/']; %Data Directory.
+model = 'ACCESS-OM2_1deg_jra55_ryf8485_kds50_july';
+baseD = [baseL '1deg_jra55_ryf8485_kds50_july/']; %Data Directory.
 % $$$ ICdir = '/g/data1/ua8/MOM/initial_conditions/WOA/10_KDS50/';
 % MOM-SIS01:
 % $$$ model = 'MOM01';
@@ -20,15 +20,15 @@ baseD = [baseL 'MOM_HeatDiag_kb3seg/']; %Data Directory.
 outD = [baseD 'mat_data/'];
 rstbaseD = baseD;
 
-% $$$ post = 'ocean/'; % For ACCESS-OM2 output coulpled;
-post = ''; % For MOM-SIS.
+post = 'ocean/'; % For ACCESS-OM2 output coulpled;
+% $$$ post = ''; % For MOM-SIS.
 
 % term options:
-haveRedi = 0; % 1 = Redi diffusion is on, 0 = off
-haveGM = 0; % 1 = GM is on, 0 = off;
+haveRedi = 1; % 1 = Redi diffusion is on, 0 = off
+haveGM = 1; % 1 = GM is on, 0 = off;
 haveSUB = 1; % 1 = submeso is on, 0 = off;
-haveMDS = 0; % 1 = MDS is on, 0 = off;
-haveMIX = 1; % 1 = Do mixing components (vdiffuse_diff_cbt_*), 0 = don't. 
+haveMDS = 1; % 1 = MDS is on, 0 = off;
+haveMIX = 0; % 1 = Do mixing components (vdiffuse_diff_cbt_*), 0 = don't. 
 
 % Processing options:
 doBASE     = 1; % 1 = save BaseVars.mat file
@@ -37,7 +37,7 @@ doNUMDIF   = 1; % 1 = calculate tempdiff x,y,T,t and save into .nc file
 
 doGWB      = 1; % 1 = calculate global online budget terms
 doXY       = 1; % 1 = calculate spatial fluxes-on-an-isotherm
-doSURF     = 0; % 1 = calculate surface flux field and SST
+doSURF     = 1; % 1 = calculate surface flux field and SST
 doZA       = 1; % 1 = calculate zonal average budget
 
 doHND      = 1; % 1 = calculate global online numdif
@@ -145,7 +145,7 @@ if (dodVdtdHdt)
 % Create variables:
 ncid = netcdf.open(wname,'NC_WRITE');
 try
-    id = netcdf.inqVarID(ncid,'dVdt');
+    id = netcdf.inqVarID(ncid,'dHdt');
     not_there = 0;
 catch
     not_there = 1;
@@ -256,9 +256,9 @@ for ti=1:tL
     
     for Ti=1:TL
     netcdf.putVar(ncid,dVdtID,[0 0 Ti-1 ti-1],[xL yL 1 1],(Vsnap(:,:,Ti)-VsnapM(:,:,Ti)) ...
-                        /(time_snap(ti+1)-time_snap(ti))/86400*rho0/1e9);
+                        /ndays(ti)/86400*rho0/1e9);
     netcdf.putVar(ncid,dHdtID,[0 0 Ti-1 ti-1],[xL yL 1 1],(Hsnap(:,:,Ti)-HsnapM(:,:,Ti)) ...
-                        /(time_snap(ti+1)-time_snap(ti))/86400);
+                        /ndays(ti)/86400);
     end
     VsnapM = Vsnap;
     HsnapM = Hsnap;
@@ -313,7 +313,7 @@ if (not_there)
                         'to numerical mixing estimated from heat ' ...
                         'fluxes binned to neutral density']);
     netcdf.putAtt(ncid,ndifID,'units','Watts/m^2');
-    netcdf.putAtt(ncid,ndifID,'_FillValue',single(-1e20));
+    %    netcdf.putAtt(ncid,ndifID,'_FillValue',single(-1e20));
     netcdf.endDef(ncid);
 else
     ndifID = netcdf.inqVarID(ncid,'temp_numdiff_heat_on_nrho');
@@ -354,7 +354,7 @@ for ti=1:tL
             dift = dift + ncread(wname,'temp_submeso_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
         end
         if (haveGM)
-            dift = dift + ncread(wname,'temp_gm_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+            dift = dift + ncread(wname,'neutral_gm_on_nrho_temp',[1 1 Ti ti],[xL yL 1 1]);
         end
     
         txtrans = ncread(wname,'tx_trans_nrho',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0;
@@ -723,7 +723,7 @@ while (Nremain > 0 & Ti >= 1)
             FlSUB(:,:,ti) = FlSUB(:,:,ti)+ncread(wname,'temp_submeso_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
         end
         if (haveGM)
-            FlGM(:,:,ti) = FlGM(:,:,ti)+ncread(wname,'temp_gm_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+            FlGM(:,:,ti) = FlGM(:,:,ti)+ncread(wname,'neutral_gm_on_nrho_temp',[1 1 Ti ti],[xL yL 1 1]);
         end
         if (doXYall)
             if (haveRedi)
@@ -927,7 +927,7 @@ for ti=1:tL
         ZA.AHDSUB(:,ii+1,ti) = ZA.AHDSUB(:,ii,ti) + nansum(umaskREG.*ncread(wname,'temp_yflux_submeso_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)';
     end
     if (haveGM) 
-        ZA.GM(:,ii+1,ti) = ZA.GM(:,ii,ti) + nansum(tmaskREG.*ncread(wname,'temp_gm_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)';
+        ZA.GM(:,ii+1,ti) = ZA.GM(:,ii,ti) + nansum(tmaskREG.*ncread(wname,'neutral_gm_on_nrho_temp',[1 1 ii ti],[xL yL 1 1]),1)';
         ZA.PSIGM(:,ii+1,ti) = ZA.PSIGM(:,ii+1,ti) + nansum(umaskREG.*ncread(wname,'ty_trans_nrho_gm',[1 1 ii ti],[xL yL 1 1]),1)'*tsc/rho0;
         ZA.AHDGM(:,ii+1,ti) = ZA.AHDGM(:,ii+1,ti) + nansum(umaskREG.*ncread(wname,'temp_yflux_gm_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)';
     end
