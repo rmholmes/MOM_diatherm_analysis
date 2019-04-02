@@ -10,8 +10,8 @@ baseL = '/short/e14/rmh561/access-om2/archive/';
 % $$$ model = 'MOM025_kb3seg';
 % $$$ baseD = [baseL 'MOM_HeatDiag_kb3seg/']; %Data Directory.
 % ACCESS-OM2:
-model = 'ACCESS-OM2_1deg_jra55_ryf8485_kds50_july';
-baseD = [baseL '1deg_jra55_ryf8485_kds50_july/']; %Data Directory.
+model = 'ACCESS-OM2_1deg_jra55_ryf8485_gfdl50_july';
+baseD = [baseL '1deg_jra55_ryf8485_gfdl50_july/']; %Data Directory.
 % $$$ ICdir = '/g/data1/ua8/MOM/initial_conditions/WOA/10_KDS50/';
 % MOM-SIS01:
 % $$$ model = 'MOM01';
@@ -28,12 +28,15 @@ haveRedi = 1; % 1 = Redi diffusion is on, 0 = off
 haveGM = 1; % 1 = GM is on, 0 = off;
 haveSUB = 1; % 1 = submeso is on, 0 = off;
 haveMDS = 1; % 1 = MDS is on, 0 = off;
+haveSIG = 1; % 1 = SIG is on, 0 = off;
 haveMIX = 0; % 1 = Do mixing components (vdiffuse_diff_cbt_*), 0 = don't. 
 
 % Processing options:
 doBASE     = 1; % 1 = save BaseVars.mat file
 dodVdtdHdt = 1; % 1 = calculate dVdt/dHdt and save into .nc file
 doNUMDIF   = 1; % 1 = calculate tempdiff x,y,T,t and save into .nc file
+doSGMviac  = 0; % 1 = calculate SUB/GM influence via binned
+                % convergence (otherwise uses only lateral flux).
 
 doGWB      = 1; % 1 = calculate global online budget terms
 doXY       = 1; % 1 = calculate spatial fluxes-on-an-isotherm
@@ -157,11 +160,11 @@ if (not_there)
     dVdtID = netcdf.defVar(ncid,'dVdt','NC_FLOAT',[xid yid zid tid]);
     netcdf.putAtt(ncid,dVdtID,'long_name','Change in time of volume within temperature bin');
     netcdf.putAtt(ncid,dVdtID,'units','Sv (10^9 kg/s)');
-    netcdf.putAtt(ncid,dVdtID,'_FillValue',single(-1e20));
+% $$$     netcdf.putAtt(ncid,dVdtID,'_FillValue',single(-1e20));
     dHdtID = netcdf.defVar(ncid,'dHdt','NC_FLOAT',[xid yid zid tid]);
     netcdf.putAtt(ncid,dHdtID,'long_name','Change in time of heat content within temperature bin');
     netcdf.putAtt(ncid,dHdtID,'units','Watts');
-    netcdf.putAtt(ncid,dHdtID,'_FillValue',single(-1e20));
+% $$$     netcdf.putAtt(ncid,dHdtID,'_FillValue',single(-1e20));
     netcdf.endDef(ncid);
 else
     dVdtID = netcdf.inqVarID(ncid,'dVdt');
@@ -350,21 +353,37 @@ for ti=1:tL
         if (haveMDS)
             dift = dift + ncread(wname,'mixdownslope_temp_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
         end    
-        if (haveSUB)
-            dift = dift + ncread(wname,'temp_submeso_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
-        end
-        if (haveGM)
-            dift = dift + ncread(wname,'neutral_gm_on_nrho_temp',[1 1 Ti ti],[xL yL 1 1]);
-        end
+        if (haveSIG)
+            dift = dift + ncread(wname,'temp_sigma_diff_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+        end    
     
         txtrans = ncread(wname,'tx_trans_nrho',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0;
         tytrans = ncread(wname,'ty_trans_nrho',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0;
-        qxtrans = ncread(wname,'temp_xflux_adv_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
-        qytrans = ncread(wname,'temp_yflux_adv_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
         % NOTE: THE tx_trans_submeso contribution SHOULD NOT be
         % added if it is implemented via skew-diffusion.
         % NOTE: THE tx_trans_gm contribution SHOULD NOT be
         % added if it is implemented via skew-diffusion.
+
+        qxtrans = ncread(wname,'temp_xflux_adv_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+        qytrans = ncread(wname,'temp_yflux_adv_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+
+        % Submesoscale and GM: two options:
+        if (haveSUB)
+            if (doSGMviac)
+                dift = dift + ncread(wname,'temp_submeso_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+            else
+                qxtrans = qxtrans + ncread(wname,'temp_xflux_submeso_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+                qytrans = qytrans + ncread(wname,'temp_yflux_submeso_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+            end
+        end
+        if (haveGM)
+            if (doSGMviac)
+                dift = dift + ncread(wname,'neutral_gm_on_nrho_temp',[1 1 Ti ti],[xL yL 1 1]);
+            else
+                qxtrans = qxtrans + ncread(wname,'temp_xflux_gm_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+                qytrans = qytrans + ncread(wname,'temp_yflux_gm_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+            end
+        end
 
         JI(2:end,2:end) = JI(2:end,2:end) + (txtrans(1:(end-1),2:end) - txtrans(2:end,2:end) ...
                                              +tytrans(2:end,1:(end-1)) - tytrans(2:end,2:end))./area(2:end,2:end);
@@ -569,6 +588,9 @@ end
 if (haveMDS)
     GWB.MDS    = zeros(TL+1,tL); % W due to mixdownslope
 end
+if (haveSIG)
+    GWB.SIG    = zeros(TL+1,tL); % W due to sigma diff
+end
 GWB.ADV    = zeros(TL+1,tL); % W due to advection
 GWB.TEN    = zeros(TL+1,tL); % W due to tendency
 GWB.SFW    = zeros(TL+1,tL); % surface volume flux into ocean (m3s-1)
@@ -619,6 +641,9 @@ for ti=1:tL
     if (haveMDS)
     GWB.MDS(ii,ti) = nansum(nansum(tmaskREG.*area.*ncread(wname,'mixdownslope_temp_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     end
+    if (haveSIG)
+    GWB.SIG(ii,ti) = nansum(nansum(tmaskREG.*area.*ncread(wname,'temp_sigma_diff_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    end
     GWB.FRZ(ii,ti) = nansum(nansum(tmaskREG.*area.*ncread(wname,'frazil_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     GWB.ETS(ii,ti) = nansum(nansum(tmaskREG.*area.*ncread(wname,'temp_eta_smooth_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     GWB.SFW(ii,ti) = nansum(nansum(tmaskREG.*ncread(wname,'mass_pmepr_on_nrho',[1 1 ii ti],[xL yL 1 1])/rho0,1),2);
@@ -654,6 +679,9 @@ for ii=TL-1:-1:1
     end
     if (haveMDS)
     GWB.MDS(ii,ti) = GWB.MDS(ii+1,ti) + nansum(nansum(tmaskREG.*area.*ncread(wname,'mixdownslope_temp_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    end
+    if (haveSIG)
+    GWB.SIG(ii,ti) = GWB.SIG(ii+1,ti) + nansum(nansum(tmaskREG.*area.*ncread(wname,'temp_sigma_diff_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     end
     GWB.FRZ(ii,ti) = GWB.FRZ(ii+1,ti) + nansum(nansum(tmaskREG.*area.*ncread(wname,'frazil_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     GWB.ETS(ii,ti) = GWB.ETS(ii+1,ti) + nansum(nansum(tmaskREG.*area.*ncread(wname,'temp_eta_smooth_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
@@ -707,6 +735,9 @@ while (Nremain > 0 & Ti >= 1)
             ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
         if (haveMDS)
             FlM(:,:,ti) = FlM(:,:,ti)+ncread(wname,'mixdownslope_temp_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+        end
+        if (haveSIG)
+            FlM(:,:,ti) = FlM(:,:,ti)+ncread(wname,'temp_sigma_diff_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
         end
         if (haveMIX)
             FlMdif(:,:,ti) = FlMdif(:,:,ti)+ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
@@ -916,6 +947,9 @@ for ti=1:tL
                     nansum(tmaskREG.*area.*ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))';
     if (haveMDS)
         ZA.M(:,ii+1,ti) = ZA.M(:,ii+1,ti) + nansum(tmaskREG.*area.*ncread(wname,'mixdownslope_temp_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)';
+    end
+    if (haveSIG)
+        ZA.M(:,ii+1,ti) = ZA.M(:,ii+1,ti) + nansum(tmaskREG.*area.*ncread(wname,'temp_sigma_diff_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)';
     end
     ZA.dVdt(:,ii+1,ti) = ZA.dVdt(:,ii,ti) + nansum(tmaskREG.*ncread(wname,'dVdt',[1 1 ii ti],[xL yL 1 1])*1e9/rho0,1)';
     ZA.dHdt(:,ii+1,ti) = ZA.dHdt(:,ii,ti) + nansum(tmaskREG.*ncread(wname,'dHdt',[1 1 ii ti],[xL yL 1 1]),1)';
