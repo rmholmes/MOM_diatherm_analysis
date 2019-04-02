@@ -10,8 +10,8 @@ baseL = '/short/e14/rmh561/access-om2/archive/';
 % $$$ model = 'MOM025_kb3seg';
 % $$$ baseD = [baseL 'MOM_HeatDiag_kb3seg/']; %Data Directory.
 % ACCESS-OM2:
-model = 'ACCESS-OM2_1deg_jra55_ryf8485_gfdl50_july';
-baseD = [baseL '1deg_jra55_ryf8485_gfdl50_july/']; %Data Directory.
+model = 'ACCESS-OM2_1deg_jra55_ryf8485_kds50_july';
+baseD = [baseL '1deg_jra55_ryf8485_kds50_july/']; %Data Directory.
 % $$$ ICdir = '/g/data1/ua8/MOM/initial_conditions/WOA/10_KDS50/';
 % MOM-SIS01:
 % $$$ model = 'MOM01';
@@ -927,7 +927,12 @@ end
 if (doHND)
     ZA.NUM   = zeros(yL,TL+1,tL);
 end
-
+if (haveMDS)
+    ZA.MDS = zeros(yL,TL+1,tL); % W
+end
+if (haveSIG)
+    ZA.SIG = zeros(yL,TL+1,tL); % W
+end
 % ignoring tri-polar for now.
 for ti=1:tL
     if (doHND)
@@ -946,10 +951,10 @@ for ti=1:tL
     ZA.M(:,ii+1,ti) = ZA.M(:,ii,ti) + (nansum(tmaskREG.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 ii ti],[xL yL 1 1]),1) + ...
                     nansum(tmaskREG.*area.*ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))';
     if (haveMDS)
-        ZA.M(:,ii+1,ti) = ZA.M(:,ii+1,ti) + nansum(tmaskREG.*area.*ncread(wname,'mixdownslope_temp_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)';
+        ZA.MDS(:,ii+1,ti) = ZA.MDS(:,ii,ti) + nansum(tmaskREG.*area.*ncread(wname,'mixdownslope_temp_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)';
     end
     if (haveSIG)
-        ZA.M(:,ii+1,ti) = ZA.M(:,ii+1,ti) + nansum(tmaskREG.*area.*ncread(wname,'temp_sigma_diff_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)';
+        ZA.SIG(:,ii+1,ti) = ZA.SIG(:,ii,ti) + nansum(tmaskREG.*area.*ncread(wname,'temp_sigma_diff_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)';
     end
     ZA.dVdt(:,ii+1,ti) = ZA.dVdt(:,ii,ti) + nansum(tmaskREG.*ncread(wname,'dVdt',[1 1 ii ti],[xL yL 1 1])*1e9/rho0,1)';
     ZA.dHdt(:,ii+1,ti) = ZA.dHdt(:,ii,ti) + nansum(tmaskREG.*ncread(wname,'dHdt',[1 1 ii ti],[xL yL 1 1]),1)';
