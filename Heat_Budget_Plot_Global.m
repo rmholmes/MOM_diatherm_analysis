@@ -11,8 +11,8 @@ RUNS = { ...
 % MOM01-SIS:
 % $$$     {'MOM01',[444]}, ...
 % $$$ % MOM025-SIS:
-% $$$     {'MOM025_kb3seg',[86:90]}, ...
-    {'MOM025_kb3seg_nosubmeso',[91]}, ...
+% $$$     {'MOM025_kb3seg',[87:90]}, ...
+% $$$     {'MOM025_kb3seg_nosubmeso',[91]}, ...
 % $$$     {'MOM025',[15:19]}, ...
 % $$$     {'MOM025_kb1em5',[95:99]}, ...
 % $$$     {'MOM025_kb1em6',[30]}, ...
@@ -26,8 +26,8 @@ RUNS = { ...
 % $$$ %     {'ACCESS-OM2_025deg_jra55_ryf8485_KDS75',[??]}, ...
 % $$$ %     {'ACCESS-OM2_025deg_jra55_ryf8485_gmrediLOW',[??]}, ...
 % ACCESS-OM2 1-degree:
-% $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_gfdl50_may',[36]}, ...
-% $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may',[36]}, ...
+         {'ACCESS-OM2_1deg_jra55_ryf8485_gfdl50_july',[36]}, ...
+% $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_july',[37]}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds75_may',[36]}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds100_may',[36]}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds135_may',[36]}, ...
@@ -45,15 +45,22 @@ rr = 1;
     clearvars -except base RUNS rr outputs model leg legh;
     
     load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
-    ndays = diff(time_snap);
-    ndays = ndays(1:12);
-    if (ndays(end) <= 0); ndays(end) = 365-ndays(end);end;
+    if (~exist('ndays'))
+        ndays = diff(time_snap);
+    end
+% $$$     ndays = diff(time_snap);
+% $$$     ndays = ndays(1:12);
+% $$$     if (ndays(end) <= 0); ndays(end) = 365-ndays(end);end;
     region = 'Global';
 % $$$     region = 'IndoPacific';
-    nyrs = tL/12;szTe = [TL+1 12 nyrs];szT  = [TL 12 nyrs];
-    yrs = 1:nyrs;
-    months = 1:12;
-    
+    nyrs = tL/12;
+    if (nyrs == round(nyrs))
+        szTe = [TL+1 12 nyrs];szT  = [TL 12 nyrs];
+        yrs = 1:nyrs;
+    else
+        nyrs = 1;
+        szTe = [TL+1 tL];szT = [TL tL];
+    end    
     ycur = 1;
 
     %% Global Calculations:
@@ -63,7 +70,7 @@ rr = 1;
 % $$$     load([base model sprintf('_output%03d_',outputs(i)) 'GlobalHBud_MonAnBin.mat']);
 % $$$     GWB = GWBann;
 
-        load([base model sprintf('_output%03d_',outputs(i)) region 'HBud.mat']);
+        load([base model sprintf('_output%03d_',outputs(i)) region '_HBud.mat']);
         
         % Fluxes:
         P(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.PME+GWB.RMX,szTe); % PME effective heat flux (W)
@@ -95,8 +102,14 @@ rr = 1;
             GM(:,:,ycur:(ycur+nyrs-1)) = zeros(size(P(:,:,ycur:(ycur+nyrs-1))));
         end    
         if (isfield(GWB,'MDS')) % Mix-downslope
-            MD(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.MDS,szTe);; % GM (W)
+            MD(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.MDS,szTe);
             M(:,:,ycur:(ycur+nyrs-1)) = M(:,:,ycur:(ycur+nyrs-1)) + reshape(GWB.MDS,szTe); %ADD TO VERTICAL MIXING, but it's small...
+        else
+            MD(:,:,ycur:(ycur+nyrs-1)) = zeros(size(P(:,:,ycur:(ycur+nyrs-1))));
+        end    
+        if (isfield(GWB,'SIG')) % Sigma-diff
+            SG(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.SIG,szTe);
+            M(:,:,ycur:(ycur+nyrs-1)) = M(:,:,ycur:(ycur+nyrs-1)) + reshape(GWB.SIG,szTe);
         else
             MD(:,:,ycur:(ycur+nyrs-1)) = zeros(size(P(:,:,ycur:(ycur+nyrs-1))));
         end    
@@ -104,12 +117,6 @@ rr = 1;
             NUM(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.NUM,szTe); % NUM (W)
         else
             NUM(:,:,ycur:(ycur+nyrs-1)) = zeros(size(P(:,:,ycur:(ycur+nyrs-1))));
-        end    
-        if (isfield(GWB,'NUMH')) % Pre-calculated numerical mixing
-                                % from heat budget
-            NUMH(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.NUMH,szTe); % NUM (W)
-        else
-            NUMH(:,:,ycur:(ycur+nyrs-1)) = zeros(size(P(:,:,ycur:(ycur+nyrs-1))));
         end    
         if (isfield(GWB,'SUB'))
             SUB(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.SUB,szTe);
@@ -139,19 +146,19 @@ rr = 1;
         G(:,:,ycur:(ycur+nyrs-1)) = dVdt(:,:,ycur:(ycur+nyrs-1)) - JS(:,:,ycur:(ycur+nyrs-1)) + JI(:,:,ycur:(ycur+nyrs-1)); %Water-mass transformation (m3s-1)
 
         % Surface Volume flux base flux (not P!)
-        JSH(:,:,ycur:(ycur+nyrs-1)) = JS(:,:,ycur:(ycur+nyrs-1)).*repmat(Te,[1 12 nyrs])*rho0*Cp;
+        JSH(:,:,ycur:(ycur+nyrs-1)) = JS(:,:,ycur:(ycur+nyrs-1)).*repmat(Te,[1 tL nyrs])*rho0*Cp;
 
         % Interior heat source P:
         PI(:,:,ycur:(ycur+nyrs-1)) = P(:,:,ycur:(ycur+nyrs-1)) - JSH(:,:,ycur:(ycur+nyrs-1));
 
         % Interior heat source Q:
-        QII(:,:,ycur:(ycur+nyrs-1)) = QI(:,:,ycur:(ycur+nyrs-1)) - JI(:,:,ycur:(ycur+nyrs-1)).*repmat(Te,[1 12 nyrs])*rho0*Cp;
+        QII(:,:,ycur:(ycur+nyrs-1)) = QI(:,:,ycur:(ycur+nyrs-1)) - JI(:,:,ycur:(ycur+nyrs-1)).*repmat(Te,[1 tL nyrs])*rho0*Cp;
 
         % Across-isotherm advective heat flux:
-        CIA(:,:,ycur:(ycur+nyrs-1)) = G(:,:,ycur:(ycur+nyrs-1)).*repmat(Te,[1 12 nyrs])*rho0*Cp;
+        CIA(:,:,ycur:(ycur+nyrs-1)) = G(:,:,ycur:(ycur+nyrs-1)).*repmat(Te,[1 tL nyrs])*rho0*Cp;
 
         % External HC Tendency:
-        EHC(:,:,ycur:(ycur+nyrs-1)) = dVdt(:,:,ycur:(ycur+nyrs-1)).*repmat(Te,[1 12 nyrs])*rho0*Cp;
+        EHC(:,:,ycur:(ycur+nyrs-1)) = dVdt(:,:,ycur:(ycur+nyrs-1)).*repmat(Te,[1 tL nyrs])*rho0*Cp;
 
         % Internal HC Tendency:
         N(:,:,ycur:(ycur+nyrs-1)) = dHdt(:,:,ycur:(ycur+nyrs-1)) - EHC(:,:,ycur:(ycur+nyrs-1));
@@ -165,7 +172,9 @@ rr = 1;
 % total heat flux due to implicit mixing and is much noisier. 
 
         % Implicit mixing:
-        I(:,:,ycur:(ycur+nyrs-1)) = N(:,:,ycur:(ycur+nyrs-1)) - F(:,:,ycur:(ycur+nyrs-1)) - P(:,:,ycur:(ycur+nyrs-1)) - M(:,:,ycur:(ycur+nyrs-1)) - R(:,:,ycur:(ycur+nyrs-1)) + JSH(:,:,ycur:(ycur+nyrs-1));
+        I(:,:,ycur:(ycur+nyrs-1)) = N(:,:,ycur:(ycur+nyrs-1)) - F(:,:,ycur:(ycur+nyrs-1)) - P(:,:,ycur:(ycur+nyrs-1)) ...
+                                  - M(:,:,ycur:(ycur+nyrs-1)) - R(:,:,ycur:(ycur+nyrs-1)) + JSH(:,:,ycur:(ycur+nyrs-1)) ...
+                                  - SUB(:,:,ycur:(ycur+nyrs-1)) - GM(:,:,ycur:(ycur+nyrs-1));
 
         % Non-advective flux into volume:
         B(:,:,ycur:(ycur+nyrs-1)) = F(:,:,ycur:(ycur+nyrs-1))+M(:,:,ycur:(ycur+nyrs-1))+I(:,:,ycur:(ycur+nyrs-1))+R(:,:,ycur:(ycur+nyrs-1));
@@ -192,10 +201,10 @@ rr = 1;
         WMT(:,:,ycur:(ycur+nyrs-1)) = WMTM(:,:,ycur:(ycur+nyrs-1))+WMTF(:,:,ycur:(ycur+nyrs-1))+WMTI(:,:,ycur:(ycur+nyrs-1))+WMTR(:,:,ycur:(ycur+nyrs-1));
 
         % WMT HB from B:
-        HWMTM(:,:,ycur:(ycur+nyrs-1)) = rho0*Cp*WMTM(:,:,ycur:(ycur+nyrs-1)).*repmat(T,[1 12 nyrs]);
-        HWMTF(:,:,ycur:(ycur+nyrs-1)) = rho0*Cp*WMTF(:,:,ycur:(ycur+nyrs-1)).*repmat(T,[1 12 nyrs]);
-        HWMTI(:,:,ycur:(ycur+nyrs-1)) = rho0*Cp*WMTI(:,:,ycur:(ycur+nyrs-1)).*repmat(T,[1 12 nyrs]);
-        HWMTR(:,:,ycur:(ycur+nyrs-1)) = rho0*Cp*WMTR(:,:,ycur:(ycur+nyrs-1)).*repmat(T,[1 12 nyrs]);
+        HWMTM(:,:,ycur:(ycur+nyrs-1)) = rho0*Cp*WMTM(:,:,ycur:(ycur+nyrs-1)).*repmat(T,[1 tL nyrs]);
+        HWMTF(:,:,ycur:(ycur+nyrs-1)) = rho0*Cp*WMTF(:,:,ycur:(ycur+nyrs-1)).*repmat(T,[1 tL nyrs]);
+        HWMTI(:,:,ycur:(ycur+nyrs-1)) = rho0*Cp*WMTI(:,:,ycur:(ycur+nyrs-1)).*repmat(T,[1 tL nyrs]);
+        HWMTR(:,:,ycur:(ycur+nyrs-1)) = rho0*Cp*WMTR(:,:,ycur:(ycur+nyrs-1)).*repmat(T,[1 tL nyrs]);
         HWMT(:,:,ycur:(ycur+nyrs-1)) = HWMTM(:,:,ycur:(ycur+nyrs-1))+HWMTF(:,:,ycur:(ycur+nyrs-1))+HWMTI(:,:,ycur:(ycur+nyrs-1))+HWMTR(:,:,ycur:(ycur+nyrs-1));
 
         % Alternative method 3 I from Volume budget (as for spatial structure calc FlI):
@@ -215,15 +224,43 @@ rr = 1;
 % $$$
 % $$$
 %%%%Heat Flux: ---------------------------------------------------------------------------------------------
-% Production fields:
+% $$$ % Production fields:
+% $$$ fields = { ...
+% $$$           {F(:,months,yrs)+PI(:,months,yrs), 'Surface Forcing $\mathcal{F}+\mathcal{P}_I$','k',2,'-'}, ...
+% $$$ % $$$           {M(:,months,yrs)+R(:,months,yrs)+I(:,months,yrs), 'Total Mixing $\mathcal{M}+\mathcal{R}+\mathcal{I}$','r',2,'-'}, ...
+% $$$           {M(:,months,yrs), 'Vertical Mixing $\mathcal{M}$','r',2,'-'}, ...
+% $$$ % $$$           {R(:,months,yrs), 'Redi Mixing $\mathcal{R}$',[0 0.5 0],2,'-'}, ...
+% $$$           {I(:,months,yrs), 'Numerical Mixing $\mathcal{I}$','b',2,'-'}, ...
+% $$$           {SUB(:,months,yrs), 'Eulerian Submesoscale','m',2,'--'}, ...
+% $$$           {GM(:,months,yrs), 'Eulerian GM','c',2,'--'}, ...
+% $$$           {NUM(:,months,yrs), 'Online Numerical Mixing','g',2,'--'}, ...
+% $$$           {NUM(:,months,yrs)-I(:,months,yrs), 'Diff','y',2,'--'}, ...
+% $$$           {TEN(:,months,yrs), 'Eulerian Tendency','k',1,'--'}, ...
+% $$$           {ADV(:,months,yrs), 'Eulerian Advection','b',1,'--'}, ...
+% $$$           };
+% Eulerian budget binned:
+RES = TEN(:,months,yrs)-ADV(:,months,yrs)-SUB(:,months,yrs)-M(:,months,yrs)-R(:,months,yrs)-GM(:,months,yrs)-F(:,months,yrs)-P(:,months,yrs);
 fields = { ...
-          {N(:,months,yrs), 'Internal HC Tendency $\mathcal{N}$','m',2,'-'}, ...
-          {F(:,months,yrs)+PI(:,months,yrs), 'Surface Forcing $\mathcal{F}+\mathcal{P}_I$','k',2,'-'}, ...
-% $$$           {M(:,months,yrs)+R(:,months,yrs)+I(:,months,yrs), 'Total Mixing $\mathcal{M}+\mathcal{R}+\mathcal{I}$','r',2,'-'}, ...
-          {M(:,months,yrs), 'Vertical Mixing $\mathcal{M}$','r',2,'-'}, ...
-% $$$           {R(:,months,yrs), 'Redi Mixing $\mathcal{R}$',[0 0.5 0],2,'-'}, ...
+          {F(:,months,yrs)+PI(:,months,yrs), 'Surface Forcing $F+P_I$','m',2,'--'}, ...
+          {TEN(:,months,yrs)-ADV(:,months,yrs), 'Tendency-Advection','b',1,'-'}, ...
+          {M(:,months,yrs)+R(:,months,yrs), 'Explicit Mixing','r',2,'-'}, ...
+          {GM(:,months,yrs)+SUB(:,months,yrs), 'GM+SUB','c',2,'--'}, ...
           {I(:,months,yrs), 'Numerical Mixing $\mathcal{I}$','b',2,'-'}, ...
+          {N(:,months,yrs), 'Internal HC Tendency $\mathcal{N}$','m',2,'-'}, ...
+% $$$           {EHC(:,months,yrs), 'External HC Tendency $\mathcal{N}$','c',2,'-'}, ...
+% $$$           {TEN(:,months,yrs), 'Eulerian Tendency','k',1,'-'}, ...
+% $$$           {ADV(:,months,yrs), 'Eulerian Advection','b',1,'-'}, ...
+% $$$           {SUB(:,months,yrs), 'Eulerian Submesoscale','m',2,'-'}, ...
+% $$$           {F(:,months,yrs), 'Surface Forcing','k',2,'--'}, ...
+% $$$           {P(:,months,yrs), 'Surface Forcing Volume','m',2,'--'}, ...
+% $$$           {MD(:,months,yrs), 'Mix-downslope','b',2,':'}, ...
+% $$$           {SG(:,months,yrs), 'Sigma-diff','r',2,':'}, ...
+% $$$           {M(:,months,yrs), 'Vertical Mixing $\mathcal{M}$','r',2,'-'}, ...
+% $$$           {R(:,months,yrs), 'Redi Mixing $\mathcal{R}$',[0 0.5 0],2,'-'}, ...
+% $$$           {RES, 'Residual','g',2,'--'}, ...
           };
+
+
 % $$$ fields = { ...
 % $$$           {N(:,months,yrs), 'Internal HC Tendency $\partial\mathcal{H}_I/\partial t$','m',2,'-'}, ...
 % $$$           {F(:,months,yrs), 'Surface Forcing $\mathcal{F}$','k',2,'-'}, ...
@@ -231,11 +268,8 @@ fields = { ...
 % $$$           {I(:,months,yrs), 'Numerical Mixing $\mathcal{I}$','b',2,'-'}, ...
 % $$$           {P(:,months,yrs), 'Surface Forcing from vol fluxes $\mathcal{P}$','c',2,'-'}, ...
 % $$$           {PI(:,months,yrs), 'Surface Forcing from vol fluxes internal $\mathcal{P}_I$','c',1,'--'}, ...
-% $$$           {TEN(:,months,yrs), 'Eulerian Tendency','k',1,'--'}, ...
-% $$$           {ADV(:,months,yrs), 'Eulerian Advection','b',1,'--'}, ...
 % $$$           {TEN(:,months,yrs)-ADV(:,months,yrs), 'Eulerian Tendency - Eulerian Advection','m',1,'--'}, ...
 % $$$ % $$$           {F(:,months,yrs)+P(:,months,yrs)+M(:,months,yrs), '$\mathcal{F}+\mathcal{P}+\mathcal{M}$','r',1,'--'}, ...
-% $$$           {SUB(:,months,yrs), 'Eulerian Submesoscale','g',2,'--'}, ...
 % $$$           {dHdt(:,months,yrs), 'Full HC Tendency $\partial\mathcal{H}/\partial t$','m',2,':'}, ...
 % $$$           };
 
@@ -274,10 +308,10 @@ for i=1:length(fields)
          ,'linewidth',fields{i}{4});
     leg{i} = fields{i}{2};
     
-    % Average years together for multiple runs:
+% $$$     % Average years together for multiple runs:
 % $$$     tmp = plot(x,mean(monmean(fields{i}{1},2,ndays(months))*Fscale,3),yrtyps{rr}, 'color',fields{i}{3} ...
 % $$$          ,'linewidth',fields{i}{4});
-% $$$     tmp = plot(x,mean(monmean(fields{i}{1},2,ndays(months))*Fscale,3),typs{rr}, 'color',cols{rr}, 'linewidth',wids{rr});
+% $$$ % $$$     tmp = plot(x,mean(monmean(fields{i}{1},2,ndays(months))*Fscale,3),typs{rr}, 'color',cols{rr}, 'linewidth',wids{rr});
 % $$$     if i==1
 % $$$         leg{rr} = strrep(RUNS{rr}{1},'_',' ');
 % $$$         legh(rr) = tmp;
@@ -292,16 +326,16 @@ xlabel('Temperature $\Theta$ ($^\circ$C)');
 lg = legend(legh,leg);
 set(lg,'Position',[0.5881    0.5500    0.2041    0.2588]);
 
-% Print table at specific values:
-[tmp ind1] = min(abs(Te-22.5));
-[tmp ind2] = min(abs(Te-5));
-
-for i=1:length(fields)
-    var = mean(monmean(fields{i}{1},2,ndays(months))*Fscale,3);
-    RUNn = strrep(RUNS{rr}{1},'_',' ');
-    varn = fields{i}{2};
-    [RUNn '$5^\circ$C: ' sprintf('$%2.2f$PW',var(ind2)) ', $22.5^\circ$C: ' sprintf('$%2.2f$PW',var(ind1))]
-end
+% $$$ % Print table at specific values:
+% $$$ [tmp ind1] = min(abs(Te-22.5));
+% $$$ [tmp ind2] = min(abs(Te-5));
+% $$$ 
+% $$$ for i=1:length(fields)
+% $$$     var = mean(monmean(fields{i}{1},2,ndays(months))*Fscale,3);
+% $$$     RUNn = strrep(RUNS{rr}{1},'_',' ');
+% $$$     varn = fields{i}{2};
+% $$$     [RUNn '$5^\circ$C: ' sprintf('$%2.2f$PW',var(ind2)) ', $22.5^\circ$C: ' sprintf('$%2.2f$PW',var(ind1))]
+% $$$ end
 
 end
 
