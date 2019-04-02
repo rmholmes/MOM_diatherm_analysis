@@ -3,109 +3,125 @@
 close all;
 clear all;
 
+addpath(genpath('/short/e14/rmh561/software/matlab-utilities'));
+
 % Load Base Variables:
-% $$$ base = '/srv/ccrc/data03/z3500785/MOM_wombat/mat_data/';
-% $$$ model = 'MOM025';
-% $$$ outputs = [1978];
-% $$$ base = '/short/e14/rmh561/access-om2/control/1deg_jra55_ryf/archive/mat_data/';
-% $$$ model = 'ACCESS-OM2_1deg_jra55_ryf';
-% $$$ outputs = [4];
-base = '/short/e14/rmh561/access-om2/control/025deg_jra55_ryf8485/archive/';
-model = 'ACCESS-OM2_025deg_jra55_ryf8485';
-outputs = [078];
+base = '/short/e14/rmh561/access-om2/archive/1deg_jra55_ryf8485_kds50_july/';
+model = 'ACCESS-OM2_1deg_jra55_ryf8485_kds50_july';
+outputs = [36];
 
 load([base 'mat_data/' model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
-ndays = diff(time_snap);
+if (~exist('ndays'))
+    ndays = diff(time_snap);
+end
 region = 'Global';
 
-haveRedi = 0; %Redi on
-haveGM = 0; %GM on
-haveMD = 0; %mixdownslope on
+outputs = [37];
+
+haveRedi = 1; %Redi on
+haveGM = 1; %GM on
+haveMD = 1; %mixdownslope on
+haveSG = 1; % sigma-diff
 havef3D = 1; %frazil_3d
 
-%Eulerian budget:
+%%%%% Eulerian budget:
 % $$$ hname = '/srv/ccrc/data03/z3500785/MOM_wombat/output1978/ocean_heat.nc';
 hname = sprintf([base 'output%03d/ocean/ocean_heat.nc'],outputs);
-zi = 5;
+vars3D = {'temp_tendency','temp_advection','temp_submeso', ...
+        'temp_vdiffuse_diff_cbt','temp_nonlocal_KPP','sw_heat','temp_vdiffuse_sbc', ...
+        'temp_rivermix'};
+if (haveRedi)
+    vars3D = {vars3D{:},'temp_vdiffuse_k33','neutral_diffusion_temp'};
+end
+if (haveGM)
+    vars3D = {vars3D{:},'neutral_gm_temp'};
+end
+if (haveMD)
+    vars3D = {vars3D{:},'mixdownslope_temp'};
+end
+if (haveSG)
+    vars3D = {vars3D{:},'temp_sigma_diff'};
+end
+if (havef3D)
+    vars3D = {vars3D{:},'frazil_3d'};
+end
+
+for zi=1:50
 ti = 1;
-residual = ...
-    ncread(hname,'temp_tendency',[1 1 zi ti],[xL yL 1 1]) - ...
-    ncread(hname,'temp_advection',[1 1 zi ti],[xL yL 1 1]) - ...
-    ncread(hname,'temp_submeso',[1 1 zi ti],[xL yL 1 1]) - ...
-    ncread(hname,'temp_vdiffuse_diff_cbt',[1 1 zi ti],[xL yL 1 1]) - ...
-    ncread(hname,'temp_nonlocal_KPP',[1 1 zi ti],[xL yL 1 1]) - ...
-    ncread(hname,'sw_heat',[1 1 zi ti],[xL yL 1 1]) - ...
-    ncread(hname,'temp_vdiffuse_sbc',[1 1 zi ti],[xL yL 1 1]) - ...
-    ncread(hname,'temp_rivermix',[1 1 zi ti],[xL yL 1 1]);
-    if (haveRedi)
-        residual = residual - ...
-            ncread(hname,'temp_vdiffuse_k33',[1 1 zi ti],[xL yL 1 1])- ...
-            ncread(hname,'neutral_diffusion_temp',[1 1 zi ti],[xL yL 1 1]);
+if (zi == 1)
+    vars = {vars3D{:},'sfc_hflux_pme','temp_eta_smooth'};
+else
+    vars = vars3D;
+end
+
+amps = zeros(length(vars)+1,1);
+res = zeros(xL,yL);
+for i=1:length(vars)
+    try
+        var = ncread(hname,vars{i},[1 1 zi ti],[xL yL 1 1]);
+    catch
+        var = ncread(hname,vars{i},[1 1 ti],[xL yL 1]);
+        ['caught ' vars{i}]
     end
-    if (haveGM)
-        residual = residual - ...
-            ncread(hname,'neutral_gm_temp',[1 1 zi ti],[xL yL 1 1]);
-    end
-    if (haveMD)
-        residual = residual - ...
-            ncread(hname,'mixdownslope_temp',[1 1 zi ti],[xL yL 1 1]);
-    end
-    if (zi == 1)
-        residual = residual - ...
-            ncread(hname,'sfc_hflux_pme',[1 1 ti],[xL yL 1]) - ...
-            ncread(hname,'temp_eta_smooth',[1 1 ti],[xL yL 1]);
-    end
-    if (havef3D)
-        residual = residual - ...
-            ncread(hname,'frazil_3d',[1 1 zi ti],[xL yL 1 1]);
+    amps(i) = nansum(nansum(var.^2,1),2);
+    if (i==1)
+        res = -var;
     else
-        if (zi == 1)
-            residual = residual -  ...
-            ncread(hname,'frazil_2d',[1 1 ti],[xL yL 1]);
-        end
+        res = res + var;
     end
-            
-figure;
-pcolPlot(lon,lat,residual);
-pcolPlot(lon,lat,ncread(hname,'frazil_3d',[1 1 zi ti],[xL yL 1 1]));
+end
+amps(end) = nansum(nansum(res.^2,1),2);
 
-%T-binned budget:
-% $$$ wname = '/srv/ccrc/data03/z3500785/MOM_wombat/output1978/ocean_wmass.nc';
+vars{i+1} = 'residual';
+fprintf(['Depth' num2str(zi) '\n ---- \n']);
+for i=1:length(vars)
+    fprintf(['Sq amp = %6.1e,' vars{i} '\n'],amps(i))
+end
+fprintf('\n');
+end
+
+%%%% T-binned budget:
 wname = sprintf([base 'output%03d/ocean/ocean_wmass.nc'],outputs);
+vars3D = {'temp_tendency_on_nrho','temp_advection_on_nrho','temp_submeso_on_nrho', ...
+        'temp_vdiffuse_diff_cbt_on_nrho','temp_nonlocal_KPP_on_nrho','sw_heat_on_nrho','temp_vdiffuse_sbc_on_nrho', ...
+        'temp_rivermix_on_nrho','temp_eta_smooth_on_nrho','sfc_hflux_pme_on_nrho'};
+if (haveRedi)
+    vars3D = {vars3D{:},'temp_vdiffuse_k33_on_nrho','neutral_diffusion_on_nrho_temp'};
+end
+if (haveGM)
+    vars3D = {vars3D{:},'neutral_gm_on_nrho_temp'};
+end
+if (haveMD)
+    vars3D = {vars3D{:},'mixdownslope_temp_on_nrho'};
+end
+if (haveSG)
+    vars3D = {vars3D{:},'temp_sigma_diff_on_nrho'};
+end
+if (havef3D)
+    vars3D = {vars3D{:},'frazil_on_nrho'};
+end
 
-%all: 
-[tmp ii] = min(abs(Te - 22));
-% $$$ ii = ;
-TLL = 1;
+for Ti=1:TL
 ti = 1;
-residual = ...
-    ncread(wname,'temp_tendency_on_nrho',[1 1 ii ti],[xL yL TLL 1]) - ...
-    ncread(wname,'temp_advection_on_nrho',[1 1 ii ti],[xL yL TLL 1]) - ...
-    ncread(wname,'temp_submeso_on_nrho',[1 1 ii ti],[xL yL TLL 1]) - ...
-    ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 ii ti],[xL yL TLL 1]) - ...
-    ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 ii ti],[xL yL TLL 1]) - ...
-    ncread(wname,'sw_heat_on_nrho',[1 1 ii ti],[xL yL TLL 1]) - ...
-    ncread(wname,'temp_vdiffuse_sbc_on_nrho',[1 1 ii ti],[xL yL TLL 1]) - ...
-    ncread(wname,'temp_rivermix_on_nrho',[1 1 ii ti],[xL yL TLL 1]) - ...
-    ncread(wname,'sfc_hflux_pme_on_nrho',[1 1 ii ti],[xL yL TLL 1]) - ...
-    ncread(wname,'frazil_on_nrho',[1 1 ii ti],[xL yL TLL 1]) - ...
-    ncread(wname,'temp_eta_smooth_on_nrho',[1 1 ii ti],[xL yL TLL 1]);
-    if (haveRedi)
-        residual = residual - ...
-            ncread(wname,'temp_vdiffuse_k33_on_nrho',[1 1 ii ti],[xL yL TLL 1])- ...
-            ncread(wname,'neutral_diffusion_on_nrho_temp',[1 1 ii ti],[xL yL TLL 1]);
-    end
-    if (haveGM)
-        residual = residual - ...
-            ncread(wname,'neutral_gm_on_nrho_temp',[1 1 ii ti],[xL yL TLL 1]);
-    end
-    if (haveMD)
-        residual = residual - ...
-            ncread(wname,'mixdownslope_temp_on_nrho',[1 1 ii ti],[xL yL TLL 1]);
-    end
-            
-figure;
-pcolPlot(lon,lat,residual);
-pcolPlot(lon,lat,ncread(wname,'mixdownslope_temp_on_nrho',[1 1 ii ti],[xL yL 1 1]));
-pcolPlot(lon,lat,ncread(wname,'frazil_on_nrho',[1 1 ii ti],[xL yL 1 1]));
+vars = vars3D;
 
+amps = zeros(length(vars)+1,1);
+res = zeros(xL,yL);
+for i=1:length(vars)
+    var = ncread(wname,vars{i},[1 1 Ti ti],[xL yL 1 1]);
+    amps(i) = nansum(nansum(var.^2,1),2);
+    if (i==1)
+        res = -var;
+    else
+        res = res + var;
+    end
+end
+amps(end) = nansum(nansum(res.^2,1),2);
+
+vars{i+1} = 'residual';
+fprintf(['Level ' num2str(Ti) '\n ---- \n']);
+for i=1:length(vars)
+    fprintf(['Sq amp = %6.1e,' vars{i} '\n'],amps(i))
+end
+fprintf('\n');
+end
