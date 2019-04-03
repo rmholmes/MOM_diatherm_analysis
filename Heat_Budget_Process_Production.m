@@ -967,8 +967,8 @@ for ti=1:tL
     end
     if (haveGM) 
         ZA.GM(:,ii+1,ti) = ZA.GM(:,ii,ti) + nansum(tmaskREG.*ncread(wname,'neutral_gm_on_nrho_temp',[1 1 ii ti],[xL yL 1 1]),1)';
-        ZA.PSIGM(:,ii+1,ti) = ZA.PSIGM(:,ii+1,ti) + nansum(umaskREG.*ncread(wname,'ty_trans_nrho_gm',[1 1 ii ti],[xL yL 1 1]),1)'*tsc/rho0;
-        ZA.AHDGM(:,ii+1,ti) = ZA.AHDGM(:,ii+1,ti) + nansum(umaskREG.*ncread(wname,'temp_yflux_gm_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)';
+        ZA.PSIGM(:,ii+1,ti) = ZA.PSIGM(:,ii,ti) + nansum(umaskREG.*ncread(wname,'ty_trans_nrho_gm',[1 1 ii ti],[xL yL 1 1]),1)'*tsc/rho0;
+        ZA.AHDGM(:,ii+1,ti) = ZA.AHDGM(:,ii,ti) + nansum(umaskREG.*ncread(wname,'temp_yflux_gm_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)';
     end
 
     ZA.SWH(:,ii+1,ti) = ZA.SWH(:,ii,ti) + nansum(tmaskREG.*area.*ncread(wname,'sw_heat_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)';
@@ -985,7 +985,7 @@ for ti=1:tL
     if (haveRedi)
         ZA.K33(:,ii+1,ti) = ZA.K33(:,ii,ti) + (nansum(tmaskREG.*area.*ncread(wname,'temp_vdiffuse_k33_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))';
         ZA.RED(:,ii+1,ti) = ZA.RED(:,ii,ti) + (nansum(tmaskREG.*area.*ncread(wname,'neutral_diffusion_on_nrho_temp',[1 1 ii ti],[xL yL 1 1]),1))';
-        ZA.AHDR(:,ii+1,ti) = ZA.AHDGM(:,ii+1,ti) + nansum(umaskREG.*ncread(wname,'temp_yflux_ndiffuse_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)';
+        ZA.AHDR(:,ii+1,ti) = ZA.AHDR(:,ii,ti) + nansum(umaskREG.*ncread(wname,'temp_yflux_ndiffuse_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)';
     end        
     ZA.JS(:,ii+1,ti) = ZA.JS(:,ii,ti) + (nansum(tmaskREG.*ncread(wname,'mass_pmepr_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)/rho0)';
     end
