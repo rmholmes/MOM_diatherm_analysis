@@ -8,204 +8,143 @@ clear all;
 base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
 
 % Load Base Variables:
-model = 'MOM025_kb3seg';
-outputs = [87:90 96];
+% $$$ model = 'MOM025_kb3seg';
+% $$$ outputs = [96];
+% $$$ 
+model = 'ACCESS-OM2_1deg_jra55_ryf8485_kds50_july';
+outputs = 37;
 
 % $$$ model = 'MOM025_kb1em5';
 % $$$ outputs = [95:99];
-% $$$ 
 % $$$ model = 'MOM025';
 % $$$ outputs = [15:19];
-
-% $$$ model = 'MOM025_btide';
-% $$$ outputs = [21];
-% $$$ outputs = [12]
-% $$$ 
-% $$$ 
 % $$$ model = 'MOM025_kb1em6';
 % $$$ outputs = 30;
 
-% $$$ model = 'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may';
-% $$$ outputs = 36;
 
 % $$$ model = 'MOM01';
 % $$$ outputs = [444];
 
 load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
-if (~exist(ndays))
+if (~exist('ndays'))
     ndays = diff(time_snap);
 end
-% $$$ regions = {'Global'};
-% $$$ regLets = {''};
-regions = {'Atlantic2BAS','IndoPacific2BAS','Global'};
-regLets = {'A','P',''};
-% $$$ reg = 1;
+% Latitude difference vector for plotting per-degree:
+dy = [yu(2)-yu(1); diff(yu)]; % (First-element is done by hand - but dy is equal to second).
+
+regions = {'Global'};
+regLets = {'G'};
+% $$$ regions = {'Atlantic2BAS','IndoPacific2BAS','Global'};
+% $$$ regLets = {'A','P','G'};
+
 for reg = 1:length(regions)
     region = regions{reg}
     regLet = regLets{reg};
 
-%% Make Vars
-type = 'ZA';
-load([base model sprintf('_output%03d_',outputs(1)) region '_' type 'HBud.mat']);
-eval(['names = fieldnames(' type ');']);
-namesOUT = names;
-
-for i=1:length(outputs)
-    load([base model sprintf('_output%03d_',outputs(i)) region '_' type 'HBud.mat']);
-    if (strcmp(type,'MA'))
-        ZA = MA;
-        clear MA;
-        yL = xL;
-    end
-    % Flip sign of fluxes and save:
-    for ii=1:length(names)
-        eval(['z' names{ii} '(:,:,:,i) = -ZA.' names{ii} ';']);
-    end
-    
-    % Non-fluxes (don't flip sign):
-    flbck = {'dVdt','dHdt','PSI','AHD','PSISUB','AHDSUB','PSIGM','AHDGM','AHDR'};
-    for iii = 1:length(flbck)
-        if (isfield(ZA,flbck{iii}))
-            eval(['z' flbck{iii} '(:,:,:,i) = ZA.' flbck{iii} ';']);
-        else
-            eval(['z' flbck{iii} '(:,:,:,i) = zeros(size(ZA.dVdt));']);
-            if (i == 1)
-                namesOUT = {namesOUT{:},flbck{iii}};
+    %% Make Vars
+    type = 'ZA';
+    load([base model sprintf('_output%03d_',outputs(1)) region '_' type 'HBud.mat']);
+    eval(['names = fieldnames(' type ');']); % names in this file
+    namesEX = {'K33','RED','AHDR','GM','PSIGM','AHDGM','MDS','SIG'}; % extra names that might not exist
+    namesALL = {names{:},namesEX{:}};
+            
+    for i=1:length(outputs)
+        load([base model sprintf('_output%03d_',outputs(i)) region '_' type 'HBud.mat']);
+        for ii=1:length(names)
+            eval(['ZAR.' names{ii} '(:,:,:,i) = ZA.' names{ii} ';']);
+        end
+        for ii=1:length(namesEX) % add extras as zeros if they don't exist
+            if (~isfield(ZA,namesEX{ii}))
+                eval(['ZAR.' namesEX{ii} '(:,:,:,i) = zeros(size(ZAR.F(:,:,:,i)));']);
             end
-        end            
-    end
+        end
+        clear ZA;
     
-    % Heat Function:
+        % Heat Function:
+        ZAR.AIadv(:,:,:,i) = ZAR.AHD(:,:,:,i) - rho0*Cp*repmat(Te',[yL 1 tL]).*ZAR.PSI(:,:,:,i); % advective-AI (defined on Te and v-points)
 % $$$     zAIpsi(:,:,:,i) = -rho0*Cp*cumsum(zPSI(:,:,:,i)*dT,2); % Heat Function (defined on Tc, since Psi is on Te, and defined on v-points)
-    zAI(:,:,:,i) = zAHD(:,:,:,i) - rho0*Cp*repmat(Te',[yL 1 tL]).*zPSI(:,:,:,i); % (defined on Te and v-points)  USE THIS!
-    
-    % NaN lats on zAI for convergence calculation:
-    NANlats = zAI(:,end,1) == 0;
-    zAI(NANlats,:,:,i) = NaN;
+        ZAR.AI(:,:,:,i) = ZAR.AIadv(:,:,:,i)+ZAR.AHDGM(:,:,:,i)+ZAR.AHDSUB(:,:,:,i)+ZAR.AHDR(:,:,:,i); % total internal heat content transport
+        
+        % NaN lats on zAI for convergence calculation (for sub-regions):
+        NANlats = ZAR.AI(:,end,1) == 0;
+        ZAR.AI(NANlats,:,:,i) = NaN;
 
-    zJSH(:,:,:,i) = zJS(:,:,:,i).*repmat(Te',[yL 1 tL])*rho0*Cp;
-    zPI(:,:,:,i) = zP(:,:,:,i) - zJSH(:,:,:,i);
-    zN(:,:,:,i) = zdHdt(:,:,:,i) - zdVdt(:,:,:,i).*repmat(Te',[yL 1 tL])*rho0*Cp;
-    
-    if (isfield(ZA,'RED'))
-        zR(:,:,:,i) = zRED(:,:,:,i) + zK33(:,:,:,i);
-    else
-        zR(:,:,:,i) = zeros(size(zN(:,:,:,i)));
-    end 
-    if (~isfield(ZA,'GM'))
-        zGM(:,:,:,i) = zeros(size(zN(:,:,:,i)));
+        ZAR.JSH(:,:,:,i) = ZAR.JS(:,:,:,i).*repmat(Te',[yL 1 tL])*rho0*Cp;
+        ZAR.PI(:,:,:,i)  = ZAR.P(:,:,:,i) - ZAR.JSH(:,:,:,i);
+        ZAR.N(:,:,:,i) = ZAR.dHdt(:,:,:,i) - ZAR.dVdt(:,:,:,i).*repmat(Te',[yL 1 tL])*rho0*Cp;
     end
-% $$$ zJ(:,:,:,i) = -diff(cat(1,zeros(1,TL+1,tL),zAI(:,:,:,i)),[],1);
-% Note that this will not work for one grid cell of the Atlantic
-% calculation for the Bering strait...  Hence to fix, moving the
-% calculation of numerical mixing to after the time-averaging and
-% using both Atlantic and Pacific values:
-    
-% $$$     zZT(:,:,i) = ZAtemp;
-% $$$     zT(:,:,i) = tempZA;
-% $$$     zZTx(:,:,i) = ZMtemp;
-% $$$     zTx(:,:,i) = tempZM;
-% $$$     zZTxa(:,:,i) = ZMAtemp;
-% $$$     zTxa(:,:,i) = tempZMA;
-    
-    zMHTSUB(:,:,i) = zAHDSUB(:,end,:,i);
-    zMHTADV(:,:,i) = zAHD(:,end,:,i);
-    if (exist('zAHDGM'))
-        zMHTGM(:,:,i) = zAHDGM(:,end,:,i);
-    else
-        zMHTGM(:,:,i) = zeros(size(zAHD(:,end,:,i)));
+
+    % Take annual and mean across outputs:
+    names = fieldnames(ZAR);
+    for ii=1:length(names)
+        eval(['ZAR.' names{ii} ' = monmean(mean(ZAR.' names{ii} ',4),3,ndays);']);
     end
-    if (isfield(ZA,'AHDR'))
-        zMHTR(:,:,i) = zAHDR(:,end,:,i);
+
+    % Generate NaNst and NANsu arrays:
+    ZAR.NaNst = zeros(size(ZAR.F));
+    ZAR.NaNsu = zeros(size(ZAR.PSI));
+    for i = 1:(TL+1)
+        ZAR.NaNst(:,i) = ZAR.F(:,i) == ZAR.F(:,end);
+        ZAR.NaNsu(:,i) = ZAR.PSI(:,i) == ZAR.PSI(:,end);
+    end
+
+    % Max SST (not monthly, ever) line and add to NaNs (note: on Te):
+    ZAR.maxTt = zeros(yL,1);ZAR.maxTit = zeros(yL,1);
+    ZAR.maxTu = zeros(yL,1);ZAR.maxTiu = zeros(yL,1);ZAR.psiTu = zeros(yL,1);
+    for i = 1:yL 
+        indt = find(ZAR.NaNst(i,:),1,'first');
+        indu = find(ZAR.NaNsu(i,:),1,'first');
+        ZAR.maxTit(i) = indt;
+        ZAR.maxTt(i) = Te(indt);
+        ZAR.NaNst(i,indt) = 0;
+        ZAR.maxTiu(i) = indu;
+        ZAR.maxTu(i) = Te(indu);
+        ZAR.NaNsu(i,indu) = 0;
+        ZAR.psiTu(i) = ZAR.PSI(i,indu);
+    end
+
+    % Min SST (monthly - from surface forcing):
+    % Load SST for plotting:
+    load([base model sprintf('_output%03d_SurfaceVars.mat',outputs(1))],'SST');
+    SSTa = SST;
+    for i=2:length(outputs)
+        load([base model sprintf('_output%03d_SurfaceVars.mat',outputs(i))],'SST');
+        SSTa = SSTa+SST;
+    end
+    SST = SSTa/length(outputs);
+    if (~(strcmp(region,'') | strcmp(region,'Global')))
+        [maskREG,~,~,~,~,~,~] = Heat_Budget_Mask(region,'','',base,model);
     else
-        zMHTR(:,:,i) = zeros(size(zAHD(:,end,:,i)));
-    end            
-    zMHT(:,:,i) = zMHTADV(:,:,i) + zMHTSUB(:,:,i)+zMHTGM(:,:,i);
-end
-months = [1:length(zP(1,1,:,1))];
+        maskREG = ones(size(SST(:,:,1)));
+    end
+    SST = SST.*repmat(maskREG,[1 1 tL]);
+    SST(SST==0) = NaN;
+    ZAR.minSST = squeeze(min(monmean(SST,3,ndays),[],1)');
+    if (max(ZAR.minSST)>100); ZAR.minSST = ZAR.minSST-273.15; end
 
-names = namesOUT;
+    % Total MHTs:
+    ZAR.MHTSUB = ZAR.AHDSUB(:,end);
+    ZAR.MHTADV = ZAR.AHD(:,end);
+    ZAR.MHTGM  = ZAR.AHDGM(:,end);
+    ZAR.MHTR   = ZAR.AHDR(:,end);
+    ZAR.MHT    = ZAR.MHTADV + ZAR.MHTSUB + ZAR.MHTGM + ZAR.MHTR;
 
-% Take mean across years and months:
-% $$$ zZT = mean(zZT,3);
-% $$$ zT = mean(zT,3);
-% $$$ zZTx = mean(zZTx,3);
-% $$$ zTx = mean(zTx,3);
-% $$$ zZTxa = mean(zZTxa,3);
-% $$$ zTxa = mean(zTxa,3);
-
-% Generate NaNst and NANsu arrays:
-tmpt = monmean(mean(zF,4),3,ndays);
-tmpu = monmean(mean(zPSI,4),3,ndays);
-NaNst = zeros(size(tmpt));
-NaNsu = zeros(size(tmpu));
-for i = 1:(TL+1)
-    NaNst(:,i) = tmpt(:,i) == tmpt(:,end);
-    NaNsu(:,i) = tmpu(:,i) == tmpu(:,end);
-end
-
-% Max SST (not monthly, ever) line and add to NaNs (note: on Te):
-maxTt = zeros(yL,1);maxTit = zeros(yL,1);
-maxTu = zeros(yL,1);maxTiu = zeros(yL,1);psiTu = zeros(yL,1);
-for i = 1:yL 
-    indt = find(NaNst(i,:),1,'first');
-    indu = find(NaNsu(i,:),1,'first');
-    maxTit(i) = indt;
-    maxTt(i) = Te(indt);
-    NaNst(i,indt) = 0;
-    maxTiu(i) = indu;
-    maxTu(i) = Te(indu);
-    NaNsu(i,indu) = 0;
-    psiTu(i) = tmpu(i,indu);
-end
-
-% Min SST (monthly - from surface forcing):
-% Load SST for plotting:
-load([base model sprintf('_output%03d_SurfaceVars.mat',outputs(1))],'SST');
-SSTa = SST;
-for i=2:length(outputs)
-    load([base model sprintf('_output%03d_SurfaceVars.mat',outputs(i))],'SST');
-    SSTa = SSTa+SST;
-end
-SST = SSTa/length(outputs);
-if (~(strcmp(region,'') | strcmp(region,'Global')))
-    [maskREG,~,~,~,~,~,~] = Heat_Budget_Mask(region,'','',base,model);
-else
-    maskREG = ones(size(SST(:,:,1)));
-end
-SST = SST.*repmat(maskREG,[1 1 tL]);
-SST(SST==0) = NaN;
-minSST = squeeze(min(monmean(SST,3,ndays),[],1));
-
-names = {names{:},'AI','JSH','PI','N','R','GM'};
-for i=1:length(names)
-    eval([names{i} regLet ' = monmean(mean(z' names{i} ',4),3,ndays);']);
-    eval(['clear z' names{i} ';']);
-end
-
-names2 = {'MHT','MHTADV','MHTSUB','MHTGM','MHTR'};
-for i=1:length(names2)
-    eval([names2{i} regLet ' = monmean(mean(z' names2{i} ',3),2,ndays);']);
-    eval(['clear z' names2{i} ';']);
-end
-
-% Latitude difference vector for plotting per-degree:
-dy = [yu(2)-yu(1); diff(yu)]; % (First-element is done by hand -
-                              % but dy is equal to second.
-
-names = {'NaNst','NaNsu','maxTt','maxTit','psiTu','maxTu','maxTiu','minSST'};
-for i=1:length(names)
-    eval([names{i} regLet ' = ' names{i} ';']);
-end
-
+    eval(['ZA_' regLet ' = ZAR;']);
+    clear ZAR;
 end %end region loop
     
 %% Calculate total diathermal transport and numerical mixing (special for Atlantic):
+[X,Y] = ndgrid(yt,Te);
 
 % Global:
-AI = AI + AHDSUB; % total internal heat content transport includes submesoscale (which is all internal for skew-diffusive flux)
-J = -diff(cat(1,zeros(1,TL+1),AI),[],1); % convergence of that transport
-I = J-M-N-F-PI; % numerical mixing (both advective and submesoscale)
+dAI_mR_dphi = diff(cat(1,zeros(1,TL+1),ZA_G.AI-ZA_G.AHDR),[],1); % convergence of that transport
+ZA_G.Jdia = -ZA_G.N-dAI_mR_dphi; % total diathermal transport
+ZA_G.I = ZA_G.Jdia+ZA_G.M+ZA_G.F+ZA_G.PI+ZA_G.RED+ZA_G.MDS+ZA_G.SIG; % numerical mixing (both advective and submesoscale)
+
+% $$$ dAI_mR_dphi = diff(cat(1,zeros(1,TL+1),ZA_G.AI-ZA_G.AHDR-ZA_G.AHDSUB),[],1); % convergence of that transport
+% $$$ ZA_G.Jdia = -ZA_G.N-dAI_mR_dphi; % total diathermal transport
+% $$$ ZA_G.I = ZA_G.Jdia+ZA_G.M+ZA_G.F+ZA_G.PI+ZA_G.RED+ZA_G.MDS+ZA_G.SIG-ZA_G.SUB; % numerical mixing (both advective and submesoscale)
+
 JnoN = J-N;
 Fall = F+PI;
 Mall = M+I;
@@ -501,7 +440,7 @@ fields = { ...
           {'Fall',1./repmat(dy,[1 TL+1])/1e12,'Surface Forcing',[-50 50],5,'TW/$^\circ$latitude'}, ...
 };
 fields = { ...
-          {'N',1./repmat(dy,[1 TL+1])/1e12,'Tendency',[-10 10],1,'TW/$^\circ$latitude'}, ...
+          {'N',1./repmat(dy,[1 TL+1])/1e12,'Tendency',[-50 50],1,'TW/$^\circ$latitude'}, ...
           {'Mall',1./repmat(dy,[1 TL+1])/1e12,'Mixing',[-50 50],5,'TW/$^\circ$latitude'}, ...
 };
 
@@ -516,10 +455,10 @@ end
 npts = length(cpts{1});
 clab = [1 1 1 1 1 1];
 
-% $$$ cmap = redblue(npts-3);
-cmap = parula(npts-3);
-cmap(end,:) = [0.97 0.97 0.8];
-cmap(end-1,:) = (cmap(end-1,:)+cmap(end,:))/2;
+cmap = redblue(npts-3);
+% $$$ cmap = parula(npts-3);
+% $$$ cmap(end,:) = [0.97 0.97 0.8];
+% $$$ cmap(end-1,:) = (cmap(end-1,:)+cmap(end,:))/2;
 
 AIsp = 0.25;
 % $$$ AIsp = 1;
