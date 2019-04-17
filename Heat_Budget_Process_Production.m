@@ -301,8 +301,9 @@ end
 if (doNUMDIF)
 % Create variables:
 ncid = netcdf.open(wname,'NC_WRITE');
+varname = 'temp_numdiff_heat_on_nrho';
 try
-    id = netcdf.inqVarID(ncid,'temp_numdiff_heat_on_nrho');
+    id = netcdf.inqVarID(ncid,varname);
     not_there = 0;
 catch
     not_there = 1;
@@ -311,7 +312,7 @@ end
 if (not_there)
     xid = netcdf.inqDimID(ncid,'grid_xt_ocean');yid = netcdf.inqDimID(ncid,'grid_yt_ocean');zid = netcdf.inqDimID(ncid,'neutralrho_edges');tid = netcdf.inqDimID(ncid,'time');
     netcdf.reDef(ncid);
-    ndifID = netcdf.defVar(ncid,'temp_numdiff_heat_on_nrho','NC_FLOAT',[xid yid zid tid]);
+    ndifID = netcdf.defVar(ncid,varname,'NC_FLOAT',[xid yid zid tid]);
     netcdf.putAtt(ncid,ndifID,'long_name',['Diffusion of heat due ' ...
                         'to numerical mixing estimated from heat ' ...
                         'fluxes binned to neutral density']);
@@ -319,7 +320,7 @@ if (not_there)
     %    netcdf.putAtt(ncid,ndifID,'_FillValue',single(-1e20));
     netcdf.endDef(ncid);
 else
-    ndifID = netcdf.inqVarID(ncid,'temp_numdiff_heat_on_nrho');
+    ndifID = netcdf.inqVarID(ncid,varname);
 end
 
 
@@ -895,6 +896,7 @@ if (doZA)
 ZA.F = zeros(yL,TL+1,tL); % Wdeg-1 due to F
 ZA.P = zeros(yL,TL+1,tL); % Wdeg-1 due to P
 ZA.M = zeros(yL,TL+1,tL); % Wdeg-1 due to M
+ZA.KPPNL = zeros(yL,TL+1,tL); % Wdeg-1 due to KPP non-local
 ZA.dVdt = zeros(yL,TL+1,tL); % Wdeg-1 dVdt
 ZA.dHdt = zeros(yL,TL+1,tL); % Wdeg-1 dHdt
 ZA.SWH = zeros(yL,TL+1,tL); % Wdeg-1 due to SW redistribution
@@ -948,8 +950,8 @@ for ti=1:tL
                     nansum(tmaskREG.*area.*ncread(wname,'temp_eta_smooth_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))';
     ZA.P(:,ii+1,ti) = ZA.P(:,ii,ti) + (nansum(tmaskREG.*area.*ncread(wname,'sfc_hflux_pme_on_nrho',[1 1 ii ti],[xL yL 1 1]),1) + ...
                     nansum(tmaskREG.*area.*ncread(wname,'temp_rivermix_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))';
-    ZA.M(:,ii+1,ti) = ZA.M(:,ii,ti) + (nansum(tmaskREG.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 ii ti],[xL yL 1 1]),1) + ...
-                    nansum(tmaskREG.*area.*ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 ii ti],[xL yL 1 1]),1))';
+    ZA.M(:,ii+1,ti) = ZA.M(:,ii,ti) + nansum(tmaskREG.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)';
+    ZA.KPPNL(:,ii+1,ti) = ZA.KPPNL(:,ii,ti) + nansum(tmaskREG.*area.*ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)';
     if (haveMDS)
         ZA.MDS(:,ii+1,ti) = ZA.MDS(:,ii,ti) + nansum(tmaskREG.*area.*ncread(wname,'mixdownslope_temp_on_nrho',[1 1 ii ti],[xL yL 1 1]),1)';
     end
