@@ -14,22 +14,22 @@ RUNS = { ...
 % $$$     {'MOM025',[8:12]}, ...
 % $$$     {'MOM025',[15:19]}, ...
 % $$$ % $$$     {'MOM025_kb1em6',[30]}, ...
-% $$$     {'MOM025_kb3seg',[86:90]}, ...
-    {'MOM025_kb3seg',[94]}, ...
+    {'MOM025_kb3seg',[86:90]}, ...
+% $$$     {'MOM025_kb3seg',[95]}, ...
 % $$$     {'MOM025_kb3seg_nosubmeso',[91:95]}, ...
 % $$$     {'MOM025_kb3seg',[86]}, ...
 % $$$     {'MOM025_kb1em5',[94]}, ...
 % $$$     {'MOM025_btide',[21]}, ...
 % $$$     {'MOM025_wombat',[1978]}, ...
 % ACCESS-OM2 025-degree:
-% $$$     {'ACCESS-OM2_025deg_jra55_ryf8485',[78]}, ...
+% $$$     {'ACCESS-OM2_025deg_jra55_ryf8485_gmredi6',[148]}, ...
 % $$$     {'ACCESS-OM2_025deg_jra55_ryf8485_redi',[59]}, ...
 % $$$     {'ACCESS-OM2_025deg_jra55_ryf8485_gmredi',[73]}, ...
 % $$$ %     {'ACCESS-OM2_025deg_jra55_ryf8485_KDS75',[??]}, ...
 % ACCESS-OM2 1-degree:
-% $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may_Tcen',[36]}, ...
+% $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_july',[39]}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may_TcenGMS',[36]}, ...
-% $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_gfdl50_may',[36]}, ...
+% $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_gfdl50_july',[37]}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may',[36]}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may',[37]}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds75_may',[36]}, ...
@@ -46,8 +46,10 @@ rr = 1;
     clearvars -except base RUNS rr outputs model;
     
     load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
-    ndays = diff(time_snap);
-    ndays = ndays(1:12);
+    if (~exist('ndays'))
+        ndays = diff(time_snap);
+        ndays = ndays(1:12);
+    end
     if (ndays(end) <= 0); ndays(end) = 365-ndays(end);end;
     region = 'Global';
     nyrs = tL/12;szTe = [TL+1 12 nyrs];szT  = [TL 12 nyrs];
@@ -58,11 +60,11 @@ rr = 1;
 
 
     %%% Spatial Structure:
-% $$$     VAR = 'FlI';
-% $$$     TYPE = 'VertInt';
-    VAR = 'EKE';
-    TYPE = 'variances';
-    Tl = 10;
+    VAR = 'FlM';
+    TYPE = 'VertInt';
+% $$$     VAR = 'EKE';
+% $$$     TYPE = 'variances';
+    Tl = 21.5;
     name = [base model sprintf('_output%03d',outputs(1)) '_' TYPE '_T' strrep(num2str(Tl),'.','p') 'C.mat']
     eval(['load(name,''' VAR ''');']);
     eval([VAR '(isnan(' VAR ')) = 0.0;']);
@@ -337,15 +339,19 @@ rr = 1;
 % $$$               '(b) March', ...
 % $$$               '(c) July', ...
 % $$$               '(d) November'};
-    months = {[1:12]}; labels = {'(b) $10^\circ$C no submesoscale'};
-
+    months = {[1:12]}; labels = {'(a) Total'};%$15^\circ$C'};
+    
     %Colormap and continents:
-    sp = 5;
-    clim = [-100 0];
+% $$$     sp = 5;
+% $$$     clim = [-100 0];
 % $$$     sp = 5;
 % $$$     clim = [-125 125];
+    sp = 2.5;
+    clim = [-120 0];
+% $$$     sp = 1;
+% $$$     clim = [-30 30];
 
-    cCH = 2; % 0 = symmetric redblue
+    cCH = 1; % 0 = symmetric redblue
              % 1 = negative definite parula
              % 2 = negative parula with +ve's possible
     if (cCH==0)
@@ -365,7 +371,7 @@ rr = 1;
         cmap(end-1,:) = (cmap(end-1,:)+cmap(end,:))/2;
     end
     if (cCH == 2)
-        buf = 3;
+        buf = 2;
         clim = [clim(1) buf*sp];
         cpts = [-1e10 clim(1):sp:clim(2) 1e10];
         cmap(end+1,:) = cmap(end,:); % 1st positive bin
@@ -385,23 +391,29 @@ rr = 1;
 
     climn = [clim(1)-sp clim(2)];
     
-%Mean of all months:
+% $$$ % $$$ %Mean of all months:
 figure;
-set(gcf,'Position',[3          59        1916         914]);
-set(gcf,'Position',[88         371        1625         603]);
+% $$$ set(gcf,'Position',[3          59        1916         914]);
+% $$$ set(gcf,'Position',[88         371        1625         603]);
+set(gcf,'Position',[3          59        1476         921]);
 set(gcf,'defaulttextfontsize',15);
 set(gcf,'defaultaxesfontsize',15);
-
+% $$$ 
+% $$$ % 2x1:
+% $$$ poss = [0.1300    0.54    0.7403    0.4149; ...
+% $$$         0.1300    0.0876    0.7403    0.4149];
+% $$$ % 1+3:
 poss = [0.1300    0.4553    0.7693    0.4697; ...
         0.1300    0.1389    0.2343    0.2680; ...
         0.3951    0.1389    0.2343    0.2680; ...
         0.6681    0.1389    0.2343    0.2680];
-for i=1:length(months)
+% $$$ for i=1:length(months)
 % $$$     if (i == 1)
 % $$$         subplot(5,3,[1 9]);
 % $$$     else
 % $$$         subplot(5,3,[10 13]+(i-2));
 % $$$     end
+    i = 1;
     X = lon(xvec,yvec);
     Y = lat(xvec,yvec);
     if (length(months{i})>1)
@@ -419,51 +431,51 @@ for i=1:length(months)
     hold on;    
     contourf(X,Y,LAND(xvec,yvec),[clim(1)-sp clim(1)],'linestyle','none');
     caxis(climn);
-    if (i==1)
+% $$$     if (i==1)
         cb = colorbar;
         ylabel(cb,'Wm$^{-2}$');
         ylim(cb,clim);
-    end
+% $$$     end
     hold on;
-    % Plot regions:
-    if (i==1)
-    if (exist('regions'))
-        xlims = get(gca,'xlim');
-        for ii=2:length(regions)
-            contour(lon,lat,regions{ii}{2},[0.5 0.5],'--','color',regions{ii}{3},'linewidth',1);
-            % Add text label with total:
-            flon = min(lon(regions{ii}{2}));
-            flat = nanmean(lat(regions{ii}{2}));
-            if (ii==2)
-                flat = 7;
-            elseif (flat>15)
-                flat = 42;
-            end
-            text(flon,flat,sprintf('%3.2fPW (%3.0f%%)',monmean(Field(:,ii),1,ndays(1:12))/1e15,monmean(Field(:,ii),1,ndays(1:12))/monmean(Field(:,1),1,ndays(1:12))*100),'color',regions{ii}{3},'Interpreter','none','BackgroundColor','w','Margin',0.01);
-        end
-    end
-    end
+% $$$     % Plot regions:
+% $$$     if (i==1)
+% $$$     if (exist('regions'))
+% $$$         xlims = get(gca,'xlim');
+% $$$         for ii=2:length(regions)
+% $$$             contour(lon,lat,regions{ii}{2},[0.5 0.5],'--','color',regions{ii}{3},'linewidth',1);
+% $$$             % Add text label with total:
+% $$$             flon = min(lon(regions{ii}{2}));
+% $$$             flat = nanmean(lat(regions{ii}{2}));
+% $$$             if (ii==2)
+% $$$                 flat = 7;
+% $$$             elseif (flat>15)
+% $$$                 flat = 42;
+% $$$             end
+% $$$             text(flon,flat,sprintf('%3.2fPW (%3.0f%%)',monmean(Field(:,ii),1,ndays(1:12))/1e15,monmean(Field(:,ii),1,ndays(1:12))/monmean(Field(:,1),1,ndays(1:12))*100),'color',regions{ii}{3},'Interpreter','none','BackgroundColor','w','Margin',0.01);
+% $$$         end
+% $$$     end
+% $$$     end
     xlabel('Longitude ($^\circ$E)');
+% $$$     set(gca,'xticklabel',[]);
     ylabel('Latitude ($^\circ$N)');
     set(gca,'xtick',[-270:30:60]);
     set(gca,'ytick',[-75:15:75]);
-% $$$     set(gca,'Position',[poss(i,:)]);
-% $$$     ylim([-45 45]);
-% $$$     ylim([-55 55]);
-% $$$     xlim([-100 40]);
+    set(gca,'Position',[poss(i,:)]);
 % $$$     ylim([15 65]);
-    ylim([-60 75]);
+% $$$     xlim([-100 10]);
+    ylim([-45 45]);
 % $$$     set(gca,'FontSize',17);
     colormap(cmap);
-    text(-277,-54,labels{i},'BackgroundColor','w','Margin',0.5,'FontSize',20);
-% $$$     text(-59.25,-26.5,labels{i},'BackgroundColor','w','Margin',0.5,'FontSize',17);
-% $$$     title([strrep(strrep(strrep(strrep(strrep(RUNS{rr}{1},'_',' '),'ACCESS-OM2 ','AOM'),' jra55',''),'ryf8485',''),' may','') ...
-% $$$            ' ' num2str(Tl) '$^\circ$C Numerical Mixing']);
-end
+% $$$ % $$$     text(-277,-54,labels{i},'BackgroundColor','w','Margin',0.5,'FontSize',20);
+% $$$     text(-98,62,labels{i},'BackgroundColor','w','Margin',0.5,'FontSize',20);
+% $$$ % $$$     text(-59.25,-26.5,labels{i},'BackgroundColor','w','Margin',0.5,'FontSize',17);
+% $$$ % $$$     title([strrep(strrep(strrep(strrep(strrep(RUNS{rr}{1},'_',' '),'ACCESS-OM2 ','AOM'),' jra55',''),'ryf8485',''),' may','') ...
+% $$$ % $$$            ' ' num2str(Tl) '$^\circ$C Numerical Mixing']);
+% $$$ end
 
 
 %% Variances:
-Tl = 10;
+Tl = 22.5;
 
 VARS = {'EKE','wvar','Tdxsq','Tdysq','Tdzsq'};
 TYPE = 'variances';
@@ -508,8 +520,8 @@ units = {'$m^2s^{-1}$','$m^2s^{-1}$','$^\circ C^2$','$^\circ C^2$'};
     yvec = 1:1:yL;
 
     %Colormaps:
-% $$$     clims = {[0 0.08],[0 0.3e-7],[0 4e-9],[0 20]};
-    clims = {[0 0.02],[0 0.3e-7],[0 4e-9],[0 20]};
+    clims = {[0 0.08],[0 0.3e-7],[0 4e-9],[0 20]};
+% $$$     clims = {[0 0.02],[0 0.3e-7],[0 4e-9],[0 20]};
     nlv = 25;
 
 
@@ -529,12 +541,12 @@ units = {'$m^2s^{-1}$','$m^2s^{-1}$','$^\circ C^2$','$^\circ C^2$'};
         climns{i} = [clims{i}(1)-sp clims{i}(2)];
     end
     
-% $$$ %Mean of all months:
-% $$$ figure;
-% $$$ set(gcf,'Position',[1921           1        1920        1005]);
-% $$$ set(gcf,'defaulttextfontsize',15);
-% $$$ set(gcf,'defaultaxesfontsize',15);
-% $$$ 
+%Mean of all months:
+figure;
+set(gcf,'Position',[1921           1        1920        1005]);
+set(gcf,'defaulttextfontsize',15);
+set(gcf,'defaultaxesfontsize',15);
+
     poss = [0.1300    0.58      0.3548    0.3692; ...
             0.5700    0.58      0.3548    0.3692; ...
             0.1300    0.1100    0.3548    0.3692; ...
@@ -629,29 +641,29 @@ end
 % $$$ colormap(cmap);
 % $$$ title('MOM025 kb3seg $22^\circ$C and $23^\circ$C Isotherm Spacing');
 % $$$ 
-% $$$ % $$$ %%% Plot spatial pattern of net heat flux and SST:
-% $$$ 
-% $$$ % Load Variable and calculate mean:
-% $$$ load([base model sprintf('_output%03d_SurfaceVars.mat',outputs(1))]);
-% $$$ shfluxa = shflux;
-% $$$ SSTa = SST;
-% $$$ for i=2:length(outputs)
-% $$$     load([base model sprintf('_output%03d_SurfaceVars.mat',outputs(i))]);
-% $$$     shfluxa = shfluxa+shflux;
-% $$$     SSTa = SSTa+SST;
-% $$$ end
-% $$$ shflux = shfluxa/length(outputs);
-% $$$ SST = SSTa/length(outputs);
-% $$$ 
-% $$$ %If MOM01, fix NaN's in grid:
-% $$$ if (strfind(model,'01'))
-% $$$     lon = repmat(lon(:,500),[1 yL]);
-% $$$     latv = nanmean(lat,1);
-% $$$     lat = repmat(latv,[xL 1]);
-% $$$ end
-% $$$ 
-% $$$ %Sum of all positives:
-% $$$ shfluxA = mean(shflux,3);
+% $$$ %%% Plot spatial pattern of net heat flux and SST:
+
+% Load Variable and calculate mean:
+load([base model sprintf('_output%03d_SurfaceVars.mat',outputs(1))]);
+shfluxa = shflux;
+SSTa = SST;
+for i=2:length(outputs)
+    load([base model sprintf('_output%03d_SurfaceVars.mat',outputs(i))]);
+    shfluxa = shfluxa+shflux;
+    SSTa = SSTa+SST;
+end
+shflux = shfluxa/length(outputs);
+SST = SSTa/length(outputs);
+
+%If MOM01, fix NaN's in grid:
+if (strfind(model,'01'))
+    lon = repmat(lon(:,500),[1 yL]);
+    latv = nanmean(lat,1);
+    lat = repmat(latv,[xL 1]);
+end
+
+%Sum of all positives:
+shfluxA = mean(shflux,3);
 % $$$ shfluxP = nansum(shfluxA(shfluxA>0).*area(shfluxA>0))/1e15
 % $$$ shfluxM = nansum(shfluxA(shfluxA<0).*area(shfluxA<0))/1e15
 % $$$ 
@@ -971,46 +983,66 @@ end
 % $$$ ylabel('Temperature ($^\circ$C)');
 % $$$ 
 % $$$ 
-% $$$ %Calculate fractions of surface heat flux regionally:
-% $$$ 
-% $$$ %Region choice:
-% $$$ LATsplit = 10;
-% $$$ reg = [-150 -90 -5 5];
-% $$$ EEPinds = lat > reg(3) & lat < reg(4) & lon > reg(1) & lon < reg(2);
-% $$$ 
-% $$$ Eqinds = abs(lat)<=LATsplit;
-% $$$ Ninds = lat>LATsplit;
-% $$$ Sinds = lat<-LATsplit;
-% $$$ 
-% $$$ for i=1:12
-% $$$     SHFtmp = shflux(:,:,i);
-% $$$     SHFEq(i) = nansum(nansum(area(Eqinds).*SHFtmp(Eqinds),1),2);
-% $$$     SHFN(i) = nansum(nansum(area(Ninds).*SHFtmp(Ninds),1),2);
-% $$$     SHFS(i) = nansum(nansum(area(Sinds).*SHFtmp(Sinds),1),2);
-% $$$     SHFEEP(i) = nansum(nansum(area(EEPinds).*SHFtmp(EEPinds),1),2);
-% $$$ 
-% $$$     Atmp = area;
-% $$$     Atmp(isnan(SHFtmp)) = NaN;
-% $$$     AREAtotal(i) = nansum(nansum(Atmp));
-% $$$     AREAEEP(i) = nansum(nansum(Atmp(EEPinds)));
-% $$$     AREAEq(i) = nansum(nansum(Atmp(Eqinds)));
-% $$$     AREAN(i) = nansum(nansum(Atmp(Ninds)));
-% $$$     AREAS(i) = nansum(nansum(Atmp(Sinds)));
-% $$$ end
-% $$$ SHFAll = SHFEq+SHFN+SHFS;
-% $$$ 
-% $$$ %Display output in terminal for table:
-% $$$ str = {['Area fractions model ' model] ; ...
-% $$$ sprintf(' NH area = %3.2f',monmean(AREAN,2,ndays)/monmean(AREAtotal,2,ndays)) ; ...
-% $$$ sprintf(' SH area = %3.2f',monmean(AREAS,2,ndays)/monmean(AREAtotal,2,ndays)) ; ...
-% $$$ sprintf(' Eq area = %3.2f',monmean(AREAEq,2,ndays)/monmean(AREAtotal,2,ndays)) ; ...
-% $$$ sprintf(' EEP area = %3.2f',monmean(AREAEEP,2,ndays)/monmean(AREAtotal,2,ndays))}
-% $$$ str = {['Annual totals model ' model]  ; ...
-% $$$ sprintf(' Total = %3.2f',monmean(SHFAll,2,ndays)/1e15) ; ...
-% $$$ sprintf(' NH = %3.2fPW (%3.0f)',monmean(SHFN,2,ndays)/1e15,monmean(SHFN,2,ndays)/monmean(SHFAll,2,ndays)*100) ; ...
-% $$$ sprintf(' SH = %3.2fPW (%3.0f)',monmean(SHFS,2,ndays)/1e15,monmean(SHFS,2,ndays)/monmean(SHFAll,2,ndays)*100) ; ...
-% $$$ sprintf(' Eq = %3.2fPW (%3.0f)',monmean(SHFEq,2,ndays)/1e15,monmean(SHFEq,2,ndays)/monmean(SHFAll,2,ndays)*100) ; ...
-% $$$ sprintf(' EEP = %3.2fPW (%3.0f)',monmean(SHFEEP,2,ndays)/1e15,monmean(SHFEEP,2,ndays)/monmean(SHFAll,2,ndays)*100)}
+%Calculate fractions of surface heat flux regionally:
+
+%Region choice:
+LATsplit = 10;
+%reg = [-150 -90 -5 5]; Nino 3
+reg = [-165 -70 -10 10]; % Wider Pacific
+EEPinds = lat > reg(3) & lat < reg(4) & lon > reg(1) & lon < reg(2);
+
+reg = [-70 25 -10 10];
+EAinds = lat > reg(3) & lat < reg(4) & lon > reg(1) & lon < reg(2);
+
+Eqinds = abs(lat)<=LATsplit;
+Ninds = lat>LATsplit;
+Sinds = lat<-LATsplit;
+
+N50inds = lat>=50;
+reg = [-270 -110 50 90];
+PN50inds = lat > reg(3) & lat < reg(4) & lon > reg(1) & lon < reg(2);
+
+for i=1:12
+    SHFtmp = shflux(:,:,i);
+    SHFEq(i) = nansum(nansum(area(Eqinds).*SHFtmp(Eqinds),1),2);
+    SHFN(i) = nansum(nansum(area(Ninds).*SHFtmp(Ninds),1),2);
+    SHFS(i) = nansum(nansum(area(Sinds).*SHFtmp(Sinds),1),2);
+    SHFEEP(i) = nansum(nansum(area(EEPinds).*SHFtmp(EEPinds),1),2);
+    SHFEA(i) = nansum(nansum(area(EAinds).*SHFtmp(EAinds),1),2);
+    SHFN50(i) = nansum(nansum(area(N50inds).*SHFtmp(N50inds),1),2);
+    SHFPN50(i) = nansum(nansum(area(PN50inds).*SHFtmp(PN50inds),1),2);
+
+    Atmp = area;
+    Atmp(isnan(SHFtmp)) = NaN;
+    AREAtotal(i) = nansum(nansum(Atmp));
+    AREAEEP(i) = nansum(nansum(Atmp(EEPinds)));
+    AREAEA(i) = nansum(nansum(Atmp(EAinds)));
+    AREAEq(i) = nansum(nansum(Atmp(Eqinds)));
+    AREAN(i) = nansum(nansum(Atmp(Ninds)));
+    AREAS(i) = nansum(nansum(Atmp(Sinds)));
+    AREAN50(i) = nansum(nansum(Atmp(N50inds)));
+    AREAPN50(i) = nansum(nansum(Atmp(PN50inds)));
+end
+SHFAll = SHFEq+SHFN+SHFS;
+
+%Display output in terminal for table:
+str = {['Area fractions model ' model] ; ...
+sprintf(' NH area = %3.2f',monmean(AREAN,2,ndays)/monmean(AREAtotal,2,ndays)) ; ...
+sprintf(' SH area = %3.2f',monmean(AREAS,2,ndays)/monmean(AREAtotal,2,ndays)) ; ...
+sprintf(' Eq area = %3.2f',monmean(AREAEq,2,ndays)/monmean(AREAtotal,2,ndays)) ; ...
+sprintf(' EEP area = %3.2f',monmean(AREAEEP,2,ndays)/monmean(AREAtotal,2,ndays)) ; ...
+sprintf(' N50 area = %3.2f',monmean(AREAN50,2,ndays)/monmean(AREAtotal,2,ndays)) ; ...
+sprintf(' PN50 area = %3.2f',monmean(AREAPN50,2,ndays)/monmean(AREAtotal,2,ndays)) ; ...
+sprintf(' EA area = %3.2f',monmean(AREAEA,2,ndays)/monmean(AREAtotal,2,ndays))}
+str = {['Annual totals model ' model]  ; ...
+sprintf(' Total = %3.2f',monmean(SHFAll,2,ndays)/1e15) ; ...
+sprintf(' NH = %3.2fPW (%3.0f)',monmean(SHFN,2,ndays)/1e15,monmean(SHFN,2,ndays)/monmean(SHFAll,2,ndays)*100) ; ...
+sprintf(' SH = %3.2fPW (%3.0f)',monmean(SHFS,2,ndays)/1e15,monmean(SHFS,2,ndays)/monmean(SHFAll,2,ndays)*100) ; ...
+sprintf(' Eq = %3.2fPW (%3.0f)',monmean(SHFEq,2,ndays)/1e15,monmean(SHFEq,2,ndays)/monmean(SHFAll,2,ndays)*100) ; ...
+sprintf(' EEP = %3.2fPW (%3.0f)',monmean(SHFEEP,2,ndays)/1e15,monmean(SHFEEP,2,ndays)/monmean(SHFAll,2,ndays)*100) ; ...
+sprintf(' N50 = %3.2fPW (%3.0f)',monmean(SHFN50,2,ndays)/1e15,monmean(SHFN50,2,ndays)/monmean(SHFAll,2,ndays)*100) ; ...
+sprintf(' PN50 = %3.2fPW (%3.0f)',monmean(SHFPN50,2,ndays)/1e15,monmean(SHFPN50,2,ndays)/monmean(SHFAll,2,ndays)*100) ; ...
+sprintf(' EA = %3.2fPW (%3.0f)',monmean(SHFEA,2,ndays)/1e15,monmean(SHFEA,2,ndays)/monmean(SHFAll,2,ndays)*100)}
 % $$$ 
 % $$$ % Plot regional heat fluxes as a function of season:
 % $$$ figure;

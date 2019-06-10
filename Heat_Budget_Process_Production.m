@@ -36,7 +36,11 @@ doBASE     = 1; % 1 = save BaseVars.mat file
 dodVdtdHdt = 1; % 1 = calculate dVdt/dHdt and save into .nc file
 doNUMDIF   = 1; % 1 = calculate tempdiff x,y,T,t and save into .nc file
 doSGMviac  = 0; % 1 = calculate SUB/GM influence via binned
-                % convergence (otherwise uses only lateral flux).
+                % convergence (otherwise uses lateral flux). The
+                % better option is to use the lateral flux -> This
+                % calculates the net numerical mixing (i.e. it
+                % includes the numerical mixing associated with the GM
+                % and SUB schemes).
 
 doGWB      = 1; % 1 = calculate global online budget terms
 doXY       = 1; % 1 = calculate spatial fluxes-on-an-isotherm
