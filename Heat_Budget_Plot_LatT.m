@@ -1,4 +1,5 @@
 
+
 % This script makes plots of the heat budget in the MOM
 % simulations.
 
@@ -7,13 +8,19 @@ clear all;
 
 base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
 
-% Load Base Variables:
-% $$$ model = 'MOM025_kb3seg';
-% $$$ outputs = [96];
-% $$$ 
-model = 'ACCESS-OM2_1deg_jra55_ryf8485_kds50_july';
-outputs = 37;
+% $$$ % $$$ % $$$ % Load Base Variables:
+model = 'MOM025_kb3seg';
+outputs = [96];
+% $$$ % $$$ 
+% $$$ model = 'ACCESS-OM2_1deg_jra55_ryf8485_kds50_july';
+% $$$ outputs = 37;
 
+% $$$ model = 'ACCESS-OM2_1deg_jra55_ryf8485_gfdl50_july';
+% $$$ outputs = 37;
+% $$$ 
+% $$$ model = 'ACCESS-OM2_025deg_jra55_ryf8485_gmredi6';
+% $$$ outputs = 148;
+% $$$ 
 % $$$ model = 'MOM025_kb1em5';
 % $$$ outputs = [95:99];
 % $$$ model = 'MOM025';
@@ -32,10 +39,10 @@ end
 % Latitude difference vector for plotting per-degree:
 dy = [yu(2)-yu(1); diff(yu)]; % (First-element is done by hand - but dy is equal to second).
 
-regions = {'Global'};
-regLets = {'G'};
-% $$$ regions = {'Atlantic2BAS','IndoPacific2BAS','Global'};
-% $$$ regLets = {'A','P','G'};
+% $$$ regions = {'Global'};
+% $$$ regLets = {'G'};
+regions = {'Atlantic2BAS','IndoPacific2BAS','Global'};
+regLets = {'A','P','G'};
 
 for reg = 1:length(regions)
     region = regions{reg}
@@ -64,7 +71,7 @@ for reg = 1:length(regions)
         ZAR.AIadv(:,:,:,i) = ZAR.AHD(:,:,:,i) - rho0*Cp*repmat(Te',[yL 1 tL]).*ZAR.PSI(:,:,:,i); % advective-AI (defined on Te and v-points)
 % $$$     zAIpsi(:,:,:,i) = -rho0*Cp*cumsum(zPSI(:,:,:,i)*dT,2); % Heat Function (defined on Tc, since Psi is on Te, and defined on v-points)
         ZAR.AI(:,:,:,i) = ZAR.AIadv(:,:,:,i)+ZAR.AHDGM(:,:,:,i)+ZAR.AHDSUB(:,:,:,i)+ZAR.AHDR(:,:,:,i); % total internal heat content transport
-        
+
         % NaN lats on zAI for convergence calculation (for sub-regions):
         NANlats = ZAR.AI(:,end,1) == 0;
         ZAR.AI(NANlats,:,:,i) = NaN;
@@ -136,14 +143,166 @@ end %end region loop
 %% Calculate total diathermal transport and numerical mixing (special for Atlantic):
 [X,Y] = ndgrid(yt,Te);
 
+% Add KPPNL for old processing files:
+if (~isfield(ZA_G,'KPPNL'))
+    ZA_G.KPPNL = 0*ZA_G.M;
+end
+if (~isfield(ZA_P,'KPPNL'))
+    ZA_P.KPPNL = 0*ZA_P.M;
+end
+if (~isfield(ZA_A,'KPPNL'))
+    ZA_A.KPPNL = 0*ZA_A.M;
+end
+
 % Global:
 dAI_mR_dphi = diff(cat(1,zeros(1,TL+1),ZA_G.AI-ZA_G.AHDR),[],1); % convergence of that transport
 ZA_G.Jdia = -ZA_G.N-dAI_mR_dphi; % total diathermal transport
-ZA_G.I = ZA_G.Jdia+ZA_G.M+ZA_G.F+ZA_G.PI+ZA_G.RED+ZA_G.MDS+ZA_G.SIG; % numerical mixing (both advective and submesoscale)
+ZA_G.I = -(ZA_G.Jdia+ZA_G.M+ZA_G.KPPNL+ZA_G.F+ZA_G.PI+ZA_G.RED+ZA_G.K33+ZA_G.MDS+ZA_G.SIG); % numerical mixing (both advective and submesoscale)
+if (isfield(ZA_G,'NUM_SUBlf'))
+    ZA_G.NUM = ZA_G.NUM_SUBlf;
+end
+ZA_G.Fall = ZA_G.F + ZA_G.PI;
+ZA_G.Mall = ZA_G.M + ZA_G.I;
 
-% $$$ dAI_mR_dphi = diff(cat(1,zeros(1,TL+1),ZA_G.AI-ZA_G.AHDR-ZA_G.AHDSUB),[],1); % convergence of that transport
-% $$$ ZA_G.Jdia = -ZA_G.N-dAI_mR_dphi; % total diathermal transport
-% $$$ ZA_G.I = ZA_G.Jdia+ZA_G.M+ZA_G.F+ZA_G.PI+ZA_G.RED+ZA_G.MDS+ZA_G.SIG-ZA_G.SUB; % numerical mixing (both advective and submesoscale)
+% Indo-Pacific:
+dAI_mR_dphi = diff(cat(1,zeros(1,TL+1),ZA_P.AI-ZA_P.AHDR),[],1); % convergence of that transport
+ZA_P.Jdia = -ZA_P.N-dAI_mR_dphi; % total diathermal transport
+ZA_P.I = -(ZA_P.Jdia+ZA_P.M+ZA_P.KPPNL+ZA_P.F+ZA_P.PI+ZA_P.RED+ZA_P.K33+ZA_P.MDS+ZA_P.SIG); % numerical mixing (both advective and submesoscale)
+if (isfield(ZA_P,'NUM_SUBlf'))
+    ZA_P.NUM = ZA_P.NUM_SUBlf;
+end
+ZA_P.Fall = ZA_P.F + ZA_P.PI;
+ZA_P.Mall = ZA_P.M + ZA_P.I;
+
+% Atlantic:
+dAI_mR_dphi = diff(cat(1,zeros(1,TL+1),ZA_A.AI-ZA_A.AHDR),[],1); % convergence of that transport
+ZA_A.Jdia = -ZA_A.N-dAI_mR_dphi; % total diathermal transport
+ind = find(~isnan(ZA_P.AI(:,end)),1,'last'); % 66N indicy (u-points)
+ZA_A.Jdia(ind,:) = ZA_A.Jdia(ind,:) + ZA_P.AI(ind-1,:); % Correct for missing bit because main Atlantic overlaps with Bering Strait cutoff
+ZA_A.I = -(ZA_A.Jdia+ZA_A.M+ZA_A.KPPNL+ZA_A.F+ZA_A.PI+ZA_A.RED+ZA_A.K33+ZA_A.MDS+ZA_A.SIG); % numerical mixing (both advective and submesoscale)
+if (isfield(ZA_A,'NUM_SUBlf'))
+    ZA_A.NUM = ZA_A.NUM_SUBlf;
+end
+ZA_A.Fall = ZA_A.F + ZA_A.PI;
+ZA_A.Mall = ZA_A.M + ZA_A.I;
+
+%%%% Summary schematics:
+ltminW = -45;
+ltmin = -34;
+ltmax = 90;
+[tmp ltminI] = min(abs(yu-ltmin)); % u-point index
+[tmp ltminWI] = min(abs(yu-ltminW)); % 45S
+[tmp ltmaxI] = min(abs(yu-ltmax)); % u-point index
+indBS = find(~isnan(ZA_P.AI(:,end)),1,'last');
+[X,Y] = ndgrid(yt,Te);
+
+% Below a given temperature:
+% Atl:
+FAb = nansum(ZA_A.Fall(ltminI+1:ltmaxI,:),1)/1e15;
+MAb = nansum(ZA_A.Mall(ltminI+1:ltmaxI,:),1)/1e15;
+NAb = nansum(ZA_A.N(ltminI+1:ltmaxI,:),1)/1e15;
+AA34Sb = ZA_A.AI(ltminI,:)/1e15;
+% Pac:
+FPb = nansum(ZA_P.Fall(ltminI+1:ltmaxI,:),1)/1e15;
+MPb = nansum(ZA_P.Mall(ltminI+1:ltmaxI,:),1)/1e15;
+NPb = nansum(ZA_P.N(ltminI+1:ltmaxI,:),1)/1e15;
+AP34Sb = ZA_P.AI(ltminI,:)/1e15;
+% Glo and BS:
+A34Sb = ZA_G.AI(ltminI,:)/1e15;
+ABSb = ZA_P.AI(indBS,:)/1e15;
+
+% SO:
+FSOb = nansum(ZA_G.Fall(1:ltminI,:),1)/1e15;
+MSOb = nansum(ZA_G.Mall(1:ltminI,:),1)/1e15;
+NSOb = nansum(ZA_G.N(1:ltminI,:),1)/1e15;
+
+% SO and warm route:
+FWRb = nansum(ZA_G.Fall((ltminWI+1):ltminI,:),1)/1e15;
+MWRb = nansum(ZA_G.Mall((ltminWI+1):ltminI,:),1)/1e15;
+NWRb = nansum(ZA_G.N((ltminWI+1):ltminI,:),1)/1e15;
+
+A45Sb = ZA_G.AI(ltminWI,:)/1e15;
+
+% $$$ % Do integral the other way:
+% $$$ vars = {'FAb','MAb','NAb','AA34Sb','FPb','MPb','NPb','AP34Sb', ...
+% $$$         'A34Sb','ABSb'};
+% $$$ for i = 1:length(vars)
+% $$$     eval([vars{i} ' = -' vars{i} ' + ' vars{i} '(end);']);
+% $$$ end
+% Note: Diathermal fluxes are positive upwards, AI's are positive northwards
+
+% Summary numbers at temps:
+%sT = [-3 5 10 15 20 34];
+sT = [-3 15 34];
+for Ti=(length(sT)-1):-1:1
+    [tmp indL] = min(abs(Te-sT(Ti)));
+    [tmp indU] = min(abs(Te-sT(Ti+1)));
+    
+    disp(' ')
+    disp(['Temperatures ' num2str(Te(indL)) 'C - ' num2str(Te(indU)) 'C:'])
+    disp(['-------------------------------------------------------------'])
+    disp(sprintf('Surface Forcing (into layer) Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f, WR = %5.2f',FPb(indU)-FPb(indL),FAb(indU)-FAb(indL),FSOb(indU)-FSOb(indL),FWRb(indU)-FWRb(indL)))
+    disp(sprintf('Mixing      (flux at bottom) Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f, WR = %5.2f',MPb(indL),MAb(indL),MSOb(indL),MWRb(indL)))
+    disp(sprintf('Transport 34S   (into layer) Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f',AP34Sb(indU)-AP34Sb(indL),AA34Sb(indU)-AA34Sb(indL),A34Sb(indU)-A34Sb(indL)))
+    disp(sprintf('Transport 45S   (into layer) SO = %5.2f',A45Sb(indU)-A45Sb(indL)))
+    disp(sprintf('Tendency        (into layer) Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f, WR = %5.2f',NPb(indU)-NPb(indL),NAb(indU)-NAb(indL),NSOb(indU)-NSOb(indL),NWRb(indU)-NWRb(indL)))
+    disp(sprintf('Transport BS    (into layer)          = %5.2f',ABSb(indU)-ABSb(indL)))
+end
+
+% Global:
+indL = 1;indU=TL+1;
+for i=1:1
+    disp(' ')
+    disp(['Temperatures ' num2str(Te(indL)) 'C - ' num2str(Te(indU)) 'C:'])
+    disp(['-------------------------------------------------------------'])
+    disp(sprintf('Surface Forcing (into layer) Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f, WR = %5.2f',FPb(indU)-FPb(indL),FAb(indU)-FAb(indL),FSOb(indU)-FSOb(indL),FWRb(indU)-FWRb(indL)))
+    disp(sprintf('Mixing      (flux at bottom) Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f, WR = %5.2f',MPb(indL),MAb(indL),MSOb(indL),MWRb(indL)))
+    disp(sprintf('Transport 32S   (into layer) Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f, WR = %5.2f',AP34Sb(indU)-AP34Sb(indL),AA34Sb(indU)-AA34Sb(indL),A34Sb(indU)-A34Sb(indL)))
+    disp(sprintf('Transport 45S   (into layer) SO = %5.2f',A45Sb(indU)-A45Sb(indL)))
+    disp(sprintf('Tendency        (into layer) Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f, WR = %5.2f',NPb(indU)-NPb(indL),NAb(indU)-NAb(indL),NSOb(indU)-NSOb(indL),NWRb(indU)-NWRb(indL)))
+    disp(sprintf('Transport BS    (into layer)          = %5.2f',ABSb(indU)-ABSb(indL)))
+end
+
+
+
+%% Should be cleaned up from here down...
+
+% $$$ figure;
+pl = 6;
+subplot(3,3,1+pl);
+pcolPlot(X,Y,-ZA_A.I./repmat(dy,[1 TL+1]));
+caxis([-5 5]*1e11);
+title('I latT');
+subplot(3,3,2+pl);
+pcolPlot(X,Y,ZA_A.NUM./repmat(dy,[1 TL+1]));
+caxis([-5 5]*1e11);
+title('I NUM');
+subplot(3,3,3+pl);
+pcolPlot(X,Y,(ZA_A.I+ZA_A.NUM)./repmat(dy,[1 TL+1]));
+caxis([-5 5]*1e11);
+title('Difference');
+
+pl = 3;
+subplot(3,3,1+pl);
+pcolPlot(X,Y,-repmat(ZA_G.I(:,end),[1 TL+1]).*repmat((Te/Te(end))',[yL 1])./repmat(dy,[1 TL+1]));
+caxis([-5 5]*1e11);
+title('I latT (end)*(T/Tend)');
+subplot(3,3,2+pl);
+pcolPlot(X,Y,(-ZA_G.I-ZA_G.NUM)./repmat(dy,[1 TL+1]));
+caxis([-5 5]*1e11);
+title('Diff I latT - 3D I' );
+subplot(3,3,3+pl);
+pcolPlot(X,Y,(-ZA_G.I-ZA_G.NUM+repmat(ZA_G.I(:,end),[1 TL+1]).*repmat((Te/Te(end))',[yL 1]))./repmat(dy,[1 TL+1]));
+caxis([-5 5]*1e11);
+title('Diff diff');
+
+
+
+for i=1:9
+    subplot(3,3,i);
+    caxis([-1 1]*1e12);
+end
+
 
 JnoN = J-N;
 Fall = F+PI;
