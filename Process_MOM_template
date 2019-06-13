@@ -1,0 +1,17 @@
+#!/bin/bash
+#PBS -N XXNAMEXX
+#PBS -P e14
+#PBS -l ncpus=1
+#PBS -l mem=12GB
+#PBS -l walltime=06:00:00
+#PBS -l wd
+#PBS -l software=matlab_unsw
+#PBS -q express
+#PBS -M ryan.holmes@unsw.edu.au
+#PBS -m e
+
+module load netcdf
+module load matlab/R2017a
+
+matlab -nodisplay -nodesktop -nosplash -r "output=XXOUTPUTXX;region='XXREGIONXX';Heat_Budget_Process_ProductionXXTYPEXX;exit;"
+
