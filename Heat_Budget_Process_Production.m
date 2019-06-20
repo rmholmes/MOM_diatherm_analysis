@@ -1,17 +1,18 @@
 % This script processes the heat budget and associated variables in
 % MOM025 or MOM01 simulations and save's into .mat files
 
-% $$$ baseL = '/short/e14/rmh561/mom/archive/';
+baseL = '/short/e14/rmh561/mom/archive/';
 % $$$ baseL = '/g/data/e14/rmh561/mom/';
-baseL = '/short/e14/rmh561/access-om2/archive/';
+% $$$ baseL = '/short/e14/rmh561/access-om2/archive/';
 % $$$ baseL = '/srv/ccrc/data03/z3500785/';
 
 % $$$ % MOM-SIS025:
-% $$$ model = 'MOM025_kb3seg';
-% $$$ baseD = [baseL 'MOM_HeatDiag_kb3seg/']; %Data Directory.
-% ACCESS-OM2:
-model = 'ACCESS-OM2_1deg_jra55_ryf8485_kds50_july';
-baseD = [baseL '1deg_jra55_ryf8485_kds50_july/']; %Data Directory.
+model = 'MOM025_RCP45';
+baseD = [baseL 'MOM_HeatDiag_RCP45/']; %Data Directory.
+ICdir = [baseL 'MOM_HeatDiag_kb3seg/restart100/'];
+% $$$ % ACCESS-OM2:
+% $$$ model = 'ACCESS-OM2_1deg_jra55_ryf8485_kds50_july';
+% $$$ baseD = [baseL '1deg_jra55_ryf8485_kds50_july/']; %Data Directory.
 % $$$ ICdir = '/g/data1/ua8/MOM/initial_conditions/WOA/10_KDS50/';
 % MOM-SIS01:
 % $$$ model = 'MOM01';
@@ -20,16 +21,16 @@ baseD = [baseL '1deg_jra55_ryf8485_kds50_july/']; %Data Directory.
 outD = [baseD 'mat_data/'];
 rstbaseD = baseD;
 
-post = 'ocean/'; % For ACCESS-OM2 output coulpled;
-% $$$ post = ''; % For MOM-SIS.
+% $$$ post = 'ocean/'; % For ACCESS-OM2 output coulpled;
+post = ''; % For MOM-SIS.
 
 % term options:
-haveRedi = 1; % 1 = Redi diffusion is on, 0 = off
-haveGM = 1; % 1 = GM is on, 0 = off;
+haveRedi = 0; % 1 = Redi diffusion is on, 0 = off
+haveGM = 0; % 1 = GM is on, 0 = off;
 haveSUB = 1; % 1 = submeso is on, 0 = off;
-haveMDS = 1; % 1 = MDS is on, 0 = off;
-haveSIG = 1; % 1 = SIG is on, 0 = off;
-haveMIX = 0; % 1 = Do mixing components (vdiffuse_diff_cbt_*), 0 = don't. 
+haveMDS = 0; % 1 = MDS is on, 0 = off;
+haveSIG = 0; % 1 = SIG is on, 0 = off;
+haveMIX = 1; % 1 = Do mixing components (vdiffuse_diff_cbt_*), 0 = don't. 
 
 % Processing options:
 doBASE     = 1; % 1 = save BaseVars.mat file
@@ -83,15 +84,6 @@ gname = [base 'ocean_grid.nc'];
 sname = [base 'ocean_snap.nc'];
 wname = [base 'ocean_wmass.nc'];
 tname = [base 'time_stamp.out'];
-if (exist(baser))
-    found_rst = 1;rstti = 1;
-    rnameT = [baser 'ocean_temp_salt.res.nc'];
-    rnameZ = [baser 'ocean_thickness.res.nc'];
-else
-    found_rst = 0;rstti = 12;
-    rnameT = [basem1 'ocean_snap.nc'];
-    rnameZ = [basem1 'ocean_snap.nc'];
-end
          
 % Horizontal Grid  -----------------------------------------
 lon = ncread(gname,'geolon_t');lat = ncread(gname,'geolat_t');
@@ -132,6 +124,16 @@ end
 time = ncread(fname,'time');
 ndays = ncread(fname,'average_DT');
 tL = length(time);
+
+if (exist(baser))
+    found_rst = 1;rstti = 1;
+    rnameT = [baser 'ocean_temp_salt.res.nc'];
+    rnameZ = [baser 'ocean_thickness.res.nc'];
+else
+    found_rst = 0;rstti = tL;
+    rnameT = [basem1 'ocean_snap.nc'];
+    rnameZ = [basem1 'ocean_snap.nc'];
+end
 
 Cp = 3992.10322329649; % J kg-1 degC-1
 rho0 = 1035; % kgm-3

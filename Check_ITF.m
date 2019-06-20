@@ -2,16 +2,15 @@
 %Check ITF calculations
 
 baseL = '/short/e14/rmh561/mom/archive/';
-model = 'MOM025_nipoall';
-baseD = [baseL 'MOM_HeatDiag_nipoall/'];
+model = 'MOM025_kb3seg';
+baseD = [baseL 'MOM_HeatDiag_kb3seg/'];
 rstbaseD = baseD;
 outD = [baseD 'mat_data/'];
 
-output = 0;
+output = 96;
 
 % file-names -----------------------------------------
 base = [baseD sprintf('output%03d/',output)];
-hname = [base 'ocean_heat.nc'];
 if (strfind(baseD,'01'))
     fname = [base 'ocean_month.nc'];
 else
@@ -28,15 +27,15 @@ lonv_t = ncread(gname,'xt_ocean');lonv_u = ncread(gname,'xu_ocean');
 latv_t = ncread(gname,'yt_ocean');latv_u = ncread(gname,'yu_ocean');
 
 % Vertical grid  -----------------------------------------
-z = ncread(hname,'st_ocean');zL = length(z);
+z = ncread(fname,'st_ocean');zL = length(z);
 
 % Time  -----------------------------------------
-time = ncread(hname,'time');
+time = ncread(fname,'time');
 
 tL = length(time);
 
 % Temperature grid  -----------------------------------------
-Cp = 3992.1; % J kg-1 degC-1
+Cp = 3992.10322329649; % J kg-1 degC-1
 rho0 = 1035; % kgm-3
 
 T = ncread(wname,'neutral');
@@ -101,72 +100,71 @@ mask_t(:,t1a:end) = 0;mask_u(:,t1a:end) = 0;mask_t(t2:end,t1:end) = 0;mask_u(t2:
 % $$$ mask_t(81,525) = 0;mask_t(799,535)=0;
 % $$$ 
 % $$$ txtrans = sum(ncread(wname,'tx_trans_nrho',[1 1 1 1],[xL yL TL 1]),3);
-% $$$ SST = ncread(fname,'temp',[1 1 1 1],[xL yL 1 1]);
-% $$$ mask_t(isnan(SST)) = 0;
-% $$$ mask_u(txtrans==0) = 0;
+SST = ncread(fname,'temp',[1 1 1 1],[xL yL 1 1]);
+mask_t(isnan(SST)) = 0;
+mask_u(txtrans==0) = 0;
 
-outputs = 0:19;
+outputs = 96;
 
 ln1 = 50;
 ln2 = 150;
 lt1 = 400;
 lt2 = 550;
 
+
+
 mask = mask_u_Wx(ln1:ln2,lt1:lt2);
-
-txtrans_mass = zeros(93,1);
-txtrans_heat = zeros(93,1);
-txtrans_heat_monthly = zeros(93,1);
-cnt = 1;
-
-Tbase = repmat(permute(T,[3 2 1]),[ln2-ln1+1 lt2-lt1+1 1]);
+lonus = lonu(ln1:ln2,lt1:lt2);
+latus = latu(ln1:ln2,lt1:lt2);
+lonusm = lonus(find(mask));
+latusm = latus(find(mask));
+[xL,yL] = size(mask);
+txtrans = zeros(xL,yL,TL);
+hxtrans = zeros(xL,yL,TL);
 
 for output = outputs
     base = [baseD sprintf('output%03d/',output)];
-    fname = sprintf([base 'ocean.nc'],output)
     wname = sprintf([base 'ocean_wmass.nc'],output)
     
     for i=1:12
         i
-        txtrans = ncread(fname,'tx_trans',[ln1 lt1 1 i],[ln2-ln1+1 ...
-                            lt2-lt1+1 zL 1])*1e9/rho0;
-        temp = ncread(fname,'temp',[ln1 lt1 1 i],[ln2-ln1+2 ...
-                            lt2-lt1+1 zL 1]);
-        txtrans_nrho = ncread(wname,'tx_trans_nrho',[ln1 lt1 1 i],[ln2-ln1+1 ...
+        txtrans = txtrans+ncread(wname,'tx_trans_nrho',[ln1 lt1 1 i],[ln2-ln1+1 ...
                             lt2-lt1+1 TL 1])*1e9/rho0;
-
-        monheat = txtrans.*(temp(2:end,:,:)+temp(1:(end-1),:,:))/2*rho0*Cp;
-        txtrans = nansum(txtrans,3);
-        monheat = nansum(monheat,3);
-        txtrans_nrho = nansum(txtrans_nrho.*Tbase*rho0*Cp,3);
-        
-        txtrans_heat(:,cnt) = txtrans_nrho(mask==1);
-        txtrans_mass(:,cnt) = txtrans(mask==1);
-        txtrans_heat_monthly(:,cnt) = monheat(mask==1);
-        
-        cnt = cnt+1;
+        hxtrans = hxtrans+ncread(wname,'temp_xflux_adv_on_nrho',[ln1 lt1 1 i],[ln2-ln1+1 ...
+                            lt2-lt1+1 TL 1]);
     end
 end
+txtrans = txtrans/12;
+hxtrans = hxtrans/12;
 
-txtrans = txtrans(:,2:end);
-save('gfdl_nyf_1080_all_nicolaRun_ITF.mat','txtrans');
+txtrans_sum = zeros(TL,1);
+hxtrans_sum = zeros(TL,1);
 
-load('gfdl_nyf_1080_all_nicolaRun_ITF.mat','txtrans');
-
-txtransS = nansum(-txtrans_heat_monthly(1:63,:),1)/1e15;
-txtransA = nansum(-txtrans_heat_monthly,1)/1e15;
-
-txtransSF = zeros(length(txtransS)-5*2-1,1);
-txtransAF = zeros(length(txtransA)-5*2-1,1);
-for i=1:length(txtransSF)
-    txtransSF(i) = mean(txtransS(i:(i+11)));
-    txtransAF(i) = mean(txtransA(i:(i+11)));
+for i=1:TL
+    tx = txtrans(:,:,i);
+    txtrans_sum(i) = nansum(tx(find(mask==1)));
+    hx = hxtrans(:,:,i);
+    hxtrans_sum(i) = nansum(hx(find(mask==1)));
 end
 
+PSI = cat(1,0,cumsum(txtrans_sum));
+A = cat(1,0,cumsum(hxtrans_sum));
+AE = rho0*Cp*PSI.*Te;
+AI = A-AE;
 
 figure;
-plot(((1:length(txtransSF))+5)/12,txtransSF,'--r','linewidth',2);
-hold on;
-plot(((1:length(txtransSF))+5)/12,txtransAF,'--b','linewidth',2);
+subplot(1,2,1);
+plot(PSI/1e6,Te,'-k');
+xlabel('ITF $\Psi(T)$ (Sv)');
+ylabel('Temperature ($^\circ$C)');
+grid on;
 
+subplot(1,2,2);
+plot(A/1e15,Te,'-k');
+hold on;
+plot(AE/1e15,Te,'-b');
+plot(AI/1e15,Te,'-r');
+xlabel('ITF heat transport (PW)');
+legend('A','AE','AI');
+grid on;
 
