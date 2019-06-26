@@ -1,22 +1,22 @@
 % This script processes the heat budget and associated variables in
 % MOM025 or MOM01 simulations and save's into .mat files
 
-baseL = '/short/e14/rmh561/mom/archive/';
-% $$$ baseL = '/g/data/e14/rmh561/mom/';
+% $$$ baseL = '/short/e14/rmh561/mom/archive/';
+baseL = '/g/data/e14/rmh561/mom/';
 % $$$ baseL = '/short/e14/rmh561/access-om2/archive/';
 % $$$ baseL = '/srv/ccrc/data03/z3500785/';
 
 % $$$ % MOM-SIS025:
-model = 'MOM025_RCP45';
-baseD = [baseL 'MOM_HeatDiag_RCP45/']; %Data Directory.
-ICdir = [baseL 'MOM_HeatDiag_kb3seg/restart100/'];
+% $$$ model = 'MOM025_RCP45';
+% $$$ baseD = [baseL 'MOM_HeatDiag_RCP45/']; %Data Directory.
+% $$$ ICdir = [baseL 'MOM_HeatDiag_kb3seg/restart100/'];
 % $$$ % ACCESS-OM2:
 % $$$ model = 'ACCESS-OM2_1deg_jra55_ryf8485_kds50_july';
 % $$$ baseD = [baseL '1deg_jra55_ryf8485_kds50_july/']; %Data Directory.
 % $$$ ICdir = '/g/data1/ua8/MOM/initial_conditions/WOA/10_KDS50/';
 % MOM-SIS01:
-% $$$ model = 'MOM01';
-% $$$ baseD = [baseL 'MOM01_HeatDiag/']; %Data Directory.
+model = 'MOM01';
+baseD = [baseL 'MOM01_HeatDiag/']; %Data Directory.
 
 outD = [baseD 'mat_data/'];
 rstbaseD = baseD;
@@ -34,7 +34,7 @@ haveMIX = 1; % 1 = Do mixing components (vdiffuse_diff_cbt_*), 0 = don't.
 
 % Processing options:
 doBASE     = 1; % 1 = save BaseVars.mat file
-dodVdtdHdt = 1; % 1 = calculate dVdt/dHdt and save into .nc file
+dodVdtdHdt = 0; % 1 = calculate dVdt/dHdt and save into .nc file
 doNUMDIF   = 1; % 1 = calculate tempdiff x,y,T,t and save into .nc file
 doSGMviac  = 0; % 1 = calculate SUB/GM influence via binned
                 % convergence (otherwise uses lateral flux). The
@@ -45,7 +45,7 @@ doSGMviac  = 0; % 1 = calculate SUB/GM influence via binned
 
 doGWB      = 1; % 1 = calculate global online budget terms
 doXY       = 1; % 1 = calculate spatial fluxes-on-an-isotherm
-doSURF     = 1; % 1 = calculate surface flux field and SST
+doSURF     = 0; % 1 = calculate surface flux field and SST
 doZA       = 1; % 1 = calculate zonal average budget
 
 doHND      = 1; % 1 = calculate global online numdif

@@ -8,29 +8,22 @@ clear all;
 
 base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
 
-% $$$ % $$$ % $$$ % Load Base Variables:
+% Load Base Variables:
 model = 'MOM025_kb3seg';
-outputs = [96];
-% $$$ % $$$ 
-% $$$ model = 'ACCESS-OM2_1deg_jra55_ryf8485_kds50_july';
-% $$$ outputs = 37;
+outputs = [101111];
+% $$$ outputs = [111120];
 
-% $$$ model = 'ACCESS-OM2_1deg_jra55_ryf8485_gfdl50_july';
-% $$$ outputs = 37;
-% $$$ 
-% $$$ model = 'ACCESS-OM2_025deg_jra55_ryf8485_gmredi6';
-% $$$ outputs = 148;
-% $$$ 
-% $$$ model = 'MOM025_kb1em5';
-% $$$ outputs = [95:99];
-% $$$ model = 'MOM025';
-% $$$ outputs = [15:19];
-% $$$ model = 'MOM025_kb1em6';
-% $$$ outputs = 30;
+% $$$ model = 'MOM025_nipoall';
+% $$$ outputs = [10:19];
 
+% $$$ model = 'MOM025_RCP45';
+% $$$ outputs = [1];
 
-% $$$ model = 'MOM01';
-% $$$ outputs = [444];
+% $$$ model = 'MOM025_SOUP15';
+% $$$ outputs = [10:19];
+
+model = 'MOM01';
+outputs = [444];
 
 load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
 if (~exist('ndays'))
@@ -56,6 +49,7 @@ for reg = 1:length(regions)
     namesALL = {names{:},namesEX{:}};
             
     for i=1:length(outputs)
+        i
         load([base model sprintf('_output%03d_',outputs(i)) region '_' type 'HBud.mat']);
         for ii=1:length(names)
             eval(['ZAR.' names{ii} '(:,:,:,i) = ZA.' names{ii} ';']);
@@ -161,8 +155,10 @@ ZA_G.I = -(ZA_G.Jdia+ZA_G.M+ZA_G.KPPNL+ZA_G.F+ZA_G.PI+ZA_G.RED+ZA_G.K33+ZA_G.MDS
 if (isfield(ZA_G,'NUM_SUBlf'))
     ZA_G.NUM = ZA_G.NUM_SUBlf;
 end
-ZA_G.Fall = ZA_G.F + ZA_G.PI;
-ZA_G.Mall = ZA_G.M + ZA_G.I;
+
+dAI_mR_dphi = diff(cat(1,zeros(1,TL+1),ZA_G.AI),[],1); % convergence of that transport
+ZA_G.Jdia = -ZA_G.N-dAI_mR_dphi; % total diathermal transport
+ZA_G.I = -(ZA_G.Jdia+ZA_G.M+ZA_G.KPPNL+ZA_G.F+ZA_G.PI); % numerical mixing (both advective and submesoscale)
 
 % Indo-Pacific:
 dAI_mR_dphi = diff(cat(1,zeros(1,TL+1),ZA_P.AI-ZA_P.AHDR),[],1); % convergence of that transport
@@ -171,8 +167,6 @@ ZA_P.I = -(ZA_P.Jdia+ZA_P.M+ZA_P.KPPNL+ZA_P.F+ZA_P.PI+ZA_P.RED+ZA_P.K33+ZA_P.MDS
 if (isfield(ZA_P,'NUM_SUBlf'))
     ZA_P.NUM = ZA_P.NUM_SUBlf;
 end
-ZA_P.Fall = ZA_P.F + ZA_P.PI;
-ZA_P.Mall = ZA_P.M + ZA_P.I;
 
 % Atlantic:
 dAI_mR_dphi = diff(cat(1,zeros(1,TL+1),ZA_A.AI-ZA_A.AHDR),[],1); % convergence of that transport
@@ -183,8 +177,113 @@ ZA_A.I = -(ZA_A.Jdia+ZA_A.M+ZA_A.KPPNL+ZA_A.F+ZA_A.PI+ZA_A.RED+ZA_A.K33+ZA_A.MDS
 if (isfield(ZA_A,'NUM_SUBlf'))
     ZA_A.NUM = ZA_A.NUM_SUBlf;
 end
-ZA_A.Fall = ZA_A.F + ZA_A.PI;
-ZA_A.Mall = ZA_A.M + ZA_A.I;
+
+% Residual check:
+% $$$ RES = diff(ZA_G.Fall,[],2)+diff(ZA_G.Mall,[],2)-diff(cat(1,zeros(1,TL),diff(ZA_G.AI,[],2)),[],1);
+% $$$ Ncon = diff(ZA_G.N,[],2);
+% $$$ max(max(abs(RES-Ncon)))/max(max(abs(Ncon)))
+% $$$ 
+% $$$ RES = diff(ZA_P.Fall,[],2)+diff(ZA_P.Mall,[],2)-diff(cat(1,zeros(1,TL),diff(ZA_P.AI,[],2)),[],1);
+% $$$ Ncon = diff(ZA_P.N,[],2);
+% $$$ max(max(abs(RES-Ncon)))/max(max(abs(Ncon)))
+% $$$ 
+% $$$ RES = diff(ZA_A.Fall,[],2)+diff(ZA_A.Mall,[],2)-diff(cat(1,zeros(1,TL),diff(ZA_A.AI,[],2)),[],1);
+% $$$ Ncon = diff(ZA_A.N,[],2);
+% $$$ max(max(abs(RES-Ncon)))/max(max(abs(Ncon)))
+
+groups = {'G','P','A'};
+for gi=1:length(groups)
+    AIF = 0*ZA_G.F; % Heat lost max SST line from AI
+
+    % Fix above max SST to calculate budgets between theta or max SST
+    % and -2C:
+    for yi=1:yL
+        %PI:
+        eval(['ZA_' groups{gi} '.PI(yi,ZA_' groups{gi} '.maxTit(yi):end) ' ...
+              '= ZA_' groups{gi} '.PI(yi,ZA_' groups{gi} '.maxTit(yi));']);
+        %tendency:
+        eval(['ZA_' groups{gi} '.N(yi,ZA_' groups{gi} '.maxTit(yi):end) ' ...
+              '= ZA_' groups{gi} '.N(yi,ZA_' groups{gi} '.maxTit(yi));']);
+        %Num-mix:
+        eval(['ZA_' groups{gi} '.I(yi,ZA_' groups{gi} '.maxTit(yi):end) ' ...
+              '= ZA_' groups{gi} '.I(yi,ZA_' groups{gi} '.maxTit(yi));']);
+        %AI:
+        eval(['ZA_' groups{gi} '.AI(yi,ZA_' groups{gi} '.maxTiu(yi):end) ' ...
+              '= ZA_' groups{gi} '.AI(yi,ZA_' groups{gi} '.maxTiu(yi));']);
+    end
+    for yi=1:yL-1
+        % AI:
+        eval(['indu = ZA_' groups{gi} '.maxTiu(yi);']);
+        eval(['indtm = ZA_' groups{gi} '.maxTit(yi);']);
+        eval(['indtp = ZA_' groups{gi} '.maxTit(yi+1);']);
+        if indtm<indu 
+            eval(['AIF(yi,indtm+1:end) = AIF(yi,indtm+1:end) + ' ...
+                  '(ZA_' groups{gi} '.AI(yi,indu) - ZA_' groups{gi} '.AI(yi,indtm));']);
+        end
+        if (indtp>indu)
+            eval(['AIF(yi,indu+1:end) = AIF(yi,indu+1:end) + ' ...
+                  '(ZA_' groups{gi} '.AI(yi,indtp) - ZA_' groups{gi} '.AI(yi,indu));']);
+        end
+        if (indtm>indu)
+            eval(['AIF(yi+1,indu+1:end) = AIF(yi+1,indu+1:end) - ' ...
+                  '(ZA_' groups{gi} '.AI(yi,indtm) - ZA_' groups{gi} '.AI(yi,indu));']);
+        end
+        if (indtp<indu)
+            eval(['AIF(yi+1,indtp+1:end) = AIF(yi+1,indtp+1:end) - ' ...
+                  '(ZA_' groups{gi} '.AI(yi,indu) - ZA_' groups{gi} '.AI(yi,indtp));']);
+        end
+    end
+    
+    eval(['ZA_' groups{gi} '.AIF = AIF;']);
+    eval(['ZA_' groups{gi} '.Fall = ZA_' groups{gi} '.F + ZA_' groups{gi} '.PI+ZA_' groups{gi} '.AIF;']);
+    eval(['ZA_' groups{gi} '.Mall = ZA_' groups{gi} '.M + ZA_' groups{gi} '.KPPNL+ZA_' groups{gi} '.I;']);
+end
+
+% $$$ % Check Bering Strait/net psi:
+% $$$ 
+% $$$ figure;
+% $$$ subplot(2,2,1);
+% $$$ pcolPlot(avg(X,1),avg(Y,1),-rho0*Cp*diff(ZA_P.PSI,[],1));
+% $$$ hold on;
+% $$$ plot(yt,ZA_P.maxTt,'--k');
+% $$$ caxis([-1 1]*1e11);
+% $$$ subplot(2,2,2);
+% $$$ pcolPlot(avg(X,2),avg(Y,2),diff(ZA_P.F,[],2)/dT);
+% $$$ hold on;
+% $$$ plot(yt,ZA_P.maxTt,'--k');
+% $$$ caxis([-1 1]*1e11);
+% $$$ subplot(2,2,3);
+% $$$ pcolPlot(avg(X,2),avg(Y,2),diff(ZA_P.PI,[],2)/dT);
+% $$$ hold on;
+% $$$ plot(yt,ZA_P.maxTt,'--k');
+% $$$ caxis([-1 1]*1e11);
+% $$$ subplot(2,2,4);
+% $$$ pcolPlot(avg(X,2),avg(Y,2),diff(ZA_P.M,[],2)/dT);
+% $$$ hold on;
+% $$$ plot(yt,ZA_P.maxTt,'--k');
+% $$$ caxis([-1 1]*1e11);
+% $$$ colormap(redblue);
+% $$$ 
+% $$$ figure;
+% $$$ ind = find(~isnan(ZA_P.AI(:,end)),1,'last');
+% $$$ plot(ZA_P.AI(ind,:)/1e15,Te);
+% $$$ %caxis([
+
+%%% Difference two runs:
+% $$$ ZA_Gc = ZA_G;ZA_Pc = ZA_P;ZA_Ac = ZA_A;
+
+fields = fieldnames(ZA_G);
+for f = 1:length(fields)
+    if (~(strcmp(fields{f},'NaNst') | strcmp(fields{f},'NaNsu')))
+        eval(['sz = size(ZA_G.' fields{f} ');']);
+        if (sz(2)>1)
+            eval(['ZA_G.' fields{f} ' = ZA_G.' fields{f} ' - ZA_Gc.' fields{f} ';']);
+            eval(['ZA_A.' fields{f} ' = ZA_A.' fields{f} ' - ZA_Ac.' fields{f} ';']);
+            eval(['ZA_P.' fields{f} ' = ZA_P.' fields{f} ' - ZA_Pc.' fields{f} ';']);
+        end
+    end
+end
+
 
 %%%% Summary schematics:
 ltminW = -45;
@@ -193,6 +292,7 @@ ltmax = 90;
 [tmp ltminI] = min(abs(yu-ltmin)); % u-point index
 [tmp ltminWI] = min(abs(yu-ltminW)); % 45S
 [tmp ltmaxI] = min(abs(yu-ltmax)); % u-point index
+[tmp lt50I] = min(abs(yu-50)); % u-point index
 indBS = find(~isnan(ZA_P.AI(:,end)),1,'last');
 [X,Y] = ndgrid(yt,Te);
 
@@ -202,6 +302,7 @@ FAb = nansum(ZA_A.Fall(ltminI+1:ltmaxI,:),1)/1e15;
 MAb = nansum(ZA_A.Mall(ltminI+1:ltmaxI,:),1)/1e15;
 NAb = nansum(ZA_A.N(ltminI+1:ltmaxI,:),1)/1e15;
 AA34Sb = ZA_A.AI(ltminI,:)/1e15;
+AA50Nb = ZA_A.AI(lt50I,:)/1e15;
 % Pac:
 FPb = nansum(ZA_P.Fall(ltminI+1:ltmaxI,:),1)/1e15;
 MPb = nansum(ZA_P.Mall(ltminI+1:ltmaxI,:),1)/1e15;
@@ -209,7 +310,7 @@ NPb = nansum(ZA_P.N(ltminI+1:ltmaxI,:),1)/1e15;
 AP34Sb = ZA_P.AI(ltminI,:)/1e15;
 % Glo and BS:
 A34Sb = ZA_G.AI(ltminI,:)/1e15;
-ABSb = ZA_P.AI(indBS,:)/1e15;
+ABSPb = ZA_P.AI(indBS,:)/1e15;
 
 % SO:
 FSOb = nansum(ZA_G.Fall(1:ltminI,:),1)/1e15;
@@ -223,17 +324,14 @@ NWRb = nansum(ZA_G.N((ltminWI+1):ltminI,:),1)/1e15;
 
 A45Sb = ZA_G.AI(ltminWI,:)/1e15;
 
-% $$$ % Do integral the other way:
-% $$$ vars = {'FAb','MAb','NAb','AA34Sb','FPb','MPb','NPb','AP34Sb', ...
-% $$$         'A34Sb','ABSb'};
-% $$$ for i = 1:length(vars)
-% $$$     eval([vars{i} ' = -' vars{i} ' + ' vars{i} '(end);']);
-% $$$ end
-% Note: Diathermal fluxes are positive upwards, AI's are positive northwards
+% Residuals by basin:
+RESP = FPb+MPb+AP34Sb-NPb-ABSPb;
+RESA = FAb+MAb+AA34Sb-NAb+ABSPb;
+RESS = FSOb+MSOb-A34Sb-NSOb; % All checks out.
 
 % Summary numbers at temps:
 %sT = [-3 5 10 15 20 34];
-sT = [-3 15 34];
+sT = [-3 15 20 34];
 for Ti=(length(sT)-1):-1:1
     [tmp indL] = min(abs(Te-sT(Ti)));
     [tmp indU] = min(abs(Te-sT(Ti+1)));
@@ -245,8 +343,10 @@ for Ti=(length(sT)-1):-1:1
     disp(sprintf('Mixing      (flux at bottom) Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f, WR = %5.2f',MPb(indL),MAb(indL),MSOb(indL),MWRb(indL)))
     disp(sprintf('Transport 34S   (into layer) Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f',AP34Sb(indU)-AP34Sb(indL),AA34Sb(indU)-AA34Sb(indL),A34Sb(indU)-A34Sb(indL)))
     disp(sprintf('Transport 45S   (into layer) SO = %5.2f',A45Sb(indU)-A45Sb(indL)))
+    disp(sprintf('Transport 50N   (into layer) Atlantic = %5.2f',AA50Nb(indU)-AA50Nb(indL)))
     disp(sprintf('Tendency        (into layer) Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f, WR = %5.2f',NPb(indU)-NPb(indL),NAb(indU)-NAb(indL),NSOb(indU)-NSOb(indL),NWRb(indU)-NWRb(indL)))
-    disp(sprintf('Transport BS    (into layer)          = %5.2f',ABSb(indU)-ABSb(indL)))
+    disp(sprintf('Transport BS    (into layer)            %5.2f.',ABSPb(indU)-ABSPb(indL)))
+    disp(sprintf('Residuals                    Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f',RESP(indU)-RESP(indL),RESA(indU)-RESA(indL),RESS(indU)-RESS(indL)))
 end
 
 % Global:
@@ -262,326 +362,6 @@ for i=1:1
     disp(sprintf('Tendency        (into layer) Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f, WR = %5.2f',NPb(indU)-NPb(indL),NAb(indU)-NAb(indL),NSOb(indU)-NSOb(indL),NWRb(indU)-NWRb(indL)))
     disp(sprintf('Transport BS    (into layer)          = %5.2f',ABSb(indU)-ABSb(indL)))
 end
-
-
-
-%% Should be cleaned up from here down...
-
-% $$$ figure;
-pl = 6;
-subplot(3,3,1+pl);
-pcolPlot(X,Y,-ZA_A.I./repmat(dy,[1 TL+1]));
-caxis([-5 5]*1e11);
-title('I latT');
-subplot(3,3,2+pl);
-pcolPlot(X,Y,ZA_A.NUM./repmat(dy,[1 TL+1]));
-caxis([-5 5]*1e11);
-title('I NUM');
-subplot(3,3,3+pl);
-pcolPlot(X,Y,(ZA_A.I+ZA_A.NUM)./repmat(dy,[1 TL+1]));
-caxis([-5 5]*1e11);
-title('Difference');
-
-pl = 3;
-subplot(3,3,1+pl);
-pcolPlot(X,Y,-repmat(ZA_G.I(:,end),[1 TL+1]).*repmat((Te/Te(end))',[yL 1])./repmat(dy,[1 TL+1]));
-caxis([-5 5]*1e11);
-title('I latT (end)*(T/Tend)');
-subplot(3,3,2+pl);
-pcolPlot(X,Y,(-ZA_G.I-ZA_G.NUM)./repmat(dy,[1 TL+1]));
-caxis([-5 5]*1e11);
-title('Diff I latT - 3D I' );
-subplot(3,3,3+pl);
-pcolPlot(X,Y,(-ZA_G.I-ZA_G.NUM+repmat(ZA_G.I(:,end),[1 TL+1]).*repmat((Te/Te(end))',[yL 1]))./repmat(dy,[1 TL+1]));
-caxis([-5 5]*1e11);
-title('Diff diff');
-
-
-
-for i=1:9
-    subplot(3,3,i);
-    caxis([-1 1]*1e12);
-end
-
-
-JnoN = J-N;
-Fall = F+PI;
-Mall = M+I;
-
-% Indo-Pacific:
-AIP = AIP + AHDSUBP;
-JP = -diff(cat(1,zeros(1,TL+1),AIP),[],1);
-IP = JP-MP-NP-FP-PIP;
-JnoNP = JP-NP;
-FallP = FP+PIP;
-MallP = MP+IP;
-
-% Atlantic:
-AIA = AIA + AHDSUBA; % total internal heat content transport includes submesoscale (which is all internal for skew-diffusive flux)
-ind = find(~isnan(AIP(:,end)),1,'last'); % 66N indicy (u-points)
-JA = -diff(cat(1,zeros(1,TL+1),AIA),[],1);
-JA(ind,:) = JA(ind,:) + AIP(ind-1,:); % Correct for missing bit because main Atlantic overlaps with Bering Strait cutoff
-IA = JA-MA-NA-FA-PIA;
-JnoNA = JA-NA;
-FallA = FA+PIA;
-MallA = MA+IA;
-
-% $$$ % Check (1e-5 PW yes! without correction it's 0.1PW):
-% $$$ Jd = J - JA - JP;
-% $$$ Id = I - IA - IP;
-% $$$ max(max(abs(Jd/1e15)))
-% $$$ max(max(abs(Id/1e15)))
-
-% $$$ %% Set above max-SST to be equal to max-SST
-% $$$ % (An easy way to restrict the top temp to be bounded above by
-% $$$ % max-SST):
-% $$$ for reg = 1:length(regions)
-% $$$     regLet = regLets{reg};
-% $$$     fields = {'F','PI','M','I','N','J'};
-% $$$     for i=1:length(fields)
-% $$$         for yi = 1:yL
-% $$$             eval([fields{i} regLet '(yi,(maxTit' regLet '(yi)+1):end) = ' fields{i} regLet ...
-% $$$                   '(yi,maxTit' regLet '(yi));']);
-% $$$         end
-% $$$     end
-% $$$     for yi=1:yL
-% $$$             eval(['AI' regLet '(yi,(maxTiu' regLet '(yi)+1):end) = ' 'AI' regLet ...
-% $$$                   '(yi,maxTiu' regLet '(yi));']);
-% $$$     end        
-% $$$ end
-
-%% Indo-Pacific/Atlantic Temperature budgets:
-ltminW = -45;
-ltmin = -34;
-ltmax = 90;
-[tmp ltminI] = min(abs(yu-ltmin)); % u-point index
-[tmp ltminWI] = min(abs(yu-ltminW)); % 45S
-[tmp ltmaxI] = min(abs(yu-ltmax)); % u-point index
-indBS = find(~isnan(AIP(:,end)),1,'last');
-[X,Y] = ndgrid(yt,Te);
-
-% Below a given temperature:
-% Atl:
-FAb = nansum(FA(ltminI+1:ltmaxI,:)+PIA(ltminI+1:ltmaxI,:),1)/1e15;
-MAb = nansum(MA(ltminI+1:ltmaxI,:)+IA(ltminI+1:ltmaxI,:),1)/1e15;
-NAb = nansum(NA(ltminI+1:ltmaxI,:),1)/1e15;
-AA34Sb = AIA(ltminI,:)/1e15;
-% Pac:
-FPb = nansum(FP(ltminI+1:ltmaxI,:)+PIP(ltminI+1:ltmaxI,:),1)/1e15;
-MPb = nansum(MP(ltminI+1:ltmaxI,:)+IP(ltminI+1:ltmaxI,:),1)/1e15;
-NPb = nansum(NP(ltminI+1:ltmaxI,:),1)/1e15;
-AP34Sb = AIP(ltminI,:)/1e15;
-% Glo and BS:
-A34Sb = AI(ltminI,:)/1e15;
-ABSb = AIP(indBS,:)/1e15;
-
-% SO:
-FSOb = nansum(F(1:ltminI,:)+PI(1:ltminI,:),1)/1e15;
-MSOb = nansum(M(1:ltminI,:)+I(1:ltminI,:),1)/1e15;
-NSOb = nansum(N(1:ltminI,:),1)/1e15;
-
-% $$$ % SO and warm route:
-FWRb = nansum(F((ltminWI+1):ltminI,:)+PI((ltminWI+1):ltminI,:),1)/1e15;
-MWRb = nansum(M((ltminWI+1):ltminI,:)+I((ltminWI+1):ltminI,:),1)/1e15;
-NWRb = nansum(N((ltminWI+1):ltminI,:),1)/1e15;
-
-A45Sb = AI(ltminWI,:)/1e15;
-% $$$ FSOb = nansum(F(1:ltminWI,:)+PI(1:ltminWI,:),1)/1e15;
-% $$$ MSOb = nansum(M(1:ltminWI,:)+I(1:ltminWI,:),1)/1e15;
-% $$$ NSOb = nansum(N(1:ltminWI,:),1)/1e15;
-
-% $$$ % Do integral the other way:
-% $$$ vars = {'FAb','MAb','NAb','AA34Sb','FPb','MPb','NPb','AP34Sb', ...
-% $$$         'A34Sb','ABSb'};
-% $$$ for i = 1:length(vars)
-% $$$     eval([vars{i} ' = -' vars{i} ' + ' vars{i} '(end);']);
-% $$$ end
-% Note: Diathermal fluxes are positive upwards, AI's are positive northwards
-
-% Summary numbers at temps:
-%sT = [-3 5 10 15 20 34];
-sT = [-3 20 34];
-for Ti=(length(sT)-1):-1:1
-    [tmp indL] = min(abs(Te-sT(Ti)));
-    [tmp indU] = min(abs(Te-sT(Ti+1)));
-    
-    disp(' ')
-    disp(['Temperatures ' num2str(Te(indL)) 'C - ' num2str(Te(indU)) 'C:'])
-    disp(['-------------------------------------------------------------'])
-    disp(sprintf('Surface Forcing (into layer) Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f, WR = %5.2f',FPb(indU)-FPb(indL),FAb(indU)-FAb(indL),FSOb(indU)-FSOb(indL),FWRb(indU)-FWRb(indL)))
-    disp(sprintf('Mixing      (flux at bottom) Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f, WR = %5.2f',MPb(indL),MAb(indL),MSOb(indL),MWRb(indL)))
-    disp(sprintf('Transport 34S   (into layer) Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f',AP34Sb(indU)-AP34Sb(indL),AA34Sb(indU)-AA34Sb(indL),A34Sb(indU)-A34Sb(indL)))
-    disp(sprintf('Transport 45S   (into layer) SO = %5.2f',A45Sb(indU)-A45Sb(indL)))
-    disp(sprintf('Tendency        (into layer) Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f, WR = %5.2f',NPb(indU)-NPb(indL),NAb(indU)-NAb(indL),NSOb(indU)-NSOb(indL),NWRb(indU)-NWRb(indL)))
-    disp(sprintf('Transport BS    (into layer)          = %5.2f',ABSb(indU)-ABSb(indL)))
-end
-
-% Global:
-indL = 1;indU=TL+1;
-for i=1:1
-    disp(' ')
-    disp(['Temperatures ' num2str(Te(indL)) 'C - ' num2str(Te(indU)) 'C:'])
-    disp(['-------------------------------------------------------------'])
-    disp(sprintf('Surface Forcing (into layer) Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f, WR = %5.2f',FPb(indU)-FPb(indL),FAb(indU)-FAb(indL),FSOb(indU)-FSOb(indL),FWRb(indU)-FWRb(indL)))
-    disp(sprintf('Mixing      (flux at bottom) Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f, WR = %5.2f',MPb(indL),MAb(indL),MSOb(indL),MWRb(indL)))
-    disp(sprintf('Transport 32S   (into layer) Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f, WR = %5.2f',AP34Sb(indU)-AP34Sb(indL),AA34Sb(indU)-AA34Sb(indL),A34Sb(indU)-A34Sb(indL)))
-    disp(sprintf('Transport 45S   (into layer) SO = %5.2f',A45Sb(indU)-A45Sb(indL)))
-    disp(sprintf('Tendency        (into layer) Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f, WR = %5.2f',NPb(indU)-NPb(indL),NAb(indU)-NAb(indL),NSOb(indU)-NSOb(indL),NWRb(indU)-NWRb(indL)))
-    disp(sprintf('Transport BS    (into layer)          = %5.2f',ABSb(indU)-ABSb(indL)))
-end
-
-% All temperatures figure:
-figure;
-% Atlantic Budget:
-subplot(3,1,1);
-hold on;
-grid on;
-ylabel('Heat Flux (PW)');
-set(gca,'xticklabel',[]);
-box on;
-xlim([-2 34]);
-ylim([-0.2 0.9]);
-plot(Te,FAb,'-k','linewidth',2);
-plot(Te,-MAb,'-r','linewidth',2);
-plot(Te,-NAb,'-m','linewidth',2);
-plot(Te,AA34Sb,'-b','linewidth',2);
-plot(Te,ABSb,'-.b','linewidth',2);
-plot(Te,AA34Sb+ABSb-MAb-NAb,'--k');
-legend('$\mathcal{F}_A$','-$\mathcal{M}_A$','-$\frac{\partial\mathcal{H}_I}{\partial t}_A$','$\mathcal{A}_A^{34^\circ S}$','$\mathcal{A}^{BS}$');%,'$\mathcal{F}_A^{NH}$');
-% $$$ title('Atlantic Budget (PW)');
-set(gca,'FontSize',15);
-set(gca,'Position',[0.1300    0.6894    0.7750    0.2665]);
-
-% 34S Transports:
-subplot(3,1,2);
-hold on;
-grid on;
-ylabel('Heat Flux (PW)');
-set(gca,'xticklabel',[]);
-box on;
-xlim([-2 34]);
-ylim([-1 1]);
-plot(Te,A34Sb,'--b','linewidth',2);
-plot(Te,AA34Sb,'-b','linewidth',2);
-plot(Te,-AP34Sb,':b','linewidth',2);
-legend('Total $\mathcal{A}_G^{34^\circ S}$','Atlantic $\mathcal{A}_A^{34^\circ S}$','Pacific $-\mathcal{A}_P^{34^\circ S}$');
-set(gca,'FontSize',15);
-set(gca,'Position',[0.1300    0.41    0.7750    0.2665]);
-
-% Pacific budget:
-subplot(3,1,3);
-hold on;
-grid on;
-ylabel('Heat Flux (PW)');
-xlabel('Temperature ($^\circ$C)');
-box on;
-xlim([-2 34]);
-ylim([-0.4 1.2]);
-plot(Te,-AP34Sb,':b','linewidth',2);
-plot(Te,-FPb,'-k','linewidth',2);
-plot(Te,-MPb,'-r','linewidth',2);
-plot(Te,-NPb,'-m','linewidth',2);
-plot(Te,-ABSb,'-.b','linewidth',2);
-plot(Te,-(FPb+MPb+NPb+ABSb),'--k','linewidth',2);
-legend('Pacific $-\mathcal{A}_P^{34^\circ S}$','$-\mathcal{F}_P$','$-\mathcal{M}_P$','$-\frac{\partial\mathcal{H}_I}{\partial t}_P$','$-\mathcal{A}^{BS}$');
-set(gca,'FontSize',15);
-set(gca,'Position',[0.1300    0.11    0.7750    0.2665]);
-
-figure;
-% Southern Ocean Budget:
-subplot(3,1,1);
-hold on;
-grid on;
-xlabel('Temperature ($^\circ$C)');
-ylabel('Heat Flux (PW)');
-box on;
-xlim([-2 34]);
-ylim([-0.5 0.5]);
-plot(Te,A34Sb,'--b','linewidth',2);
-plot(Te,-FSOb,'-k','linewidth',2);
-plot(Te,-MSOb,'-r','linewidth',2);
-plot(Te,-NSOb,'-m','linewidth',2);
-% $$$ plot(Te,-FSOb-MSOb-NSOb,'--k');
-legend('$\mathcal{A}_G^{34^\circ S}$','$-\mathcal{F}_{SO}$','$-\mathcal{M}_{SO}$','$-\frac{\partial\mathcal{H}_I}{\partial t}_{SO}$');%,'$\mathcal{F}_A^{NH}$');
-% $$$ title('Atlantic Budget (PW)');
-set(gca,'FontSize',15);
-set(gca,'Position',[0.1300    0.6894    0.7750    0.2665]);
-
-%% Schematic plot:
-ThetaB = 20;
-figure;
-set(gcf,'Position',[2883          98         560         905]);
-subplot(2,1,1);
-tmp = AIA/1e15;
-tmp(NaNsuA==1) = NaN;
-[Xu,Yu] = ndgrid(yu,Te);
-contourf(Xu,Yu,tmp,[-3:0.1:3],'linestyle','none');
-hold on;
-[c,h] = contour(Xu,Yu,tmp,[0.2:0.2:3],'-k');
-clabel(c,h);
-[c,h] = contour(Xu,Yu,tmp,[-3:0.2:-0.2],'--k');
-clabel(c,h);
-plot(yu,maxTuA,':k');
-plot(ltmin*[1 1],[Te(1) Te(end)],'--k');
-ylabel('Temperature ($^\circ$C)');
-xlabel('Latitude ($^\circ$N)');
-cb = colorbar;
-ylabel(cb,'PW');
-colormap(redblue);
-plot([-34 -34 max(yu) max(yu) -34],[Te(1) ThetaB ThetaB Te(1) Te(1)],'-m','linewidth',2);
-xlim([-45 90]);
-caxis([-1.5 1.5]);
-ylim([-2 34]);
-title('Atlantic');
-set(gca,'FontSize',15);
-subplot(2,1,2);
-tmp = AIP/1e15;
-tmp(NaNsuP==1) = NaN;
-[Xu,Yu] = ndgrid(yu,Te);
-contourf(Xu,Yu,tmp,[-3:0.1:3],'linestyle','none');
-hold on;
-[c,h] = contour(Xu,Yu,tmp,[0.2:0.2:3],'-k');
-clabel(c,h);
-[c,h] = contour(Xu,Yu,tmp,[-3:0.2:-0.2],'--k');
-clabel(c,h);
-plot(yu,maxTuP,':k');
-plot(ltmin*[1 1],[Te(1) Te(end)],'--k');
-ylabel('Temperature ($^\circ$C)');
-xlabel('Latitude ($^\circ$N)');
-cb = colorbar;
-ylabel(cb,'PW');
-colormap(redblue);
-plot([-34 -34 66 66 -34],[Te(1) ThetaB ThetaB Te(1) Te(1)],'-m','linewidth',2);
-xlim([-45 90]);
-ylim([-2 34]);
-caxis([-1.5 1.5]);
-title('Indo-Pacific');
-set(gca,'FontSize',15);
-
-
-
-% Region:
-[tmp Bind] = min(abs(Te-ThetaB));
-Xreg = [max(max(X)) ltmin ltmin];
-Yreg = [Te(1) Te(1) ThetaB];
-cnt = 4;
-for yi=1:yL
-    if (yi>=ltminI & maxTi(yi) <= Bind)
-        Xreg = [Xreg yt(yi)];
-        Yreg = [Yreg maxT(yi)];
-    end
-end
-
-Xf = [
-mask = NaN*zeros(size(AI));
-for yi=1:yL
-    if (yi>=ltminI)
-        mask(yi,1:maxTi(yi)) = 1;
-    end
-end
-mask(:,Bind+1:end) = NaN;
-
-
 
 %% Plot latitude - temperature plane for different basins:
 dy = diff(yu);
@@ -589,18 +369,25 @@ dy = [dy(1); dy];
 
 % PsiAI nice plot:
 fields = { ...
-          {'PSI',1/1e6,'$\Psi$',[-30 30],2,'Sv'}, ...
-          {'AI',1/1e15,'$\mathcal{A}_I$',[-1.25 1.25],0.05,'PW'}, ...
+% $$$           {'PSI',1/1e6,'$\Psi$',[-30 30],2,'Sv'}, ...
+% $$$           {'AI',1/1e15,'$\mathcal{A}_I$',[-1.25 1.25],0.05,'PW'}, ...
+% Perturbations:
+          {'PSI',1/1e6,'$\Psi$',[-5 5],0.25,'Sv'}, ...
+% $$$           {'AI',1/1e15,'$\mathcal{A}_I$',[-0.25 0.25],0.002,'PW'}, ...
+          {'AI',1/1e15,'$\mathcal{A}_I$',[-0.15 0.15],0.001,'PW'}, ...
 };
 
-% Diathermal components nice plot:
+% $$$ % $$$ % Diathermal components nice plot:
 fields = { ...
-          {'JnoN',1./repmat(dy,[1 TL+1])/1e12,'Total',[-50 50],5,'TW/$^\circ$latitude'}, ...
-          {'Fall',1./repmat(dy,[1 TL+1])/1e12,'Surface Forcing',[-50 50],5,'TW/$^\circ$latitude'}, ...
-};
-fields = { ...
-          {'N',1./repmat(dy,[1 TL+1])/1e12,'Tendency',[-50 50],1,'TW/$^\circ$latitude'}, ...
-          {'Mall',1./repmat(dy,[1 TL+1])/1e12,'Mixing',[-50 50],5,'TW/$^\circ$latitude'}, ...
+% $$$           {'Fall',-1./repmat(dy,[1 TL+1])/1e12,'Surface Forcing',[-50 50],5,'TW/$^\circ$latitude'}, ...
+% $$$           {'Mall',-1./repmat(dy,[1 TL+1])/1e12,'Mixing',[-50 50],5,'TW/$^\circ$latitude'}, ...
+% $$$           {'Jdia',1./repmat(dy,[1 TL+1])/1e12,'Total',[-50 50],5,'TW/$^\circ$latitude'}, ...
+% $$$           {'N',1./repmat(dy,[1 TL+1])/1e12,'Tendency',[-5 5],0.5,'TW/$^\circ$latitude'}, ...
+% Perturbations:
+          {'Fall',-1./repmat(dy,[1 TL+1])/1e12,'Surface Forcing',[-20 20],0.5,'TW/$^\circ$latitude'}, ...
+          {'Mall',-1./repmat(dy,[1 TL+1])/1e12,'Mixing',[-20 20],0.5,'TW/$^\circ$latitude'}, ...
+% $$$           {'Jdia',1./repmat(dy,[1 TL+1])/1e12,'Total',[-20 20],0.5,'TW/$^\circ$latitude'}, ...
+% $$$           {'N',1./repmat(dy,[1 TL+1])/1e12,'Tendency',[-20 20],0.5,'TW/$^\circ$latitude'}, ...
 };
 
 rego = [3 1 2];
@@ -625,11 +412,11 @@ latfilt = 1;
 
 % $$$ doZAremap = 0; % remap to depth space
 
-%Fluxes only:
-figure;
-set(gcf,'Position',[2125          11        1680         960]);
-set(gcf,'defaulttextfontsize',15);
-set(gcf,'defaultaxesfontsize',15);
+% $$$ %Fluxes only:
+% $$$ figure;
+% $$$ set(gcf,'Position',[2125          11        1680         960]);
+% $$$ set(gcf,'defaulttextfontsize',15);
+% $$$ set(gcf,'defaultaxesfontsize',15);
 
 % 2x3:
 poss = [0.11     0.5949    0.25      0.3301; ...
@@ -651,9 +438,9 @@ for i=1:length(fields)
         [X,Y] = ndgrid(yt,Te);
 % $$$         end
 
-        eval(['VAR = ' fields{i}{1} regLets{reg} '.*fields{i}{2};']);
+        eval(['VAR = ZA_' regLets{reg} '.' fields{i}{1} '.*fields{i}{2};']);
         VAR(VAR==0) = NaN;
-        eval(['VAR(NaNst' regLets{reg} '==1) = NaN;']);
+        eval(['VAR(ZA_' regLets{reg} '.NaNst==1) = NaN;']);
         VAR = filter_field(VAR',latfilt,'-t')';
         contourf(X,Y,VAR,cpts{i},'linestyle','none');
         hold on;
@@ -661,8 +448,8 @@ for i=1:length(fields)
 
 % $$$         if (~doZAremap)
 % $$$         plot(yvec,filter_field(meanSST,latfilt,'-t'),':','color',col);
-        eval(['plot(yt,filter_field(minSST' regLets{reg} ',latfilt,''-t''),'':'',''color'',col);']);
-        eval(['plot(yt,filter_field(maxTt' regLets{reg} ',latfilt,''-t''),'':k'');']);
+        eval(['plot(yt,filter_field(ZA_' regLets{reg} '.minSST,latfilt,''-t''),'':'',''color'',col);']);
+        eval(['plot(yt,filter_field(ZA_' regLets{reg} '.maxTt,latfilt,''-t''),'':k'');']);
 
 % $$$     else
 % $$$         [tt,zz] = ndgrid(yvec,-z);
@@ -671,8 +458,8 @@ for i=1:length(fields)
 % $$$     end
 
         if (i>=1)
-            eval(['VAR = AI' regLets{reg} '/1e15;']);        
-            eval(['VAR(NaNst' regLets{reg} '==1) = NaN;']);
+            eval(['VAR = ZA_' regLets{reg} '.AI/1e15;']);        
+            eval(['VAR(ZA_' regLets{reg} '.NaNst==1) = NaN;']);
             VAR = filter_field(VAR',latfilt,'-t')';
             [c,h] = contour(X,Y,VAR,[-50:AIsp:-AIsp],'--k');
             if (clab(i))
@@ -682,6 +469,13 @@ for i=1:length(fields)
             if (clab(i))
                 clabel(c,h);
             end
+            
+% $$$             if (i==2 & r == 3)
+% $$$             % 0-contour on Indo-Pacific mixing:
+% $$$             VAR(X>39) = 0.25;
+% $$$             [c,h] = contour(X,Y,VAR,[0 0],'--','color',[0 0.5 0]);
+% $$$             clabel(c,h);
+% $$$             end
         end
         
         ylim([-3 34]);
@@ -694,9 +488,9 @@ for i=1:length(fields)
         box on; 
         grid on;
         letno = 3*(i-1)+r;
-        if (strcmp(fields{i}{1},'Mall'))
-            letno = letno+3;
-        end
+% $$$         if (strcmp(fields{i}{1},'Mall'))
+% $$$             letno = letno+3;
+% $$$         end
         if (r == 1)
             xlim([-80 80]);
             text(-79,32.15,[letlabs{letno} ' ' fields{i}{3}]);
@@ -736,12 +530,12 @@ dy = [dy(1); dy];
 
 % Mixing components plot:
 fields = { ...
-          {'M',1./repmat(dy,[1 TL+1])/1e12,'Total Vertical Mixing',[-40 0],2,'TW/$^\circ$latitude'}, ...
-          {'Mkppiw',1./repmat(dy,[1 TL+1])/1e12,'Background Mixing',[-20 0],1,'TW/$^\circ$latitude'}, ...
-          {'Mkppish',1./repmat(dy,[1 TL+1])/1e12,'Shear Instability',[-20 0],1,'TW/$^\circ$latitude'}, ...
-          {'I',1./repmat(dy,[1 TL+1])/1e12,'Numerical Mixing',[-40 0],2,'TW/$^\circ$latitude'}, ...
-          {'Mkppbl',1./repmat(dy,[1 TL+1])/1e12,'KPP Boundary Layer',[-20 0],1,'TW/$^\circ$latitude'}, ...
-          {'Mwave',1./repmat(dy,[1 TL+1])/1e12,'Internal Tide',[-20 0],1,'TW/$^\circ$latitude'}, ...
+          {'M',-1./repmat(dy,[1 TL+1])/1e12,'Total Vertical Mixing',[-40 0],2,'TW/$^\circ$latitude'}, ...
+          {'Mkppiw',-1./repmat(dy,[1 TL+1])/1e12,'Background Mixing',[-20 0],1,'TW/$^\circ$latitude'}, ...
+          {'Mkppish',-1./repmat(dy,[1 TL+1])/1e12,'Shear Instability',[-20 0],1,'TW/$^\circ$latitude'}, ...
+          {'I',-1./repmat(dy,[1 TL+1])/1e12,'Numerical Mixing',[-40 0],2,'TW/$^\circ$latitude'}, ...
+          {'Mkppbl',-1./repmat(dy,[1 TL+1])/1e12,'KPP Boundary Layer',[-20 0],1,'TW/$^\circ$latitude'}, ...
+          {'Mwave',-1./repmat(dy,[1 TL+1])/1e12,'Internal Tide',[-20 0],1,'TW/$^\circ$latitude'}, ...
 };
 clab = [1 0 0 0 0 0];
 
@@ -774,23 +568,24 @@ poss = [0.05     0.5949    0.24    0.3301; ...
         0.615     0.2300    0.24    0.3301];
         
 letlabs = {'(a)','(b)','(c)','(d)','(e)','(f)','(g)','(h)','(i)'};
+rego = 'G';
 for i=1:length(fields)
     subplot(2,3,i);
     [X,Y] = ndgrid(yt,Te);
-    
-    eval(['VAR = ' fields{i}{1} regLets{reg} '.*fields{i}{2};']);
+
+    eval(['VAR = ZA_' rego '.' fields{i}{1} '.*fields{i}{2};']);
     VAR(VAR==0) = NaN;
-    eval(['VAR(NaNst' regLets{reg} '==1) = NaN;']);
+    eval(['VAR(ZA_' rego '.NaNst==1) = NaN;']);
     VAR = filter_field(VAR',latfilt,'-t')';
     contourf(X,Y,VAR,cpts{i},'linestyle','none');
     hold on;
     col = [0 0 0];
 
-    eval(['plot(yt,filter_field(minSST' regLets{reg} ',latfilt,''-t''),'':'',''color'',col);']);
-    eval(['plot(yt,filter_field(maxTt' regLets{reg} ',latfilt,''-t''),'':k'');']);
+    eval(['plot(yt,filter_field(ZA_' rego '.minSST,latfilt,''-t''),'':'',''color'',col);']);
+    eval(['plot(yt,filter_field(ZA_' rego '.maxTt,latfilt,''-t''),'':k'');']);
 
-    eval(['VAR = AI' regLets{reg} '/1e15;']);        
-    eval(['VAR(NaNst' regLets{reg} '==1) = NaN;']);
+    eval(['VAR = ZA_' rego '.AI/1e15;']);        
+    eval(['VAR(ZA_' rego '.NaNst==1) = NaN;']);
     VAR = filter_field(VAR',latfilt,'-t')';
     [c,h] = contour(X,Y,VAR,[-50:AIsp:-AIsp],'--k');
     if (clab(i))
@@ -827,98 +622,26 @@ for i=1:length(fields)
 end
 colormap(cmap);
 
-
-
-
-% $$$ % Plot latitudinal integral:
-% $$$ fields = { ...
-% $$$ % $$$           {zPSI(:,:,months)/1e6, 'Streamfunction $\Psi$',[-30 30],2,'Sv'}, ...
-% $$$           {zAI(:,:,months)/1e15, 'Heat Function $\mathcal{A}_I$',[-1.5 1.5],0.1,'PW'}, ...
-% $$$           {-cumsum(Repl((zF(:,:,months)+zPI(:,:,months)).*repmat(yto,[1 TL+1 tL]),NaN,0),1)/1e15,'Surface Forcing $-(\mathcal{F}+\mathcal{P}_I)$',[-1.5 1.5],0.1,'PW'}, ...
-% $$$           {-cumsum(Repl((zM(:,:,months)+zI(:,:,months)).*repmat(yto,[1 TL+1 tL]),NaN,0),1)/1e15,'Total Mixing $-(\mathcal{M}+\mathcal{I})$',[-1.5 1.5],0.1,'PW'}, ...
-% $$$ % $$$           {-cumsum(Repl(zI(:,:,months).*repmat(yto,[1 TL+1 tL]),NaN,0),1)/1e15,'Diathermal Numerical Mixing $-\mathcal{I}$',[-1.5 1.5],0.1,'PW'}, ...
-% $$$ % $$$           {-cumsum(Repl(zM(:,:,months).*repmat(yto,[1 TL+1 tL]),NaN,0),1)/1e15,'Diathermal Vertical Mixing $-\mathcal{M}$',[-1.5 1.5],0.1,'PW'}, ...
-% $$$ % $$$           {-cumsum(Repl(zI(:,:,months).*repmat(yto,[1 TL+1 tL]),NaN,0),1)/1e15,'Diathermal Numerical Mixing $-\mathcal{I}$',[-1.5 1.5],0.1,'PW'}, ...
-% $$$ % $$$           {-cumsum(Repl(zN(:,:,months).*repmat(yto,[1 TL+1 tL]),NaN,0),1)/1e15,'Diathermal Tendency $-\frac{\partial\mathcal{H}_I}{\partial t}$',[-0.25 0.25],0.025,'PW'}, ...
-% $$$           };
-% $$$ 
-% $$$ % Plot latitidinal integral from zero AI line:
-% $$$ tmp = monmean(zAI(:,:,months),3,ndays);
-% $$$ tmp(yt>60,:,:) = 1e15;
-% $$$ zinds = zeros(TL+1,1);
-% $$$ lats = zeros(TL+1,1);
-% $$$ for i=1:TL+1
-% $$$     ind = find(tmp(:,i)<0,1,'last');
-% $$$     if (strcmp(region,'IndoPacificNZ_'))
-% $$$         ind = find(tmp(:,i)>0,1,'first');
-% $$$     elseif (strcmp(region,'AtlanticNZ_'))
-% $$$         ind = find(tmp(:,i)>0,1,'first')+1;
-% $$$     end
-% $$$     if (length(ind)>0)
-% $$$         zinds(i) = ind;
-% $$$     else
-% $$$         zinds(i) = 1;
-% $$$     end
-% $$$     lats(i) = yt(zinds(i));
-% $$$ end
-% $$$ for i=1:length(fields)
-% $$$     for ii=1:TL+1
-% $$$     fields{i}{1}(:,ii,:) = fields{i}{1}(:,ii,:) - repmat(fields{i}{1}(zinds(ii),ii,:),[yL ...
-% $$$                         1 1]);
-% $$$     end
-% $$$ end
-% $$$ 
-% $$$ % Pull out totals:
-% $$$ MHTtot = cell(length(fields)-1,2);
-% $$$ for i=1:(length(fields))
-% $$$     tmp = monmean(fields{i}{1},3,ndays);
-% $$$     MHTtot{i,1} = zeros(yL,1);
-% $$$     for ii=1:yL
-% $$$         MHTtot{i,1}(ii) = tmp(ii,maxTi(ii));
-% $$$     end
-% $$$     MHTtot{i,2} = fields{i}{2};
-% $$$ end     
-
-% $$$ % Plot mixing components:
-% $$$ fields = { ...
-% $$$           {zM(:,:,months)/1e12, 'Total Vertical Mixing $\frac{\partial\mathcal{M}}{\partial\phi}$',[-40 0],2,'TW / $^\circ$'}, ...
-% $$$           {zMkppiw(:,:,months)/1e12, 'Background Mixing',[-20 0],0.5,'TW / $^\circ$'}, ...
-% $$$           {zMkppish(:,:,months)/1e12, 'Interior Shear Instability',[-20 0],0.5,'TW / $^\circ$'}, ...
-% $$$           {zI(:,:,months)/1e12, 'Numerical Mixing $\frac{\partial\mathcal{I}}{\partial\phi}$',[-40 0],2,'TW / $^\circ$'}, ...
-% $$$           {zMkppbl(:,:,months)/1e12, 'KPP Boundary Layer',[-20 0],0.5,'TW / $^\circ$'}, ...
-% $$$           {zMwave(:,:,months)/1e12, 'Internal Tide',[-20 0],0.5,'TW / $^\circ$'}, ...
-% $$$           };
-
-% $$$ % Plot perturbations from MOM025 control:
-% $$$ zFc = monmean(zF+zPI,3,ndays(months));
-% $$$ zMc = monmean(zM,3,ndays(months));
-% $$$ zIc = monmean(zI,3,ndays(months));
-% $$$ zAIc = monmean(zAI,3,ndays(months));
-% $$$ save('/srv/ccrc/data03/z3500785/mom/mat_data/MOM025_kb3seg_86to90_latT_save.mat','zFc','zMc','zIc','zAIc');
-% $$$ load('/srv/ccrc/data03/z3500785/mom/mat_data/MOM025_kb3seg_86to90_latT_save.mat');
-% $$$ fields = { ...
-% $$$           {(zF(:,:,months)+zPI(:,:,months)-repmat(zFc,[1 1 length(months)]))/1e12, 'Diathermal Surface Forcing $\frac{\partial\left(\mathcal{F}+\mathcal{P}_I\right)}{\partial\phi}$',[-20 20],2,'TW / $^\circ$'}, ...
-% $$$           {(zM(:,:,months)-repmat(zMc,[1 1 length(months)]))/1e12, 'Diathermal Vertical Mixing $\frac{\partial\mathcal{M}}{\partial\phi}$',[-20 20],2,'TW / $^\circ$'}, ...
-% $$$           {(zI(:,:,months)-repmat(zIc,[1 1 length(months)]))/1e12, 'Diathermal Numerical Mixing $\frac{\partial\mathcal{I}}{\partial\phi}$',[-20 20],2,'TW / $^\circ$'}, ...
-% $$$           };
-% $$$ zAI = zAI - repmat(zAIc,[1 1 12]);
-
 %% Plot MHT:
 figure;
 set(gcf,'Position',[1           1        1920         962]);
 colors = {'-k','-b','-r','-m','-c'};
 lfilt = 1;
-MHTE = rho0*Cp*psiTu.*maxTu;
-MHTI = MHT - avg([0; MHTE]);
-MHTA(MHTA==0) = NaN;
-MHTP(MHTP==0) = NaN;
-plot(yt,filter_field(MHT/1e15,lfilt,'-t'),'-k','linewidth',3);
+MHTE = rho0*Cp*ZA_G.psiTu.*ZA_G.maxTu;
+MHTI = ZA_G.MHT - avg([0; MHTE]);
+ZA_A.MHT(ZA_A.MHT==0) = NaN;
+ZA_P.MHT(ZA_P.MHT==0) = NaN;
+% $$$ [tmp ind] = min(abs(Te-15));
+% $$$ MHTA15 = ZA_A.AI(:,ind);
+% $$$ MHTA15(MHTA15==0) = NaN;
+plot(yt,filter_field(ZA_G.MHT/1e15,lfilt,'-t'),'-k','linewidth',3);
 hold on; 
-plot(yt,filter_field(MHTA/1e15,lfilt,'-t'),'-r','linewidth',3);
-plot(yt,filter_field(MHTP/1e15,lfilt,'-t'),'-b','linewidth',3);
+plot(yt,filter_field(ZA_A.MHT/1e15,lfilt,'-t'),'-r','linewidth',3);
+plot(yt,filter_field(ZA_P.MHT/1e15,lfilt,'-t'),'-b','linewidth',3);
 plot(yt,filter_field(MHTI/1e15,lfilt,'-t'),'--k','linewidth',2);
 plot(yu,filter_field(MHTE/1e15,lfilt,'-t'),':k','linewidth',2);
-legend({'Global','Atlantic','Indo-Pacific','Global Internal','Global External'});
+% $$$ plot(yu,filter_field(MHTA15/1e15,lfilt,'-t'),'--r','linewidth',2);
+legend({'Global','Atlantic','Indo-Pacific','Global Internal','Global External'});%,'Atlantic Internal $<15^\circ$C'});
 xlabel('Latitude ($^\circ$N)');
 ylabel('PW');
 xlim([-80 80]);
@@ -1009,9 +732,6 @@ for i=1:(length(fields))
     end
     MHTtot{i,2} = fields{i}{2};
 end     
-
-
-
 
 
 %% Calculate heat transports in different cells:
