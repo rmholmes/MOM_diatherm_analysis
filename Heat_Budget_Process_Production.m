@@ -908,8 +908,8 @@ Ti = 1;
 xflux = zeros(xL,yL); % vdiffuse and nonlocal_KPP
 yflux = zeros(xL,yL); % solar penetration
 
-while (Nremain > 0 & Ti <= TL+1)
-    Tl = Te(Ti);
+while (Nremain > 0 & Ti <= TL)
+    Tl = Te(Ti+1);
 
     qxtrans = zeros(xL,yL);
     qytrans = zeros(xL,yL);
