@@ -6,11 +6,13 @@
 close all;
 clear all;
 
-base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
+%base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
+base = 'C:\Users\holme\data\mom\';
 
 % Load Base Variables:
 model = 'MOM025_kb3seg';
-outputs = [101111];
+outputs = [101110];
+%outputs = [121];
 % $$$ outputs = [111120];
 
 % $$$ model = 'MOM025_nipoall';
@@ -22,8 +24,8 @@ outputs = [101111];
 % $$$ model = 'MOM025_SOUP15';
 % $$$ outputs = [10:19];
 
-model = 'MOM01';
-outputs = [444];
+% model = 'MOM01';
+% outputs = [4567];
 
 load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
 if (~exist('ndays'))
@@ -125,7 +127,7 @@ for reg = 1:length(regions)
 
     % Total MHTs:
     ZAR.MHTSUB = ZAR.AHDSUB(:,end);
-    ZAR.MHTADV = ZAR.AHD(:,end);
+    ZAR.MHTADV = ZAR.AI(:,end);
     ZAR.MHTGM  = ZAR.AHDGM(:,end);
     ZAR.MHTR   = ZAR.AHDR(:,end);
     ZAR.MHT    = ZAR.MHTADV + ZAR.MHTSUB + ZAR.MHTGM + ZAR.MHTR;
@@ -381,11 +383,11 @@ fields = { ...
 fields = { ...
 % $$$           {'Fall',-1./repmat(dy,[1 TL+1])/1e12,'Surface Forcing',[-50 50],5,'TW/$^\circ$latitude'}, ...
 % $$$           {'Mall',-1./repmat(dy,[1 TL+1])/1e12,'Mixing',[-50 50],5,'TW/$^\circ$latitude'}, ...
+          {'N',1./repmat(dy,[1 TL+1])/1e12,'',[-10 10],0.5,'TW/$^\circ$latitude'}, ...
 % $$$           {'Jdia',1./repmat(dy,[1 TL+1])/1e12,'Total',[-50 50],5,'TW/$^\circ$latitude'}, ...
-% $$$           {'N',1./repmat(dy,[1 TL+1])/1e12,'Tendency',[-5 5],0.5,'TW/$^\circ$latitude'}, ...
 % Perturbations:
-          {'Fall',-1./repmat(dy,[1 TL+1])/1e12,'Surface Forcing',[-20 20],0.5,'TW/$^\circ$latitude'}, ...
-          {'Mall',-1./repmat(dy,[1 TL+1])/1e12,'Mixing',[-20 20],0.5,'TW/$^\circ$latitude'}, ...
+% $$$           {'Fall',-1./repmat(dy,[1 TL+1])/1e12,'Surface Forcing',[-20 20],0.5,'TW/$^\circ$latitude'}, ...
+% $$$           {'Mall',-1./repmat(dy,[1 TL+1])/1e12,'Mixing',[-20 20],0.5,'TW/$^\circ$latitude'}, ...
 % $$$           {'Jdia',1./repmat(dy,[1 TL+1])/1e12,'Total',[-20 20],0.5,'TW/$^\circ$latitude'}, ...
 % $$$           {'N',1./repmat(dy,[1 TL+1])/1e12,'Tendency',[-20 20],0.5,'TW/$^\circ$latitude'}, ...
 };
@@ -412,11 +414,11 @@ latfilt = 1;
 
 % $$$ doZAremap = 0; % remap to depth space
 
-% $$$ %Fluxes only:
-% $$$ figure;
-% $$$ set(gcf,'Position',[2125          11        1680         960]);
-% $$$ set(gcf,'defaulttextfontsize',15);
-% $$$ set(gcf,'defaultaxesfontsize',15);
+%Fluxes only:
+figure;
+set(gcf,'Position',[2125          11        1680         960]);
+set(gcf,'defaulttextfontsize',15);
+set(gcf,'defaultaxesfontsize',15);
 
 % 2x3:
 poss = [0.11     0.5949    0.25      0.3301; ...
@@ -502,11 +504,11 @@ for i=1:length(fields)
             text(-33,32.15,[letlabs{letno} ' ' fields{i}{3}]);
         end
         set(gca,'xtick',[-90:30:90]);
-        if (i > 1)
+% $$$         if (i > 1)
             xlabel('Latitude ($^\circ$N)');
-        else
-            set(gca,'xticklabel',[]);
-        end
+% $$$         else
+% $$$             set(gca,'xticklabel',[]);
+% $$$         end
         if (r == 1)
             ylabel('Temperature $\Theta$ ($^\circ$C)');
         else
@@ -627,21 +629,21 @@ figure;
 set(gcf,'Position',[1           1        1920         962]);
 colors = {'-k','-b','-r','-m','-c'};
 lfilt = 1;
-MHTE = rho0*Cp*ZA_G.psiTu.*ZA_G.maxTu;
-MHTI = ZA_G.MHT - avg([0; MHTE]);
+% $$$ MHTE = rho0*Cp*ZA_G.psiTu.*ZA_G.maxTu;
+% $$$ MHTI = ZA_G.MHT - avg([0; MHTE]);
 ZA_A.MHT(ZA_A.MHT==0) = NaN;
 ZA_P.MHT(ZA_P.MHT==0) = NaN;
 % $$$ [tmp ind] = min(abs(Te-15));
 % $$$ MHTA15 = ZA_A.AI(:,ind);
 % $$$ MHTA15(MHTA15==0) = NaN;
-plot(yt,filter_field(ZA_G.MHT/1e15,lfilt,'-t'),'-k','linewidth',3);
-hold on; 
 plot(yt,filter_field(ZA_A.MHT/1e15,lfilt,'-t'),'-r','linewidth',3);
+hold on; 
 plot(yt,filter_field(ZA_P.MHT/1e15,lfilt,'-t'),'-b','linewidth',3);
-plot(yt,filter_field(MHTI/1e15,lfilt,'-t'),'--k','linewidth',2);
-plot(yu,filter_field(MHTE/1e15,lfilt,'-t'),':k','linewidth',2);
+plot(yt,filter_field(ZA_G.MHT/1e15,lfilt,'-t'),'-k','linewidth',3);
+% $$$ plot(yt,filter_field(MHTI/1e15,lfilt,'-t'),'--k','linewidth',2);
+% $$$ plot(yu,filter_field(MHTE/1e15,lfilt,'-t'),':k','linewidth',2);
 % $$$ plot(yu,filter_field(MHTA15/1e15,lfilt,'-t'),'--r','linewidth',2);
-legend({'Global','Atlantic','Indo-Pacific','Global Internal','Global External'});%,'Atlantic Internal $<15^\circ$C'});
+legend({'Atlantic','Indo-Pacific','Global'});%'Global Internal','Global External'});%,'Atlantic Internal $<15^\circ$C'});
 xlabel('Latitude ($^\circ$N)');
 ylabel('PW');
 xlim([-80 80]);
@@ -733,6 +735,98 @@ for i=1:(length(fields))
     MHTtot{i,2} = fields{i}{2};
 end     
 
+%% Plot lat-T diffusivity:
+load([base model sprintf('_output%03d_diff_cbt_T.mat',outputs(1))]);
+
+diff_cbt_G = nanmonmean(diff_cbt_T_G,3,ndays);
+diff_cbt_P = nanmonmean(diff_cbt_T_P,3,ndays);
+diff_cbt_A = nanmonmean(diff_cbt_T_A,3,ndays);
+diff_cbt_G(diff_cbt_G==0) = NaN;
+diff_cbt_P(diff_cbt_P==0) = NaN;
+diff_cbt_A(diff_cbt_A==0) = NaN;
+
+[X,Y] = ndgrid(yt,T);
+
+load([base model sprintf('_output%03d_SurfaceVars.mat',outputs(1))]);
+SST_G(SST_G==0) = NaN;
+minSST_G = squeeze(min(monmean(SST_G,3,ndays),[],1)');
+if (max(minSST_G)>100); minSST_G = minSST_G-273.15; end
+maxSST_G = NaN*zeros(size(minSST_G));
+maxSSTi_G = NaN*maxSST_G;
+for i=1:yL
+    fnds = find(~isnan(diff_cbt_G(i,:)),1,'last');
+    if length(fnds)>0
+        maxSSTi_G(i) = fnds;
+        maxSST_G(i) = T(fnds);
+    end
+end
+load([base model sprintf('_output%03d_SurfaceVars.mat',outputs(1))]);
+SST_P(SST_P==0) = NaN;
+minSST_P = squeeze(min(monmean(SST_P,3,ndays),[],1)');
+if (max(minSST_P)>100); minSST_P = minSST_P-273.15; end
+maxSST_P = NaN*zeros(size(minSST_P));
+maxSSTi_P = NaN*maxSST_P;
+for i=1:yL
+    fnds = find(~isnan(diff_cbt_P(i,:)),1,'last');
+    if length(fnds)>0
+        maxSSTi_P(i) = fnds;
+        maxSST_P(i) = T(fnds);
+    end
+end
+load([base model sprintf('_output%03d_SurfaceVars.mat',outputs(1))]);
+SST_A(SST_A==0) = NaN;
+minSST_A = squeeze(min(monmean(SST_A,3,ndays),[],1)');
+if (max(minSST_A)>100); minSST_A = minSST_A-273.15; end
+maxSST_A = NaN*zeros(size(minSST_A));
+maxSSTi_A = NaN*maxSST_A;
+for i=1:yL
+    fnds = find(~isnan(diff_cbt_A(i,:)),1,'last');
+    if length(fnds)>0
+        maxSSTi_A(i) = fnds;
+        maxSST_A(i) = T(fnds);
+    end
+end
+
+clvls = [0 10.^[-6:0.25:1] 1e6]
+subplot(1,3,1);
+contourf(X,Y,diff_cbt_G,clvls,'linestyle','none');
+xlabel('Latitude ($^\circ$N)');
+ylabel('Temperature ($^\circ$C)');
+cb = colorbar;
+ylabel(cb,'$\kappa$ (m$^2$s$^{-1}$)','Interpreter','latex');
+set(gca,'colorscale','log');
+colormap(jet);
+caxis([1e-5-1e-7 1e-2]);
+hold on;
+plot(yt,maxSST_G,':k');
+plot(yt,minSST_G,':k');
+title('Global');
+subplot(1,3,2);
+contourf(X,Y,diff_cbt_A,clvls,'linestyle','none');
+xlabel('Latitude ($^\circ$N)');
+ylabel('Temperature ($^\circ$C)');
+cb = colorbar;
+ylabel(cb,'$\kappa$ (m$^2$s$^{-1}$)','Interpreter','latex');
+set(gca,'colorscale','log');
+colormap(jet);
+caxis([1e-5-1e-7 1e-2]);
+hold on;
+plot(yt,maxSST_A,':k');
+plot(yt,minSST_A,':k');
+title('Atlantic');
+subplot(1,3,3);
+contourf(X,Y,diff_cbt_P,clvls,'linestyle','none');
+xlabel('Latitude ($^\circ$N)');
+ylabel('Temperature ($^\circ$C)');
+cb = colorbar;
+ylabel(cb,'$\kappa$ (m$^2$s$^{-1}$)','Interpreter','latex');
+set(gca,'colorscale','log');
+colormap(jet);
+caxis([1e-5-1e-7 1e-2]);
+hold on;
+plot(yt,maxSST_P,':k');
+plot(yt,minSST_P,':k');
+title('Indo-Pacific');
 
 %% Calculate heat transports in different cells:
 

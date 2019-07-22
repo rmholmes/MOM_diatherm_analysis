@@ -1001,6 +1001,46 @@ for ti=1:tL
 end
 end % End doZA
 
+
+% $$$ %% Zonally-averaged diffusivity (rough) --------------------------------------------------
+% $$$ 
+% $$$ rho0 = 1035; % kgm-3
+% $$$ area = ncread('ocean_grid.nc','area_t');
+% $$$ area(isnan(area)) = 0;
+% $$$ [xL,yL] = size(area);
+% $$$ T = ncread('ocean.nc','neutral');
+% $$$ yt = ncread('ocean.nc','yt_ocean');
+% $$$ TL = length(T);
+% $$$ tL = 12;
+% $$$ diff_cbt_T_G = zeros(yL,TL,tL);
+% $$$ diff_cbt_T_P = zeros(yL,TL,tL);
+% $$$ diff_cbt_T_A = zeros(yL,TL,tL);
+% $$$ 
+% $$$ [tmaskIP,~,~] = Heat_Budget_Mask('IndoPacific2BAS','ocean_grid.nc','ocean_wmass.nc','../mat_data/','MOM025_kb3seg');
+% $$$ [tmaskA,~,~] = Heat_Budget_Mask('Atlantic2BAS','ocean_grid.nc','ocean_wmass.nc','../mat_data/','MOM025_kb3seg');
+% $$$ 
+% $$$ for i=1:tL
+% $$$     for ii=1:TL
+% $$$         [i tL ii TL]
+% $$$         diff = ncread('ocean.nc','diff_cbt_t_on_nrho',[1 1 ii i],[xL ...
+% $$$                             yL 1 1]);
+% $$$         mass = ncread('ocean.nc','mass_t_on_nrho',[1 1 ii i],[xL ...
+% $$$                             yL 1 1]);
+% $$$         diff(isnan(diff)) = 0;
+% $$$         mass(isnan(mass)) = 0;
+% $$$         
+% $$$         diff_cbt_T_G(:,ii,i) = sum(diff.*area,1)./sum(mass/rho0,1);
+% $$$         diff_cbt_T_P(:,ii,i) = sum(diff.*area.*tmaskIP,1)./sum(mass.*tmaskIP/rho0,1);
+% $$$         diff_cbt_T_A(:,ii,i) = sum(diff.*area.*tmaskA,1)./sum(mass.*tmaskA/rho0,1);
+% $$$     end
+% $$$ end
+% $$$ save('../mat_data/MOM025_kb3seg_output121_diff_cbt_T','diff_cbt_T_G','diff_cbt_T_A','diff_cbt_T_P','T','yt');
+% $$$ SST_G = squeeze(ncread('ocean.nc','temp',[1 1 1 1],[xL yL 1 tL]));
+% $$$ SST_P = squeeze(ncread('ocean.nc','temp',[1 1 1 1],[xL yL 1 ...
+% $$$                     tL])).*repmat(tmaskIP,[1 1 tL]);
+% $$$ SST_A = squeeze(ncread('ocean.nc','temp',[1 1 1 1],[xL yL 1 tL])).*repmat(tmaskA,[1 1 tL]);
+% $$$ save('../mat_data/MOM025_kb3seg_output121_SurfaceVars.mat','SST_G','SST_A','SST_P');
+
 % $$$ %% Annual average/max, zonal-average/max depth of isotherms:
 % $$$ 
 % $$$ tempZA = zeros(yL,zL);
