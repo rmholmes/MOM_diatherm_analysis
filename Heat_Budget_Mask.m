@@ -216,13 +216,13 @@ elseif (strcmp(region,'IndoPacific2BAS'))
     mask_t(:,1:t1) = 0;
     mask_u(:,1:(t1-1)) = 0;
     
-    % Fix Bering straight bit:
-    [~, t1] = min(abs(latv_u-66.5));
-    [~, t2] = min(abs(latv_u-65));
-    [~, t3] = min(abs(lonv_u+180));
-    [~, t4] = min(abs(lonv_u+178));
-    mask_t(t3:t4,t2:t1) = 1;
-    mask_u((t3-1):t4,(t2-1):t1) = 1;
+% $$$     % Fix Bering straight bit:
+% $$$     [~, t1] = min(abs(latv_u-66.5));
+% $$$     [~, t2] = min(abs(latv_u-65));
+% $$$     [~, t3] = min(abs(lonv_u+180));
+% $$$     [~, t4] = min(abs(lonv_u+178));
+% $$$     mask_t(t3:t4,t2:t1) = 1;
+% $$$     mask_u((t3-1):t4,(t2-1):t1) = 1;
 
     % Zonal definitions:
     [~, t1] = min(abs(lonv_u+68));mask_t(t1:end,:) = 0;mask_u(t1:end,:) = 0;
@@ -237,20 +237,8 @@ elseif (strcmp(region,'IndoPacific2BAS'))
     [~, t1] = min(abs(lonv_u+78.25));
     [~, t2] = min(abs(latv_u-9));mask_t(t1:end,t2:end) = 0;mask_u(t1:end,t2:end) = 0;
     [~, t1] = min(abs(lonv_u+77.5));[~, t2] = min(abs(latv_u-7.25));mask_t(t1:end,t2:end) = 0;mask_u(t1:end,t2:end) = 0;
-    
-    if (length(strfind(model,'MOM025'))>0)
-        mask_t(799,535)=0;
-        mask_u(798:800,534:536)=0;
-    end
-    
-    if (length(strfind(model,'MOM01'))>0)
-        [~, t1] = min(abs(lonv_u+83.1));
-        [~, t2] = min(abs(lonv_u+79.85));
-        [~, t3] = min(abs(latv_u-8.8));
-        [~, t4] = min(abs(latv_u-10.1));
-        mask_t(t1:t2,t3:t4) = 0;
-        mask_u(t1:t2,t3:t4) = 0;
-    end
+    mask_t(799,535)=0;
+    mask_u(798:800,534:536)=0;
     
     % Add western Indian:
     [~, t1] = min(abs(latv_u+34));
@@ -315,6 +303,37 @@ elseif (strcmp(region,'IndoPacificNZ'))
     [~, t1] = min(abs(latv_u+34));
     
     mask_t(:,1:t1) = 0;
+elseif (strcmp(region,'SO_IndoPacific'))
+    ['Generating new mask to file ' outname]
+    made_mask = 1;
+
+    % Northern boundary at 34S:
+    [~, t1] = min(abs(latv_u+34));
+    mask_t(:,(t1+1):end) = 0;
+    mask_u(:,(t1+1):end) = 0;
+
+    % Zonal definitions:
+    [~, t1] = min(abs(lonv_u-23));
+    [~, t2] = min(abs(lonv_u+70.5));
+    mask_t((t2+1):(t1-1),:) = 0;mask_u(t2:(t1-1),:) = 0;
+
+    mask_t(mask_t_full == 0) = 0;
+    mask_u(mask_u_full == 0) = 0;
+elseif (strcmp(region,'SO_Atlantic'))
+    ['Generating new mask to file ' outname]
+    made_mask = 1;
+
+    % Northern boundary at 34S:
+    [~, t1] = min(abs(latv_u+34));
+    mask_t(:,(t1+1):end) = 0;
+    mask_u(:,(t1+1):end) = 0;
+
+    % Zonal definitions:
+    [~, t1] = min(abs(lonv_u-23));mask_t(t1:end,:) = 0;mask_u(t1:end,:) = 0;
+    [~, t1] = min(abs(lonv_u+70.5));mask_t(1:t1,:) = 0;mask_u(1:(t1-1),:) = 0;
+
+    mask_t(mask_t_full == 0) = 0;
+    mask_u(mask_u_full == 0) = 0;
 end
 
 if (made_mask)
