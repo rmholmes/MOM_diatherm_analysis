@@ -52,6 +52,8 @@ doHND      = 1; % 1 = calculate global online numdif
 doTENMON   = 0; % 1 = do monthly eulerian tendency binning
 doMONANN   = 0; % 1 = calculate monthly and annually binned eulerian global budget
 doXYall    = 0; % 1 = do all XY calcs (most not used)
+doXYtran   = 1; % 1 = calculate vertically-integrated heat
+                % transports below given isotherm/s.
 
 % scaling constant on the transports:
 if (strcmp(model(1),'A')) %ACCESS-OM2, transport in kg/s
@@ -895,6 +897,53 @@ SST = squeeze(ncread(fname,'temp',[1 1 1 1],[xL yL 1 tL]));
 % $$$ tauy = ncread(fname,'tau_y',[1 1 1],[xL yL tL]);
 
 save([outD model sprintf('_output%03d',output) '_SurfaceVars.mat'],'shflux','SST');%,'taux','tauy');
+end
+
+%% Save vertically-integrated heat transports:
+if (doXYtran)
+Tls = [10 12.5 15 20 34];
+Nremain = length(Tls);
+Ti = 1;
+
+xflux = zeros(xL,yL); % vdiffuse and nonlocal_KPP
+yflux = zeros(xL,yL); % solar penetration
+
+while (Nremain > 0 & Ti <= TL+1)
+    Tl = Te(Ti);
+
+    qxtrans = zeros(xL,yL);
+    qytrans = zeros(xL,yL);
+    for ti=1:tL
+        sprintf(['Calculating vertically-integrated heat fluxes time %03d of ' ...
+                 '%03d, temp %2.2f, going up to %2.2f'],ti,tL,Te(Ti),max(Tls))
+
+        qxtrans = qxtrans+ncread(wname,'temp_xflux_adv_on_nrho',[1 1 Ti ti],[xL yL 1 1])*ndays(i);
+        qytrans = qytrans+ncread(wname,'temp_yflux_adv_on_nrho',[1 1 Ti ti],[xL yL 1 1])*ndays(i);
+
+        % Submesoscale and GM: two options:
+        if (haveSUB)
+            qxtrans = qxtrans + ncread(wname,'temp_xflux_submeso_on_nrho',[1 1 Ti ti],[xL yL 1 1])*ndays(i);
+            qytrans = qytrans + ncread(wname,'temp_yflux_submeso_on_nrho',[1 1 Ti ti],[xL yL 1 1])*ndays(i);
+        end
+        if (haveGM)
+            qxtrans = qxtrans + ncread(wname,'temp_xflux_gm_on_nrho',[1 1 Ti ti],[xL yL 1 1])*ndays(i);
+            qytrans = qytrans + ncread(wname,'temp_yflux_gm_on_nrho',[1 1 Ti ti],[xL yL 1 1])*ndays(i);
+        end
+    end
+    xflux = xflux + qxtrans/sum(ndays);
+    yflux = yflux + qytrans/sum(ndays);
+
+    % Save heat flux terms:
+    [sp,ind] = min(abs(Tls-Tl));
+    if (abs(sp) <= dT/4)
+        name = [outD model sprintf('_output%03d',output) '_XYtrans_T' strrep(num2str(Tls(ind)),'.','p') 'C.mat']
+
+        save(name,'xflux','yflux','Tl','-v7.3');
+        Nremain = Nremain-1;
+    end
+
+    Ti = Ti+1;
+end
 end
 
 %% Zonally-averaged fluxes -------------------------------------------------------------
