@@ -7,13 +7,15 @@ clear all;
 
 base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
 model = 'MOM025_kb3seg';
-outputs = [101110 111120];
-onum = 101120;
+outputs = [101:110];
+onum = 101110;
 
-anavg = [1 0]; % Take annual average
+anavg = zeros(length(outputs)); % Take annual average
 
-regions = {'Atlantic2BAS','IndoPacific2BAS','Global'};
-regLets = {'A','P','G'};
+% $$$ regions = {'Atlantic2BAS','IndoPacific2BAS','Global'};
+% $$$ regLets = {'A','P','G'};
+regions = {'SO_Atlantic','SO_IndoPacific'};
+regLets = {'SA','SP'};
 
 for reg = 1:length(regions)
     region = regions{reg}
@@ -87,8 +89,27 @@ for i=2:length(outputs)
 
     SSTsave = SSTsave + SST;
 end
-SSTsave = SSTsave/length(outputs);
+SST = SSTsave/length(outputs);
 save([base model sprintf('_output%03d_SurfaceVars.mat',onum)],'SST');
+
+% Do annual average XYtrans:
+Tls = {'10','12p5','15','20','34'};
+Tlsn = [10,12.5,15,20,34];
+for ii=1:length(Tls)
+    load([base model sprintf(['_output%03d_XYtrans_T' Tls{ii} 'C.mat'],outputs(1))]);
+    xfluxT = xflux;
+    yfluxT = yflux;
+    for i=2:length(outputs)
+        i
+        load([base model sprintf(['_output%03d_XYtrans_T' Tls{ii} 'C.mat'],outputs(i))]);
+        xfluxT = xfluxT+xflux;
+        yfluxT = yfluxT+yflux;
+    end
+    xflux = xfluxT/length(outputs);
+    yflux = yfluxT/length(outputs);
+    Tl = Tlsn(ii)
+    save([base model sprintf(['_output%03d_XYtrans_T' Tls{ii} 'C.mat'],onum)],'xflux','yflux','Tl');
+end
 
 
     
