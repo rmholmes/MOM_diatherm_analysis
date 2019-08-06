@@ -1,22 +1,22 @@
 % This script processes the heat budget and associated variables in
 % MOM025 or MOM01 simulations and save's into .mat files
 
-% $$$ baseL = '/short/e14/rmh561/mom/archive/';
-baseL = '/g/data/e14/rmh561/mom/';
+baseL = '/short/e14/rmh561/mom/archive/';
+% $$$ baseL = '/g/data/e14/rmh561/mom/';
 % $$$ baseL = '/short/e14/rmh561/access-om2/archive/';
 % $$$ baseL = '/srv/ccrc/data03/z3500785/';
 
-% $$$ % MOM-SIS025:
-% $$$ model = 'MOM025_RCP45';
-% $$$ baseD = [baseL 'MOM_HeatDiag_RCP45/']; %Data Directory.
-% $$$ ICdir = [baseL 'MOM_HeatDiag_kb3seg/restart100/'];
+% MOM-SIS025:
+model = 'MOM025_kb3seg';
+baseD = [baseL 'MOM_HeatDiag_kb3seg/']; %Data Directory.
+ICdir = [baseL 'MOM_HeatDiag_kb3seg/restart100/'];
 % $$$ % ACCESS-OM2:
 % $$$ model = 'ACCESS-OM2_1deg_jra55_ryf8485_kds50_july';
 % $$$ baseD = [baseL '1deg_jra55_ryf8485_kds50_july/']; %Data Directory.
 % $$$ ICdir = '/g/data1/ua8/MOM/initial_conditions/WOA/10_KDS50/';
-% MOM-SIS01:
-model = 'MOM01';
-baseD = [baseL 'MOM01_HeatDiag/']; %Data Directory.
+% $$$ % MOM-SIS01:
+% $$$ model = 'MOM01';
+% $$$ baseD = [baseL 'MOM01_HeatDiag/']; %Data Directory.
 
 outD = [baseD 'mat_data/'];
 rstbaseD = baseD;
@@ -33,9 +33,9 @@ haveSIG = 0; % 1 = SIG is on, 0 = off;
 haveMIX = 1; % 1 = Do mixing components (vdiffuse_diff_cbt_*), 0 = don't. 
 
 % Processing options:
-doBASE     = 1; % 1 = save BaseVars.mat file
+doBASE     = 0; % 1 = save BaseVars.mat file
 dodVdtdHdt = 0; % 1 = calculate dVdt/dHdt and save into .nc file
-doNUMDIF   = 1; % 1 = calculate tempdiff x,y,T,t and save into .nc file
+doNUMDIF   = 0; % 1 = calculate tempdiff x,y,T,t and save into .nc file
 doSGMviac  = 0; % 1 = calculate SUB/GM influence via binned
                 % convergence (otherwise uses lateral flux). The
                 % better option is to use the lateral flux -> This
@@ -43,12 +43,12 @@ doSGMviac  = 0; % 1 = calculate SUB/GM influence via binned
                 % includes the numerical mixing associated with the GM
                 % and SUB schemes).
 
-doGWB      = 1; % 1 = calculate global online budget terms
-doXY       = 1; % 1 = calculate spatial fluxes-on-an-isotherm
+doGWB      = 0; % 1 = calculate global online budget terms
+doXY       = 0; % 1 = calculate spatial fluxes-on-an-isotherm
 doSURF     = 0; % 1 = calculate surface flux field and SST
-doZA       = 1; % 1 = calculate zonal average budget
+doZA       = 0; % 1 = calculate zonal average budget
 
-doHND      = 1; % 1 = calculate global online numdif
+doHND      = 0; % 1 = calculate global online numdif
 doTENMON   = 0; % 1 = do monthly eulerian tendency binning
 doMONANN   = 0; % 1 = calculate monthly and annually binned eulerian global budget
 doXYall    = 0; % 1 = do all XY calcs (most not used)
@@ -908,8 +908,8 @@ Ti = 1;
 xflux = zeros(xL,yL); % vdiffuse and nonlocal_KPP
 yflux = zeros(xL,yL); % solar penetration
 
-while (Nremain > 0 & Ti <= TL+1)
-    Tl = Te(Ti);
+while (Nremain > 0 & Ti <= TL)
+    Tl = Te(Ti+1);
 
     qxtrans = zeros(xL,yL);
     qytrans = zeros(xL,yL);
@@ -917,17 +917,17 @@ while (Nremain > 0 & Ti <= TL+1)
         sprintf(['Calculating vertically-integrated heat fluxes time %03d of ' ...
                  '%03d, temp %2.2f, going up to %2.2f'],ti,tL,Te(Ti),max(Tls))
 
-        qxtrans = qxtrans+ncread(wname,'temp_xflux_adv_on_nrho',[1 1 Ti ti],[xL yL 1 1])*ndays(i);
-        qytrans = qytrans+ncread(wname,'temp_yflux_adv_on_nrho',[1 1 Ti ti],[xL yL 1 1])*ndays(i);
+        qxtrans = qxtrans+ncread(wname,'temp_xflux_adv_on_nrho',[1 1 Ti ti],[xL yL 1 1])*ndays(ti);
+        qytrans = qytrans+ncread(wname,'temp_yflux_adv_on_nrho',[1 1 Ti ti],[xL yL 1 1])*ndays(ti);
 
         % Submesoscale and GM: two options:
         if (haveSUB)
-            qxtrans = qxtrans + ncread(wname,'temp_xflux_submeso_on_nrho',[1 1 Ti ti],[xL yL 1 1])*ndays(i);
-            qytrans = qytrans + ncread(wname,'temp_yflux_submeso_on_nrho',[1 1 Ti ti],[xL yL 1 1])*ndays(i);
+            qxtrans = qxtrans + ncread(wname,'temp_xflux_submeso_on_nrho',[1 1 Ti ti],[xL yL 1 1])*ndays(ti);
+            qytrans = qytrans + ncread(wname,'temp_yflux_submeso_on_nrho',[1 1 Ti ti],[xL yL 1 1])*ndays(ti);
         end
         if (haveGM)
-            qxtrans = qxtrans + ncread(wname,'temp_xflux_gm_on_nrho',[1 1 Ti ti],[xL yL 1 1])*ndays(i);
-            qytrans = qytrans + ncread(wname,'temp_yflux_gm_on_nrho',[1 1 Ti ti],[xL yL 1 1])*ndays(i);
+            qxtrans = qxtrans + ncread(wname,'temp_xflux_gm_on_nrho',[1 1 Ti ti],[xL yL 1 1])*ndays(ti);
+            qytrans = qytrans + ncread(wname,'temp_yflux_gm_on_nrho',[1 1 Ti ti],[xL yL 1 1])*ndays(ti);
         end
     end
     xflux = xflux + qxtrans/sum(ndays);
