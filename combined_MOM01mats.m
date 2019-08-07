@@ -13,7 +13,7 @@ model = 'MOM01';
 % $$$         onum = 222;
 % $$$     end
 outputs = [4 5 6 7]
-onum = 444;
+onum = 4567;
 
 % BaseVars: ---------------------------
 fname1 = [base model sprintf('_output%03d_BaseVars.mat', ...
@@ -23,28 +23,32 @@ copyfile(fname1,oname);
 
 load(fname1);
 timea = time;
-time_snapa = time_snap;
+ndaysa = ndays;
 for i=2:length(outputs)
     load([base model sprintf('_output%03d_BaseVars.mat',outputs(i))]);
     timea = [timea; time];
-    time_snapa = [time_snapa; time_snap];
+    ndaysa = [ndaysa; ndays];
 end
 time = timea;
-time_snap = time_snapa([1:4 6:8 10:12 14:16]);
+ndays = ndaysa;
 tL = length(time);
-save(oname,'time','time_snap','tL','-append');
+save(oname,'time','ndays','tL','-append');
+
+regions = {'Global','IndoPacific2BAS','Atlantic2BAS'};
+for reg = 1:length(regions)
+    region = regions{reg};
 
 % GlobalHB: ---------------------------
-fname1 = [base model sprintf('_output%03d_GlobalHBud.mat', ...
+fname1 = [base model sprintf(['_output%03d_' region '_HBud.mat'], ...
                              outputs(1))];
-oname = [base model sprintf('_output%03d_GlobalHBud.mat',onum)]
+oname = [base model sprintf(['_output%03d_' region '_HBud.mat'],onum)]
 copyfile(fname1,oname);
 
 load(fname1);
 GWBa = GWB;
 names = fieldnames(GWBa);
 for i=2:length(outputs)
-    load([base model sprintf('_output%03d_GlobalHBud.mat',outputs(i))]);
+    load([base model sprintf(['_output%03d_' region '_HBud.mat'],outputs(i))]);
     for ii=1:length(names)
         eval(['GWBa.' names{ii} ' = [GWBa.' names{ii} ' GWB.' names{ii} '];']);
     end
@@ -53,9 +57,6 @@ GWB = GWBa;
 save(oname,'GWB');
 
 % ZA: ---------------------------
-regions = {'Global','IndoPacificNZ','AtlanticNZ'};
-for reg = 1:length(regions)
-    region = regions{reg};
 fname1 = [base model sprintf('_output%03d_', ...
                              outputs(1)) region '_ZAHBud.mat'];
 oname = [base model sprintf('_output%03d_',onum) region '_ZAHBud.mat']
@@ -72,7 +73,7 @@ for i=2:length(outputs)
     end
 end
 ZA = ZAa;
-save(oname,'ZA','yuo','yto');
+save(oname,'ZA','yu','yt');
 end
 
 % VertInt and WMT: ----------------------

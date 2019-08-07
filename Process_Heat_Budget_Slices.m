@@ -45,64 +45,64 @@ tL = length(time);
 Cp = 3992.1; % J kg-1 degC-1
 rho0 = 1035; % kgm-3
 
-T = ncread(wname,'neutral');
-Te = ncread(wname,'neutralrho_edges');
-TL = length(T);dT = T(2)-T(1);
-
-%% Get lat-depth slice of variables:
-for lonsl=[-110 -140]
-[tmp lt1] = min(abs(lat(1,:)+20));
-[tmp lt2] = min(abs(lat(1,:)-20));
-
-[tmp lnind] = min(abs(lon(:,round(mean([lt1 lt2])))-lonsl));
-
-temp = squeeze(ncread(fname,'temp',[lnind lt1 1 1],[1 lt2-lt1+1 zL tL]));
-
-if (strfind(baseD,'01'))
-    u = squeeze(ncread(m3name,'u',[lnind lt1 1 1],[1 lt2-lt1+1 zL 1]));
-    v = squeeze(ncread(m3name,'v',[lnind lt1 1 1],[1 lt2-lt1+1 zL 1]));
-else
-    u = squeeze(ncread(fname,'u',[lnind lt1 1 1],[1 lt2-lt1+1 zL tL]));
-    v = squeeze(ncread(fname,'v',[lnind lt1 1 1],[1 lt2-lt1+1 zL tL]));
-end
-
-kappa = squeeze(ncread(fname,'diff_cbt_t',[lnind lt1 1 1],[1 lt2-lt1+1 zL tL]));
-taux = squeeze(ncread(fname,'tau_x',[lnind lt1 1],[1 lt2-lt1+1 tL]));
-tauy = squeeze(ncread(fname,'tau_y',[lnind lt1 1],[1 lt2-lt1+1 tL]));
-mld = squeeze(ncread(fname,'mld',[lnind lt1 1],[1 lt2-lt1+1 tL]));
-vdif = squeeze(ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[lnind lt1 1 1],[1 lt2-lt1+1 TL tL]));
-vnlc = squeeze(ncread(wname,'temp_nonlocal_KPP_on_nrho',[lnind lt1 1 1],[1 lt2-lt1+1 TL tL]));
-ndif = squeeze(ncread(wname,'temp_numdiff_heat_on_nrho',[lnind lt1 1 1],[1 lt2-lt1+1 TL tL]));
-pmer = squeeze(ncread(wname,'sfc_hflux_pme_on_nrho',[lnind lt1 1 1],[1 lt2-lt1+1 TL tL]) + ...
-               ncread(wname,'temp_rivermix_on_nrho',[lnind lt1 1 1],[1 lt2-lt1+1 TL tL]));
-sufc = squeeze(ncread(wname,'temp_vdiffuse_sbc_on_nrho',[lnind lt1 1 1],[1 lt2-lt1+1 TL tL]) + ...
-               ncread(wname,'frazil_on_nrho',[lnind lt1 1 1],[1 lt2-lt1+1 TL tL]) + ...
-               ncread(wname,'temp_eta_smooth_on_nrho',[lnind lt1 1 1],[1 lt2-lt1+1 TL tL]) + ...
-               ncread(wname,'sw_heat_on_nrho',[lnind lt1 1 1],[1 lt2-lt1+1 TL tL]));
-swrd = squeeze(ncread(wname,'sw_heat_on_nrho',[lnind lt1 1 1],[1 lt2-lt1+1 TL tL]));
-
-[Yt,Zt] = ndgrid(lat(lnind,lt1:lt2),z);
-[Yu,Zu] = ndgrid(latu(lnind,lt1:lt2),z);
-
-name = [outD 'mat_data/' model sprintf('_output%03d',output) '_varsat_' num2str(-lonsl) 'W.mat']
-save(name,'Yt','Zt','Yu','Zu','temp','kappa','taux','tauy','mld', ...
-     'vdif','vnlc','pmer','sufc','swrd','ndif');
-end
+% $$$ T = ncread(wname,'neutral');
+% $$$ Te = ncread(wname,'neutralrho_edges');
+% $$$ TL = length(T);dT = T(2)-T(1);
+% $$$ 
+% $$$ %% Get lat-depth slice of variables:
+% $$$ for lonsl=[-110 -140]
+% $$$ [tmp lt1] = min(abs(lat(1,:)+20));
+% $$$ [tmp lt2] = min(abs(lat(1,:)-20));
+% $$$ 
+% $$$ [tmp lnind] = min(abs(lon(:,round(mean([lt1 lt2])))-lonsl));
+% $$$ 
+% $$$ temp = squeeze(ncread(fname,'temp',[lnind lt1 1 1],[1 lt2-lt1+1 zL tL]));
+% $$$ 
+% $$$ if (strfind(baseD,'01'))
+% $$$     u = squeeze(ncread(m3name,'u',[lnind lt1 1 1],[1 lt2-lt1+1 zL 1]));
+% $$$     v = squeeze(ncread(m3name,'v',[lnind lt1 1 1],[1 lt2-lt1+1 zL 1]));
+% $$$ else
+% $$$     u = squeeze(ncread(fname,'u',[lnind lt1 1 1],[1 lt2-lt1+1 zL tL]));
+% $$$     v = squeeze(ncread(fname,'v',[lnind lt1 1 1],[1 lt2-lt1+1 zL tL]));
+% $$$ end
+% $$$ 
+% $$$ kappa = squeeze(ncread(fname,'diff_cbt_t',[lnind lt1 1 1],[1 lt2-lt1+1 zL tL]));
+% $$$ taux = squeeze(ncread(fname,'tau_x',[lnind lt1 1],[1 lt2-lt1+1 tL]));
+% $$$ tauy = squeeze(ncread(fname,'tau_y',[lnind lt1 1],[1 lt2-lt1+1 tL]));
+% $$$ mld = squeeze(ncread(fname,'mld',[lnind lt1 1],[1 lt2-lt1+1 tL]));
+% $$$ vdif = squeeze(ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[lnind lt1 1 1],[1 lt2-lt1+1 TL tL]));
+% $$$ vnlc = squeeze(ncread(wname,'temp_nonlocal_KPP_on_nrho',[lnind lt1 1 1],[1 lt2-lt1+1 TL tL]));
+% $$$ ndif = squeeze(ncread(wname,'temp_numdiff_heat_on_nrho',[lnind lt1 1 1],[1 lt2-lt1+1 TL tL]));
+% $$$ pmer = squeeze(ncread(wname,'sfc_hflux_pme_on_nrho',[lnind lt1 1 1],[1 lt2-lt1+1 TL tL]) + ...
+% $$$                ncread(wname,'temp_rivermix_on_nrho',[lnind lt1 1 1],[1 lt2-lt1+1 TL tL]));
+% $$$ sufc = squeeze(ncread(wname,'temp_vdiffuse_sbc_on_nrho',[lnind lt1 1 1],[1 lt2-lt1+1 TL tL]) + ...
+% $$$                ncread(wname,'frazil_on_nrho',[lnind lt1 1 1],[1 lt2-lt1+1 TL tL]) + ...
+% $$$                ncread(wname,'temp_eta_smooth_on_nrho',[lnind lt1 1 1],[1 lt2-lt1+1 TL tL]) + ...
+% $$$                ncread(wname,'sw_heat_on_nrho',[lnind lt1 1 1],[1 lt2-lt1+1 TL tL]));
+% $$$ swrd = squeeze(ncread(wname,'sw_heat_on_nrho',[lnind lt1 1 1],[1 lt2-lt1+1 TL tL]));
+% $$$ 
+% $$$ [Yt,Zt] = ndgrid(lat(lnind,lt1:lt2),z);
+% $$$ [Yu,Zu] = ndgrid(latu(lnind,lt1:lt2),z);
+% $$$ 
+% $$$ name = [outD 'mat_data/' model sprintf('_output%03d',output) '_varsat_' num2str(-lonsl) 'W.mat']
+% $$$ save(name,'Yt','Zt','Yu','Zu','temp','kappa','taux','tauy','mld', ...
+% $$$      'vdif','vnlc','pmer','sufc','swrd','ndif');
+% $$$ end
 
 %% Get lon-depth slices of variables:
-% Equatorial Pacific:
-rname = 'EqPM2';
-[tmp lt1] = min(abs(lat(1,:)+2));
-[tmp lt2] = min(abs(lat(1,:)-2));
-[tmp ln1] = min(abs(lon(:,lt1)+240));
-[tmp ln2] = min(abs(lon(:,lt1)+70));
+% $$$ % Equatorial Pacific:
+% $$$ rname = 'EqPM2';
+% $$$ [tmp lt1] = min(abs(lat(1,:)+2));
+% $$$ [tmp lt2] = min(abs(lat(1,:)-2));
+% $$$ [tmp ln1] = min(abs(lon(:,lt1)+240));
+% $$$ [tmp ln2] = min(abs(lon(:,lt1)+70));
 
 % Gulf Stream:
-rname = 'GulfSt';
-[tmp lt1] = min(abs(lat(1,:)+2));
-[tmp lt2] = min(abs(lat(1,:)-2));
-[tmp ln1] = min(abs(lon(:,lt1)+240));
-[tmp ln2] = min(abs(lon(:,lt1)+70));
+rname = 'GulfSt_42pm0p5';
+[tmp lt1] = min(abs(lat(1,:)-41.5));
+[tmp lt2] = min(abs(lat(1,:)-42.5));
+[tmp ln1] = min(abs(lon(:,lt1)+78));
+[tmp ln2] = min(abs(lon(:,lt1)+8));
 
 temp = squeeze(mean(ncread(fname,'temp',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL tL]),2));
 if (strfind(baseD,'01'))
