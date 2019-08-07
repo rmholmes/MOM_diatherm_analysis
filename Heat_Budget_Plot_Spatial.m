@@ -14,7 +14,8 @@ RUNS = { ...
 % $$$     {'MOM025',[8:12]}, ...
 % $$$     {'MOM025',[15:19]}, ...
 % $$$ % $$$     {'MOM025_kb1em6',[30]}, ...
-    {'MOM025_kb3seg',[86:90]}, ...
+% $$$     {'MOM025_kb3seg',[101:110]}, ...
+    {'MOM025_kb3seg',[101:110]}, ...
 % $$$     {'MOM025_kb3seg',[95]}, ...
 % $$$     {'MOM025_kb3seg_nosubmeso',[91:95]}, ...
 % $$$     {'MOM025_kb3seg',[86]}, ...
@@ -64,7 +65,7 @@ rr = 1;
     TYPE = 'VertInt';
 % $$$     VAR = 'EKE';
 % $$$     TYPE = 'variances';
-    Tl = 21.5;
+    Tl = 15;
     name = [base model sprintf('_output%03d',outputs(1)) '_' TYPE '_T' strrep(num2str(Tl),'.','p') 'C.mat']
     eval(['load(name,''' VAR ''');']);
     eval([VAR '(isnan(' VAR ')) = 0.0;']);
@@ -346,8 +347,10 @@ rr = 1;
 % $$$     clim = [-100 0];
 % $$$     sp = 5;
 % $$$     clim = [-125 125];
-    sp = 2.5;
-    clim = [-120 0];
+% $$$     sp = 2.5;
+% $$$     clim = [-120 0];
+    sp = 1;
+    clim = [-60 0];
 % $$$     sp = 1;
 % $$$     clim = [-30 30];
 
@@ -463,7 +466,7 @@ poss = [0.1300    0.4553    0.7693    0.4697; ...
     set(gca,'Position',[poss(i,:)]);
 % $$$     ylim([15 65]);
 % $$$     xlim([-100 10]);
-    ylim([-45 45]);
+    ylim([-60 60]);
 % $$$     set(gca,'FontSize',17);
     colormap(cmap);
 % $$$ % $$$     text(-277,-54,labels{i},'BackgroundColor','w','Margin',0.5,'FontSize',20);
@@ -662,8 +665,18 @@ if (strfind(model,'01'))
     lat = repmat(latv,[xL 1]);
 end
 
+shflux20p = shflux;
+shflux20p(SST<20) = 0;
+shflux1520 = shflux;
+shflux1520(SST<15 & SST>20) = 0;
+shflux15m = shflux;
+shflux15m(SST>15) = 0;
+
 %Sum of all positives:
 shfluxA = mean(shflux,3);
+shfluxA1520 = mean(shflux1520,3);
+shfluxA20p = mean(shflux20p,3);
+shfluxA15m = mean(shflux20m,3);
 % $$$ shfluxP = nansum(shfluxA(shfluxA>0).*area(shfluxA>0))/1e15
 % $$$ shfluxM = nansum(shfluxA(shfluxA<0).*area(shfluxA<0))/1e15
 % $$$ 
@@ -858,65 +871,83 @@ shfluxA = mean(shflux,3);
 % $$$     end
 % $$$     SSTbias = monmean(SSTcur,3,ndays) - monmean(SST,3,ndays);
 % $$$ else
-% $$$ % WOA13 SST:
-% $$$ WOAname = '/srv/ccrc/data03/z3500785/WOA13/woa13_decav_t00_04v2.nc';
-% $$$ WOASST = ncread(WOAname,'t_an',[1 1 1 1],[1440 720 1 1]);
-% $$$ [WOAlon,WOAlat] = ndgrid(ncread(WOAname,'lon'),ncread(WOAname,'lat'));
-% $$$ 
-% $$$ %Shift longitudes:
-% $$$ [tmp ind] = min(abs(WOAlon(:,1)-80));
-% $$$ WOASST = cat(1,WOASST(ind+1:end,:),WOASST(1:ind,:));
-% $$$ WOAlon = cat(1,WOAlon(ind+1:end,:)-360,WOAlon(1:ind,:));
-% $$$ WOAlat = cat(1,WOAlat(ind+1:end,:),WOAlat(1:ind,:));
-% $$$ 
-% $$$ % Calculate bias from WOA:
-% $$$ SSTbias = monmean(SST,3,ndays)-interp2(WOAlon',WOAlat',WOASST',lon,lat,'linear');
-% $$$ % $$$ for i=1:12
-% $$$ % $$$     SST(:,:,i) = interp2(MOM01lon',MOM01lat',MOM01SST(:,:,i)',lon,lat,'linear')-SST(:,:,i);
-% $$$ % $$$     shflux(:,:,i) = interp2(MOM01lon',MOM01lat',MOM01shflux(:,:,i)',lon,lat,'linear')-shflux(:,:,i);
-% $$$ % $$$ end
+% WOA13 SST:
+WOAname = '/srv/ccrc/data03/z3500785/WOA13/woa13_decav_t00_04v2.nc';
+WOASST = ncread(WOAname,'t_an',[1 1 1 1],[1440 720 1 1]);
+[WOAlon,WOAlat] = ndgrid(ncread(WOAname,'lon'),ncread(WOAname,'lat'));
+
+%Shift longitudes:
+[tmp ind] = min(abs(WOAlon(:,1)-80));
+WOASST = cat(1,WOASST(ind+1:end,:),WOASST(1:ind,:));
+WOAlon = cat(1,WOAlon(ind+1:end,:)-360,WOAlon(1:ind,:));
+WOAlat = cat(1,WOAlat(ind+1:end,:),WOAlat(1:ind,:));
+
+% OISST:
+SATname = '/srv/ccrc/data03/z3500785/OISST/sst.day.mean.ltm.1971-2000.nc';
+SATSST = zeros(1440,720);
+for i=1:365
+    i
+    SATSST = SATSST + ncread(SATname,'sst',[1 1 i],[1440 720 1]);
+end
+SATSST = SATSST/365;
+[SATlon,SATlat] = ndgrid(ncread(SATname,'lon'),ncread(SATname,'lat'));
+
+%Shift longitudes:
+[tmp ind] = min(abs(SATlon(:,1)-80));
+SATSST = cat(1,SATSST(ind+1:end,:),SATSST(1:ind,:));
+SATlon = cat(1,SATlon(ind+1:end,:)-360,SATlon(1:ind,:));
+SATlat = cat(1,SATlat(ind+1:end,:),SATlat(1:ind,:));
+
+% Calculate bias from WOA:
+%SSTbias = monmean(SST,3,ndays)-interp2(WOAlon',WOAlat',WOASST',lon,lat,'linear');
+%SSTbias = SST-interp2(WOAlon',WOAlat',WOASST',lon,lat,'linear');
+SSTbias = SST-interp2(SATlon',SATlat',SATSST',lon,lat,'linear');
+% $$$ for i=1:12
+% $$$     SST(:,:,i) = interp2(MOM01lon',MOM01lat',MOM01SST(:,:,i)',lon,lat,'linear')-SST(:,:,i);
+% $$$     shflux(:,:,i) = interp2(MOM01lon',MOM01lat',MOM01shflux(:,:,i)',lon,lat,'linear')-shflux(:,:,i);
 % $$$ end
-% $$$ 
-% $$$ [xL,yL] = size(lon);
-% $$$ xvec = 1:2:xL;
-% $$$ yvec = 1:2:yL;
-% $$$ 
-% $$$ % $$$ figure;
-% $$$ % $$$ set(gcf,'Position',[3          59        1916         914]);
-% $$$ % $$$ set(gcf,'defaulttextfontsize',15);
-% $$$ % $$$ set(gcf,'defaultaxesfontsize',15);
-% $$$ % $$$ poss = [0.15  0.56 0.3 0.34; ...
-% $$$ % $$$         0.48  0.56 0.3 0.34; ...
-% $$$ % $$$         0.15  0.1 0.3 0.34; ...
-% $$$ % $$$         0.48  0.1 0.3 0.34];
-% $$$ clvls = [-1e10 -1:0.05:1 1e10];
-% $$$ subplot(2,3,rr);
-% $$$ contourf(lon(xvec,yvec),lat(xvec,yvec),SSTbias(xvec,yvec),clvls,'linestyle', ...
-% $$$          'none');
-% $$$ hold on;
-% $$$ % $$$ contour(lon,lat,SSTbias,[-3 -2 -1 1 2 3],'-k');
-% $$$ if (rr == 1)
-% $$$     contour(lon,lat,SSTbias,[-1:0.5:1],'-k');
-% $$$ end
-% $$$ set(gca,'color','k');
-% $$$ % $$$ title('$\kappa_B=10^{-5}$ - WOA13 SST Year 2 ($^\circ$C)');
-% $$$ if (rr == 1)
-% $$$     title([strrep(strrep(strrep(strrep(RUNS{rr}{1},'_',' '),'ACCESS-OM2 ','AOM'),'deg jra55',''),' may','') ' - WOA SST ($^\circ$C)']);
-% $$$ else
-% $$$     title([strrep(strrep(strrep(strrep(RUNS{rr}{1},'_',' '),'ACCESS-OM2 ','AOM'),'deg jra55',''),' may','') ' - kds50 SST ($^\circ$C)']);
-% $$$ end    
-% $$$ if (rr == 1)
-% $$$     caxis([-1 1]);
-% $$$ else
-% $$$     caxis([-0.5 0.5]);
-% $$$ end
-% $$$ colorbar;
-% $$$ colormap(redblue(length(clvls)-1));
-% $$$ set(gca,'FontSize',15);
-% $$$ xlabel('Longitude ($^\circ$E)');
-% $$$ ylabel('Latitude ($^\circ$N)');
-% $$$ % $$$ set(gca,'Position',poss(rr,:));
-% $$$ end
+end
+
+[xL,yL] = size(lon);
+xvec = 1:2:xL;
+yvec = 1:2:yL;
+
+% $$$ figure;
+% $$$ set(gcf,'Position',[3          59        1916         914]);
+% $$$ set(gcf,'defaulttextfontsize',15);
+% $$$ set(gcf,'defaultaxesfontsize',15);
+% $$$ poss = [0.15  0.56 0.3 0.34; ...
+% $$$         0.48  0.56 0.3 0.34; ...
+% $$$         0.15  0.1 0.3 0.34; ...
+% $$$         0.48  0.1 0.3 0.34];
+clvls = [-1e10 -1:0.05:1 1e10];
+subplot(2,3,rr);
+contourf(lon(xvec,yvec),lat(xvec,yvec),SSTbias(xvec,yvec),clvls,'linestyle', ...
+         'none');
+hold on;
+% $$$ contour(lon,lat,SSTbias,[-3 -2 -1 1 2 3],'-k');
+if (rr == 1)
+    contour(lon,lat,SSTbias,[-1:0.5:1],'-k');
+end
+set(gca,'color','k');
+% $$$ title('$\kappa_B=10^{-5}$ - WOA13 SST Year 2 ($^\circ$C)');
+if (rr == 1)
+    title([strrep(strrep(strrep(strrep(RUNS{rr}{1},'_',' '),'ACCESS-OM2 ','AOM'),'deg jra55',''),' may','') ' - WOA SST ($^\circ$C)']);
+else
+    title([strrep(strrep(strrep(strrep(RUNS{rr}{1},'_',' '),'ACCESS-OM2 ','AOM'),'deg jra55',''),' may','') ' - kds50 SST ($^\circ$C)']);
+end    
+if (rr == 1)
+    caxis([-1 1]);
+else
+    caxis([-0.5 0.5]);
+end
+colorbar;
+colormap(redblue(length(clvls)-1));
+set(gca,'FontSize',15);
+xlabel('Longitude ($^\circ$E)');
+ylabel('Latitude ($^\circ$N)');
+% $$$ set(gca,'Position',poss(rr,:));
+end
 % $$$ 
 % $$$ 
 % $$$ %
@@ -1002,6 +1033,10 @@ N50inds = lat>=50;
 reg = [-270 -110 50 90];
 PN50inds = lat > reg(3) & lat < reg(4) & lon > reg(1) & lon < reg(2);
 
+SOAinds = lat < -34 & (lon > -70 & lon < 25);
+SOPinds = lat <-34 & (lon > 25 | lon < -70);
+
+
 for i=1:12
     SHFtmp = shflux(:,:,i);
     SHFEq(i) = nansum(nansum(area(Eqinds).*SHFtmp(Eqinds),1),2);
@@ -1011,6 +1046,24 @@ for i=1:12
     SHFEA(i) = nansum(nansum(area(EAinds).*SHFtmp(EAinds),1),2);
     SHFN50(i) = nansum(nansum(area(N50inds).*SHFtmp(N50inds),1),2);
     SHFPN50(i) = nansum(nansum(area(PN50inds).*SHFtmp(PN50inds),1),2);
+
+    SHFSOA(i) = nansum(nansum(area(SOAinds).*SHFtmp(SOAinds),1),2);
+    SHFSOP(i) = nansum(nansum(area(SOPinds).*SHFtmp(SOPinds),1),2);
+
+    SHF20p = SHFtmp;
+    SHF20p(SST(:,:,i)<20) = 0;
+    SHF20pSOA(i) = nansum(nansum(area(SOAinds).*SHF20p(SOAinds),1),2);
+    SHF20pSOP(i) = nansum(nansum(area(SOPinds).*SHF20p(SOPinds),1),2);
+
+    SHF1520 = SHFtmp;
+    SHF1520(SST(:,:,i)>20 & SST(:,:,i) < 15) = 0;
+    SHF1520SOA(i) = nansum(nansum(area(SOAinds).*SHF1520(SOAinds),1),2);
+    SHF1520SOP(i) = nansum(nansum(area(SOPinds).*SHF1520(SOPinds),1),2);
+
+        SHF15m = SHFtmp;
+    SHF15m(SST(:,:,i)> 15) = 0;
+    SHF15mSOA(i) = nansum(nansum(area(SOAinds).*SHF15m(SOAinds),1),2);
+    SHF15mSOP(i) = nansum(nansum(area(SOPinds).*SHF15m(SOPinds),1),2);
 
     Atmp = area;
     Atmp(isnan(SHFtmp)) = NaN;
@@ -1022,6 +1075,8 @@ for i=1:12
     AREAS(i) = nansum(nansum(Atmp(Sinds)));
     AREAN50(i) = nansum(nansum(Atmp(N50inds)));
     AREAPN50(i) = nansum(nansum(Atmp(PN50inds)));
+    AREASOA(i) = nansum(nansum(Atmp(SOAinds)));
+    AREASOP(i) = nansum(nansum(Atmp(SOPinds)));
 end
 SHFAll = SHFEq+SHFN+SHFS;
 
@@ -1033,6 +1088,7 @@ sprintf(' Eq area = %3.2f',monmean(AREAEq,2,ndays)/monmean(AREAtotal,2,ndays)) ;
 sprintf(' EEP area = %3.2f',monmean(AREAEEP,2,ndays)/monmean(AREAtotal,2,ndays)) ; ...
 sprintf(' N50 area = %3.2f',monmean(AREAN50,2,ndays)/monmean(AREAtotal,2,ndays)) ; ...
 sprintf(' PN50 area = %3.2f',monmean(AREAPN50,2,ndays)/monmean(AREAtotal,2,ndays)) ; ...
+sprintf(' PN50 area = %3.2f',monmean(AREAPN50,2,ndays)/monmean(AREAtotal,2,ndays)) ; ...
 sprintf(' EA area = %3.2f',monmean(AREAEA,2,ndays)/monmean(AREAtotal,2,ndays))}
 str = {['Annual totals model ' model]  ; ...
 sprintf(' Total = %3.2f',monmean(SHFAll,2,ndays)/1e15) ; ...
@@ -1042,7 +1098,16 @@ sprintf(' Eq = %3.2fPW (%3.0f)',monmean(SHFEq,2,ndays)/1e15,monmean(SHFEq,2,nday
 sprintf(' EEP = %3.2fPW (%3.0f)',monmean(SHFEEP,2,ndays)/1e15,monmean(SHFEEP,2,ndays)/monmean(SHFAll,2,ndays)*100) ; ...
 sprintf(' N50 = %3.2fPW (%3.0f)',monmean(SHFN50,2,ndays)/1e15,monmean(SHFN50,2,ndays)/monmean(SHFAll,2,ndays)*100) ; ...
 sprintf(' PN50 = %3.2fPW (%3.0f)',monmean(SHFPN50,2,ndays)/1e15,monmean(SHFPN50,2,ndays)/monmean(SHFAll,2,ndays)*100) ; ...
+sprintf(' SOP = %3.2fPW (%3.0f)',monmean(SHFSOP,2,ndays)/1e15,monmean(SHFSOP,2,ndays)/monmean(SHFAll,2,ndays)*100) ; ...
+sprintf(' SOA = %3.2fPW (%3.0f)',monmean(SHFSOA,2,ndays)/1e15,monmean(SHFSOA,2,ndays)/monmean(SHFAll,2,ndays)*100) ; ...
+sprintf(' 20pSOP = %3.2fPW (%3.0f)',monmean(SHF20pSOP,2,ndays)/1e15,monmean(SHF20pSOP,2,ndays)/monmean(SHFAll,2,ndays)*100) ; ...
+sprintf(' 20pSOA = %3.2fPW (%3.0f)',monmean(SHF20pSOA,2,ndays)/1e15,monmean(SHF20pSOA,2,ndays)/monmean(SHFAll,2,ndays)*100) ; ...
+sprintf(' 1520SOP = %3.2fPW (%3.0f)',monmean(SHF1520SOP,2,ndays)/1e15,monmean(SHF1520SOP,2,ndays)/monmean(SHFAll,2,ndays)*100) ; ...
+sprintf(' 1520SOA = %3.2fPW (%3.0f)',monmean(SHF1520SOA,2,ndays)/1e15,monmean(SHF1520SOA,2,ndays)/monmean(SHFAll,2,ndays)*100) ; ...
+sprintf(' 15mSOP = %3.2fPW (%3.0f)',monmean(SHF15mSOP,2,ndays)/1e15,monmean(SHF15mSOP,2,ndays)/monmean(SHFAll,2,ndays)*100) ; ...
+sprintf(' 15mSOA = %3.2fPW (%3.0f)',monmean(SHF15mSOA,2,ndays)/1e15,monmean(SHF15mSOA,2,ndays)/monmean(SHFAll,2,ndays)*100) ; ...
 sprintf(' EA = %3.2fPW (%3.0f)',monmean(SHFEA,2,ndays)/1e15,monmean(SHFEA,2,ndays)/monmean(SHFAll,2,ndays)*100)}
+
 % $$$ 
 % $$$ % Plot regional heat fluxes as a function of season:
 % $$$ figure;
