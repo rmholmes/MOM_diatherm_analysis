@@ -54,8 +54,6 @@ else
     yflux = yfluxT-yflux;
 end
     
-
-
 xflux(xDry)=0;
 yflux(yDry)=0;
 
@@ -220,35 +218,9 @@ divFch(1,2:end) = divFch(1,2:end) + (xfluxD(end,2:end) - xfluxD(1,2:end) ...
                              +yfluxD(1,1:(end-1)) - yfluxD(1,2:end));%./area(1,2:end);        
 divFch(tDry) = NaN;
 
-% extract specific fluxes:
-
-% Drake Passage:
-[tmp xind] = min(abs(xu+70.9));
-[tmp yind] = min(abs(yu+40));
-DPflux = nansum(xfluxD(xind,1:yind))/1e13
-
-% Warm Route:
-[tmp xind] = min(abs(xu-22));
-[tmp yind] = min(abs(yu+30));
-WRflux = nansum(xfluxD(xind,1:yind))/1e13
-
-% Bering Strait:
-[tmp yind] = min(abs(yu-65));
-[tmp xind1] = min(abs(xu+201));
-[tmp xind2] = min(abs(xu+101));
-BSflux = nansum(yfluxD(xind1:xind2,yind))/1e13
-
-% South Atlantic:
-[tmp yind] = min(abs(yu+34));
-[tmp xind1] = min(abs(xu+60));
-[tmp xind2] = min(abs(xu-20));
-SAflux = nansum(yfluxD(xind1:xind2,yind))/1e13
-
-%save('Dfluxes.mat','xfluxD','yfluxD');
-
 % Check plotting:
-xvec = 1:2:xL;
-yvec = 1:2:yL;
+xvec = 1:1:xL;
+yvec = 1:1:yL;
 
 % $$$ % Full heat flux:
 % $$$ figure;
@@ -280,33 +252,111 @@ set(gcf,'defaulttextfontsize',15);
 set(gcf,'defaultaxesfontsize',15);
 %subplot(2,1,2);
 %set(gca,'Position',[0.0916    0.0768    0.7562   0.3956]);
-pcolPlot(lon(xvec,yvec),lat(xvec,yvec),divFch(xvec,yvec)./area(xvec,yvec));
+cpts = [-1e10 -200:25:200 1e10];
+npts = length(cpts);
+contourf(lon(xvec,yvec),lat(xvec,yvec),divFch(xvec,yvec)./ ...
+         area(xvec,yvec),cpts,'linestyle','none');
 hold on;
 minv = min(Pout(:));
 maxv = max(Pout(:));
 n = 40;
-contour(lon,lat,Pout,[-1e50 minv:(maxv-minv)/n:maxv 1e50],'-k');
+contour(lon,lat,Pout,[-1e50 minv:0.1e15:maxv 1e50],'-k');
 xvecV = 1:20:xL;
 yvecV = 1:20:yL;
 quiver(lon(xvecV,yvecV),lat(xvecV,yvecV),xfluxD(xvecV,yvecV),yfluxD(xvecV,yvecV),2);
 caxis([-200 200]);
-title(['Divergent part convergence (Wm$^{-2}$), gradient function ' ...
-       'and divergent vectors ' sprintf('%3.0fC - %3.0fC',TlT,TlB)]);
+% $$$ title(['Divergent part convergence (Wm$^{-2}$), gradient function ' ...
+% $$$        'and divergent vectors ' sprintf('%3.0fC - %3.0fC',TlT,TlB)]);
 set(gca,'color','k');
 xlabel('Longitude ($^\circ$E)');
 ylabel('Latitude ($^\circ$N)');
-colormap('redblue');
+cmap = colormap('redblue');
+cb = colorbar;
+ylabel(cb,'Wm$^{-2}$');
 ylim([-80 80]);
 
-% Add sector values:
-text(-155,65,sprintf('+%3.2fPW',BSflux/100),'Backgroundcolor','w','margin',0.1,'color','m');
-plot([-185 -160],[65 65],'--m','linewidth',2);
-text(-70,-75,sprintf('+%3.2fPW',DPflux/100),'Backgroundcolor','w','margin',0.1,'color','m');
-plot([-70.9 -70.9],[-75 -45],'--m','linewidth',2);
-text(22.5,-45,sprintf('+%3.2fPW',WRflux/100),'Backgroundcolor','w','margin',0.1,'color','m');
-plot([22 22],[-75 -30],'--m','linewidth',2);
-text(-25,-30,sprintf('+%3.2fPW',SAflux/100),'Backgroundcolor','w','margin',0.1,'color','m');
-plot([-60 20],[-34 -34],'--m','linewidth',2);
+%%% Add sector values:
+bcol = 0.8*[1 1 1];
+lcol = 0.4*[1 1 1];%[0 0.5 0];
+tcol = [0 0 0];
+% Bering Strait:
+lt = 66;ln1=-185;ln2=-160;
+[tmp yind] = min(abs(yu-lt));[tmp xind1] = min(abs(xu-ln1));[tmp xind2] = min(abs(xu-ln2));
+BSflux = nansum(yfluxD(xind1:xind2,yind))/1e13
+text(-155,65,sprintf('+%3.2fPW',BSflux/100),'Backgroundcolor',bcol,'margin',0.01,'color',tcol);
+plot([ln1 ln2],[lt lt],'--','color',lcol,'linewidth',2);
+% Drake Passage:
+ln = -70; lt1=-90;lt2=-50;
+[tmp xind] = min(abs(xu-ln));[tmp yind] = min(abs(yu-lt2));
+DPflux = nansum(xfluxD(xind,1:yind))/1e13
+text(-69,-75,sprintf('+%3.2fPW',DPflux/100),'Backgroundcolor',bcol,'margin',0.01,'color',tcol);
+plot([ln ln],[-75 lt2],'--','color',lcol,'linewidth',2);
+% South Atlantic:
+lt = -30; ln1 = -60; ln2=+20;
+[tmp yind] = min(abs(yu-lt));[tmp xind1] = min(abs(xu-ln1));[tmp xind2] = min(abs(xu-ln2));
+SAflux = nansum(yfluxD(xind1:xind2,yind))/1e13
+text(-25,-25,sprintf('+%3.2fPW',SAflux/100),'Backgroundcolor',bcol,'margin',0.01,'color',tcol);
+plot([ln1 ln2],[lt lt],'--','color',lcol,'linewidth',2);
+% Warm Route:
+ln = 22; lt1=-90; lt2=-30;
+[tmp xind] = min(abs(xu-ln));[tmp yind] = min(abs(yu-lt2));
+WRflux = nansum(xfluxD(xind,1:yind))/1e13
+text(23,-55,sprintf('+%3.2fPW',WRflux/100),'Backgroundcolor',bcol,'margin',0.01,'color',tcol);
+plot([ln ln],[-75 lt2],'--','color',lcol,'linewidth',2);
+% 30N Pacific:
+lt = 30; ln1 = -240; ln2=-108;
+[tmp yind] = min(abs(yu-lt));[tmp xind1] = min(abs(xu-ln1));[tmp xind2] = min(abs(xu-ln2));
+P30flux = nansum(yfluxD(xind1:xind2,yind))/1e13
+text(-170,35,sprintf('+%3.2fPW',P30flux/100),'Backgroundcolor',bcol,'margin',0.01,'color',tcol);
+plot([ln1 ln2],[lt lt],'--','color',lcol,'linewidth',2);
+% 30N Atlantic:
+lt = 30; ln1 = -82.5; ln2=-5;
+[tmp yind] = min(abs(yu-lt));[tmp xind1] = min(abs(xu-ln1));[tmp xind2] = min(abs(xu-ln2));
+A30flux = nansum(yfluxD(xind1:xind2,yind))/1e13
+text(-40,35,sprintf('+%3.2fPW',A30flux/100),'Backgroundcolor',bcol,'margin',0.01,'color',tcol);
+plot([ln1 ln2],[lt lt],'--','color',lcol,'linewidth',2);
+% 30S Pacific:
+lt = -30; ln1 = -215; ln2=-70;
+[tmp yind] = min(abs(yu-lt));[tmp xind1] = min(abs(xu-ln1));[tmp xind2] = min(abs(xu-ln2));
+Pm30flux = nansum(yfluxD(xind1:xind2,yind))/1e13
+text(-170,-25,sprintf('-%3.2fPW',-Pm30flux/100),'Backgroundcolor',bcol,'margin',0.01,'color',tcol);
+plot([ln1 ln2],[lt lt],'--','color',lcol,'linewidth',2);
+% 30S Indian:
+lt = -30; ln1 = 25; ln2=80;
+[tmp yind] = min(abs(yu-lt));[tmp xind1] = min(abs(xu-ln1));[tmp xind2] = min(abs(xu-ln2));
+Im30fluxP = nansum(yfluxD(xind1:xind2,yind))/1e13;
+plot([ln1 ln2],[lt lt],'--','color',lcol,'linewidth',2);
+lt = -30; ln1 = -280; ln2=-240;
+[tmp yind] = min(abs(yu-lt));[tmp xind1] = min(abs(xu-ln1));[tmp xind2] = min(abs(xu-ln2));
+Im30fluxM = nansum(yfluxD(xind1:xind2,yind))/1e13;
+Im30flux = Im30fluxP+Im30fluxM;
+plot([ln1 ln2],[lt lt],'--','color',lcol,'linewidth',2);
+text(50,-25,sprintf('-%3.2fPW',-Im30flux/100),'Backgroundcolor',bcol,'margin',0.01,'color',tcol);
+% Aus South:
+ln = -220; lt1=-90; lt2=-35;
+[tmp xind] = min(abs(xu-ln));[tmp yind] = min(abs(yu-lt2));
+ASflux = nansum(xfluxD(xind,1:yind))/1e13
+text(-219,-55,sprintf('-%3.2fPW',-ASflux/100),'Backgroundcolor',bcol,'margin',0.01,'color',tcol);
+plot([ln ln],[-75 lt2],'--','color',lcol,'linewidth',2);
+% ITF:
+% ITF segments:
+% 114.9E:
+ln = -245.1; lt1 = -23; lt2 = -8.25;
+[~, t1] = min(abs(xu-ln));[~, t2] = min(abs(yu-lt1));[~, t3] = min(abs(yu-lt2));
+ITFflux = nansum(xfluxD(t1,t2:t3))/1e13
+plot([ln ln],[lt1 lt2],'--','color',lcol,'linewidth',2);
+% 256.9E:
+ln = -256.9; lt1 = -0.875; lt2 = 4.121;
+[~, t1] = min(abs(xu-ln));[~, t2] = min(abs(yu-lt1));[~, t3] = min(abs(yu-lt2));
+ITFflux = ITFflux+nansum(xfluxD(t1,t2:t3))/1e13
+plot([ln ln],[lt1 lt2],'-','color',lcol,'linewidth',2);
+% 254.25E:
+ln = -254.25; lt1 = -6.362; lt2 = -4.371;
+[~, t1] = min(abs(xu-ln));[~, t2] = min(abs(yu-lt1));[~, t3] = min(abs(yu-lt2));
+ITFflux = ITFflux+nansum(xfluxD(t1,t2:t3))/1e13
+plot([ln ln],[lt1 lt2],'-','color',lcol,'linewidth',2);
+text(-244,-15,sprintf('-%3.2fPW',-ITFflux/100),'Backgroundcolor',bcol,'margin',0.01,'color',tcol);
+
 
 % Rotational and divergent parts:
 xvec = 1:2:xL;
