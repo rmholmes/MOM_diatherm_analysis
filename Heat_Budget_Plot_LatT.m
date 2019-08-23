@@ -186,63 +186,38 @@ dAI_mR_dphi = diff(cat(1,zeros(1,TL+1),ZA_SP.AI-ZA_SP.AHDR),[],1); % convergence
 ZA_SP.Jdia = -ZA_SP.N-dAI_mR_dphi; % total diathermal transport
 ZA_SP.I = -(ZA_SP.Jdia+ZA_SP.M+ZA_SP.KPPNL+ZA_SP.F+ZA_SP.PI+ZA_SP.RED+ZA_SP.K33+ZA_SP.MDS+ZA_SP.SIG); % numerical mixing (both advective and submesoscale)
 
-% Residual check:
-% $$$ RES = diff(ZA_G.Fall,[],2)+diff(ZA_G.Mall,[],2)-diff(cat(1,zeros(1,TL),diff(ZA_G.AI,[],2)),[],1);
-% $$$ Ncon = diff(ZA_G.N,[],2);
-% $$$ max(max(abs(RES-Ncon)))/max(max(abs(Ncon)))
-% $$$ 
-% $$$ RES = diff(ZA_P.Fall,[],2)+diff(ZA_P.Mall,[],2)-diff(cat(1,zeros(1,TL),diff(ZA_P.AI,[],2)),[],1);
-% $$$ Ncon = diff(ZA_P.N,[],2);
-% $$$ max(max(abs(RES-Ncon)))/max(max(abs(Ncon)))
-% $$$ 
-% $$$ RES = diff(ZA_A.Fall,[],2)+diff(ZA_A.Mall,[],2)-diff(cat(1,zeros(1,TL),diff(ZA_A.AI,[],2)),[],1);
-% $$$ Ncon = diff(ZA_A.N,[],2);
-% $$$ max(max(abs(RES-Ncon)))/max(max(abs(Ncon)))
-
 groups = {'G','P','A','SA','SP'};
 for gi=1:length(groups)
-    AIF = 0*ZA_G.F; % Heat lost max SST line from AI
+    eval(['ZA_' groups{gi} '.AIF = 0*ZA_G.F;']); % Heat lost max SST line from AI
 
-% $$$     % Fix above max SST to calculate budgets between theta or max SST
-% $$$     % and -2C:
-% $$$     for yi=1:yL
-% $$$         %PI:
-% $$$         eval(['ZA_' groups{gi} '.PI(yi,ZA_' groups{gi} '.maxTit(yi):end) ' ...
-% $$$               '= ZA_' groups{gi} '.PI(yi,ZA_' groups{gi} '.maxTit(yi));']);
-% $$$         %tendency:
-% $$$         eval(['ZA_' groups{gi} '.N(yi,ZA_' groups{gi} '.maxTit(yi):end) ' ...
-% $$$               '= ZA_' groups{gi} '.N(yi,ZA_' groups{gi} '.maxTit(yi));']);
-% $$$         %Num-mix:
-% $$$         eval(['ZA_' groups{gi} '.I(yi,ZA_' groups{gi} '.maxTit(yi):end) ' ...
-% $$$               '= ZA_' groups{gi} '.I(yi,ZA_' groups{gi} '.maxTit(yi));']);
-% $$$         %AI:
-% $$$         eval(['ZA_' groups{gi} '.AI(yi,ZA_' groups{gi} '.maxTiu(yi):end) ' ...
-% $$$               '= ZA_' groups{gi} '.AI(yi,ZA_' groups{gi} '.maxTiu(yi));']);
-% $$$     end
-% $$$     for yi=1:yL-1
-% $$$         % AI:
-% $$$         eval(['indu = ZA_' groups{gi} '.maxTiu(yi);']);
-% $$$         eval(['indtm = ZA_' groups{gi} '.maxTit(yi);']);
-% $$$         eval(['indtp = ZA_' groups{gi} '.maxTit(yi+1);']);
-% $$$         if indtm<indu 
-% $$$             eval(['AIF(yi,indtm+1:end) = AIF(yi,indtm+1:end) + ' ...
-% $$$                   '(ZA_' groups{gi} '.AI(yi,indu) - ZA_' groups{gi} '.AI(yi,indtm));']);
-% $$$         end
-% $$$         if (indtp>indu)
-% $$$             eval(['AIF(yi,indu+1:end) = AIF(yi,indu+1:end) + ' ...
-% $$$                   '(ZA_' groups{gi} '.AI(yi,indtp) - ZA_' groups{gi} '.AI(yi,indu));']);
-% $$$         end
-% $$$         if (indtm>indu)
-% $$$             eval(['AIF(yi+1,indu+1:end) = AIF(yi+1,indu+1:end) - ' ...
-% $$$                   '(ZA_' groups{gi} '.AI(yi,indtm) - ZA_' groups{gi} '.AI(yi,indu));']);
-% $$$         end
-% $$$         if (indtp<indu)
-% $$$             eval(['AIF(yi+1,indtp+1:end) = AIF(yi+1,indtp+1:end) - ' ...
-% $$$                   '(ZA_' groups{gi} '.AI(yi,indu) - ZA_' groups{gi} '.AI(yi,indtp));']);
-% $$$         end
-% $$$     end
+    % Fix above max SST to calculate budgets between theta or max SST
+    % and -2C:
+    for yi=1:yL
+        %PI:
+        eval(['ZA_' groups{gi} '.PI(yi,ZA_' groups{gi} '.maxTit(yi):end) ' ...
+              '= ZA_' groups{gi} '.PI(yi,ZA_' groups{gi} '.maxTit(yi));']);
+        %tendency:
+        eval(['ZA_' groups{gi} '.N(yi,ZA_' groups{gi} '.maxTit(yi):end) ' ...
+              '= ZA_' groups{gi} '.N(yi,ZA_' groups{gi} '.maxTit(yi));']);
+        %Num-mix:
+        eval(['ZA_' groups{gi} '.I(yi,ZA_' groups{gi} '.maxTit(yi):end) ' ...
+              '= ZA_' groups{gi} '.I(yi,ZA_' groups{gi} '.maxTit(yi));']);
+        %AI:
+        eval(['ZA_' groups{gi} '.AI(yi,ZA_' groups{gi} '.maxTiu(yi):end) ' ...
+              '= ZA_' groups{gi} '.AI(yi,ZA_' groups{gi} '.maxTiu(yi));']);
+    end
     
-    eval(['ZA_' groups{gi} '.AIF = AIF;']);
+    % Correct surface forcing by residual:
+    eval(['ZA_' groups{gi} '.AIF = diff(cat(1,zeros(1,TL+1),ZA_' groups{gi} '.AI-ZA_' ...
+          groups{gi} '.AHDR),[],1)-ZA_' groups{gi} '.PI-ZA_' groups{gi} '.F-ZA_' ...
+          groups{gi} '.M-ZA_' groups{gi} '.I-ZA_' groups{gi} '.KPPNL+ZA_' groups{gi} '.N;']);
+
+    % Fix Atlantic Bering Strait part:
+    if (strcmp(groups{gi},'A'))
+        ind = find(~isnan(ZA_P.AI(:,end)),1,'last'); % 66N indicy (u-points)
+        eval(['ZA_' groups{gi} '.AIF(ind,:) = ZA_' groups{gi} '.AIF(ind,:)-ZA_P.AI(ind-1,:);']);
+    end
+    
     eval(['ZA_' groups{gi} '.Fall = ZA_' groups{gi} '.F + ZA_' groups{gi} '.PI+ZA_' groups{gi} '.AIF;']);
     eval(['ZA_' groups{gi} '.Mall = ZA_' groups{gi} '.M + ZA_' groups{gi} '.KPPNL+ZA_' groups{gi} '.I;']);
 end
@@ -374,7 +349,8 @@ for i=1:1
     disp(sprintf('Transport 32S   (into layer) Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f, WR = %5.2f',AP34Sb(indU)-AP34Sb(indL),AA34Sb(indU)-AA34Sb(indL),A34Sb(indU)-A34Sb(indL)))
     disp(sprintf('Transport 45S   (into layer) SO = %5.2f',A45Sb(indU)-A45Sb(indL)))
     disp(sprintf('Tendency        (into layer) Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f, WR = %5.2f',NPb(indU)-NPb(indL),NAb(indU)-NAb(indL),NSOb(indU)-NSOb(indL),NWRb(indU)-NWRb(indL)))
-    disp(sprintf('Transport BS    (into layer)          = %5.2f',ABSb(indU)-ABSb(indL)))
+    disp(sprintf('Transport BS    (into layer)          = %5.2f',ABSPb(indU)-ABSPb(indL)))
+    disp(sprintf('Residuals                    Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f',RESP(indU)-RESP(indL),RESA(indU)-RESA(indL),RESS(indU)-RESS(indL)))
 end
 
 %% Plot latitude - temperature plane for different basins:
