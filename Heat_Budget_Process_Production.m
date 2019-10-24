@@ -1,19 +1,19 @@
 % This script processes the heat budget and associated variables in
 % MOM025 or MOM01 simulations and save's into .mat files
 
-baseL = '/short/e14/rmh561/mom/archive/';
-% $$$ baseL = '/g/data/e14/rmh561/mom/';
+% $$$ baseL = '/short/e14/rmh561/mom/archive/';
+baseL = '/g/data/e14/rmh561/access-om2/archive/';
 % $$$ baseL = '/short/e14/rmh561/access-om2/archive/';
 % $$$ baseL = '/srv/ccrc/data03/z3500785/';
 
 % MOM-SIS025:
-model = 'MOM025_kb3seg';
-baseD = [baseL 'MOM_HeatDiag_kb3seg/']; %Data Directory.
-ICdir = [baseL 'MOM_HeatDiag_kb3seg/restart100/'];
+% $$$ model = 'MOM025_kb3seg';
+% $$$ baseD = [baseL 'MOM_HeatDiag_kb3seg/']; %Data Directory.
+% $$$ ICdir = [baseL 'MOM_HeatDiag_kb3seg/restart100/'];
 % $$$ % ACCESS-OM2:
-% $$$ model = 'ACCESS-OM2_1deg_jra55_ryf8485_kds50_july';
-% $$$ baseD = [baseL '1deg_jra55_ryf8485_kds50_july/']; %Data Directory.
-% $$$ ICdir = '/g/data1/ua8/MOM/initial_conditions/WOA/10_KDS50/';
+model = 'ACCESS-OM2_025deg_jra55_iaf';
+baseD = [baseL '025deg_jra55_iaf_Maurice/']; %Data Directory.
+ICdir = [baseL '025deg_jra55_iaf_Maurice/'];
 % $$$ % MOM-SIS01:
 % $$$ model = 'MOM01';
 % $$$ baseD = [baseL 'MOM01_HeatDiag/']; %Data Directory.
@@ -21,16 +21,16 @@ ICdir = [baseL 'MOM_HeatDiag_kb3seg/restart100/'];
 outD = [baseD 'mat_data/'];
 rstbaseD = baseD;
 
-% $$$ post = 'ocean/'; % For ACCESS-OM2 output coulpled;
-post = ''; % For MOM-SIS.
+post = 'ocean/'; % For ACCESS-OM2 output coulpled;
+% $$$ post = ''; % For MOM-SIS.
 
 % term options:
-haveRedi = 0; % 1 = Redi diffusion is on, 0 = off
-haveGM = 0; % 1 = GM is on, 0 = off;
+haveRedi = 1; % 1 = Redi diffusion is on, 0 = off
+haveGM = 1; % 1 = GM is on, 0 = off;
 haveSUB = 1; % 1 = submeso is on, 0 = off;
 haveMDS = 0; % 1 = MDS is on, 0 = off;
 haveSIG = 0; % 1 = SIG is on, 0 = off;
-haveMIX = 1; % 1 = Do mixing components (vdiffuse_diff_cbt_*), 0 = don't. 
+haveMIX = 0; % 1 = Do mixing components (vdiffuse_diff_cbt_*), 0 = don't. 
 
 % Processing options:
 doBASE     = 0; % 1 = save BaseVars.mat file
@@ -45,6 +45,7 @@ doSGMviac  = 0; % 1 = calculate SUB/GM influence via binned
 
 doGWB      = 0; % 1 = calculate global online budget terms
 doXY       = 0; % 1 = calculate spatial fluxes-on-an-isotherm
+doWMT      = 1; % 1 = calculate WMT volume fluxes spatial structure
 doSURF     = 0; % 1 = calculate surface flux field and SST
 doZA       = 0; % 1 = calculate zonal average budget
 
@@ -52,7 +53,7 @@ doHND      = 0; % 1 = calculate global online numdif
 doTENMON   = 0; % 1 = do monthly eulerian tendency binning
 doMONANN   = 0; % 1 = calculate monthly and annually binned eulerian global budget
 doXYall    = 0; % 1 = do all XY calcs (most not used)
-doXYtran   = 1; % 1 = calculate vertically-integrated heat
+doXYtran   = 0; % 1 = calculate vertically-integrated heat
                 % transports below given isotherm/s.
 
 % scaling constant on the transports:
@@ -810,51 +811,55 @@ end
 
 end
 
-% $$$ %% Calculate WMT due to different (resolved) terms %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% $$$ Tls = [0:2.5:27.5]-0.25;
-% $$$ 
-% $$$ for ii = 1:length(Tls)
-% $$$     Tl = Tls(ii);
-% $$$ 
-% $$$     WMTM = NaN*zeros(xL,yL,tL); % vdiffuse and nonlocal_KPP
-% $$$     WMTF = NaN*zeros(xL,yL,tL); % surface forcing
-% $$$     WMTI = NaN*zeros(xL,yL,tL); % numerical
-% $$$     WMTP = NaN*zeros(xL,yL,tL); % P-E+R
-% $$$     WMTSP = NaN*zeros(xL,yL,tL); % solar penetration
-% $$$     if (haveRedi)
-% $$$         WMTK = NaN*zeros(xL,yL,tL); % K33
-% $$$         WMTR = NaN*zeros(xL,yL,tL); % Redi
-% $$$     end
-% $$$     T = ncread(wname,'neutral');
-% $$$     Te = ncread(wname,'neutralrho_edges');
-% $$$     [tmp Ti] = min(abs(T-Tl));
-% $$$     
-% $$$     for ti=1:tL
-% $$$         sprintf('Calculating WMT time %03d of %03d, temp %03d of %03d',ti,tL,ii,length(Tls))
-% $$$         WMTP(:,:,ti) = 1/rho0/Cp/dT*(ncread(wname,'sfc_hflux_pme_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
-% $$$                                       ncread(wname,'temp_rivermix_on_nrho',[1 1 Ti ti],[xL yL 1 1]));
-% $$$         WMTM(:,:,ti) = 1/rho0/Cp/dT*(ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
-% $$$                                       ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 Ti ti],[xL yL 1 1]));
-% $$$         WMTF(:,:,ti) = 1/rho0/Cp/dT*(ncread(wname,'temp_vdiffuse_sbc_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
-% $$$                                       ncread(wname,'sw_heat_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
-% $$$                                       ncread(wname,'frazil_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
-% $$$                                       ncread(wname,'temp_eta_smooth_on_nrho',[1 1 Ti ti],[xL yL 1 1]));
-% $$$         WMTSP(:,:,ti) = 1/rho0/Cp/dT*(ncread(wname,'sw_heat_on_nrho',[1 1 Ti ti],[xL yL 1 1]));
-% $$$ % $$$         WMTI(:,:,ti) = 1/rho0/Cp/dT*(ncread(wname,'temp_numdiff_heat_on_nrho',[1 1 Ti ti],[xL yL 1 1]));
-% $$$         if (haveRedi)
-% $$$             WMTK(:,:,ti) = 1/rho0/Cp/dT*(ncread(wname,'temp_vdiffuse_k33_on_nrho',[1 1 Ti ti],[xL yL 1 1]));
-% $$$             WMTR(:,:,ti) = 1/rho0/Cp/dT*(ncread(wname,'neutral_diffusion_on_nrho_temp',[1 1 Ti ti],[xL yL 1 1]));
-% $$$         end
-% $$$         if (haveMDS)
-% $$$             WMTM(:,:,ti) = WMTM(:,:,ti) + 1/rho0/Cp/dT* ...
-% $$$                 ncread(wname,'mixdownslope_temp_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
-% $$$         end
-% $$$     end
-% $$$     save([outD model sprintf('_output%03d',output) '_WMT_T' strrep(num2str(Tl),'.','p') 'C.mat'],'WMTM','WMTSP','WMTP','WMTF','WMTI','Tl','-v7.3');
-% $$$     if (haveRedi)
-% $$$         save([outD model sprintf('_output%03d',output) '_WMT_T' strrep(num2str(Tl),'.','p') 'C.mat'],'WMTK','WMTR','-append');
-% $$$     end
-% $$$ end
+%% Calculate WMT due to different (resolved) terms %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+if (doWMT)
+Tls = [0:2.5:27.5]-0.25;
+
+for ii = 1:length(Tls)
+    Tl = Tls(ii);
+
+    WMTM = NaN*zeros(xL,yL,tL); % vdiffuse and nonlocal_KPP
+    WMTF = NaN*zeros(xL,yL,tL); % surface forcing
+    WMTI = NaN*zeros(xL,yL,tL); % numerical
+    WMTP = NaN*zeros(xL,yL,tL); % P-E+R
+    WMTSP = NaN*zeros(xL,yL,tL); % solar penetration
+    if (haveRedi)
+        WMTK = NaN*zeros(xL,yL,tL); % K33
+        WMTR = NaN*zeros(xL,yL,tL); % Redi
+    end
+    T = ncread(wname,'neutral');
+    Te = ncread(wname,'neutralrho_edges');
+    [tmp Ti] = min(abs(T-Tl));
+    
+    for ti=1:tL
+        sprintf('Calculating WMT time %03d of %03d, temp %03d of %03d',ti,tL,ii,length(Tls))
+        WMTP(:,:,ti) = 1/rho0/Cp/dT*(ncread(wname,'sfc_hflux_pme_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
+                                      ncread(wname,'temp_rivermix_on_nrho',[1 1 Ti ti],[xL yL 1 1]));
+        WMTM(:,:,ti) = 1/rho0/Cp/dT*(ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
+                                      ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 Ti ti],[xL yL 1 1]));
+        WMTF(:,:,ti) = 1/rho0/Cp/dT*(ncread(wname,'temp_vdiffuse_sbc_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
+                                      ncread(wname,'sw_heat_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
+                                      ncread(wname,'frazil_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
+                                      ncread(wname,'temp_eta_smooth_on_nrho',[1 1 Ti ti],[xL yL 1 1]));
+        WMTSP(:,:,ti) = 1/rho0/Cp/dT*(ncread(wname,'sw_heat_on_nrho',[1 1 Ti ti],[xL yL 1 1]));
+        WMTI(:,:,ti) = 1/rho0/Cp/dT*(ncread(wname,'temp_numdiff_heat_on_nrho',[1 1 Ti ti],[xL yL 1 1])-...
+                                     ncread(wname,'temp_numdiff_heat_on_nrho',[1 1 Ti+1 ti],[xL yL 1 1]));
+        if (haveRedi)
+            WMTK(:,:,ti) = 1/rho0/Cp/dT*(ncread(wname,'temp_vdiffuse_k33_on_nrho',[1 1 Ti ti],[xL yL 1 1]));
+            WMTR(:,:,ti) = 1/rho0/Cp/dT*(ncread(wname,'neutral_diffusion_on_nrho_temp',[1 1 Ti ti],[xL yL 1 1]));
+        end
+        if (haveMDS)
+            WMTM(:,:,ti) = WMTM(:,:,ti) + 1/rho0/Cp/dT* ...
+                ncread(wname,'mixdownslope_temp_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+        end
+    end
+    save([outD model sprintf('_output%03d',output) '_WMT_T' strrep(num2str(Tl),'.','p') 'C.mat'],'WMTM','WMTSP','WMTP','WMTF','WMTI','Tl','-v7.3');
+    if (haveRedi)
+        save([outD model sprintf('_output%03d',output) '_WMT_T' strrep(num2str(Tl),'.','p') 'C.mat'],'WMTK','WMTR','-append');
+    end
+end
+
+end
 % $$$ 
 % $$$ 
 % $$$ %% Save isotherm depths -------------------------------------------------------------------------------------
