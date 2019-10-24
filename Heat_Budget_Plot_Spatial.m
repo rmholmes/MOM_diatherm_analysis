@@ -14,8 +14,9 @@ RUNS = { ...
 % $$$     {'MOM025',[8:12]}, ...
 % $$$     {'MOM025',[15:19]}, ...
 % $$$ % $$$     {'MOM025_kb1em6',[30]}, ...
-% $$$     {'MOM025_kb3seg',[101:110]}, ...
-    {'MOM025_kb3seg',[101:110]}, ...
+   {'MOM025_kb3seg',[101:110]}, ...
+% $$$     {'MOM025_kb3seg',[101110]}, ...
+% $$$     {'MOM025_RCP45',[0:39]}, ...
 % $$$     {'MOM025_kb3seg',[95]}, ...
 % $$$     {'MOM025_kb3seg_nosubmeso',[91:95]}, ...
 % $$$     {'MOM025_kb3seg',[86]}, ...
@@ -23,6 +24,7 @@ RUNS = { ...
 % $$$     {'MOM025_btide',[21]}, ...
 % $$$     {'MOM025_wombat',[1978]}, ...
 % ACCESS-OM2 025-degree:
+% $$$     {'ACCESS-OM2_025deg_jra55_iaf',[39]}, ...
 % $$$     {'ACCESS-OM2_025deg_jra55_ryf8485_gmredi6',[148]}, ...
 % $$$     {'ACCESS-OM2_025deg_jra55_ryf8485_redi',[59]}, ...
 % $$$     {'ACCESS-OM2_025deg_jra55_ryf8485_gmredi',[73]}, ...
@@ -44,7 +46,7 @@ rr = 1;
     outputs = RUNS{rr}{2};
     model = RUNS{rr}{1};
 
-    clearvars -except base RUNS rr outputs model;
+% $$$     clearvars -except base RUNS rr outputs model;
     
     load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
     if (~exist('ndays'))
@@ -61,11 +63,14 @@ rr = 1;
 
 
     %%% Spatial Structure:
-    VAR = 'FlM';
+    VAR = 'FlI';
     TYPE = 'VertInt';
 % $$$     VAR = 'EKE';
 % $$$     TYPE = 'variances';
-    Tl = 15;
+    Tl = 20;
+% $$$     VAR = 'WMTM';
+% $$$     TYPE = 'WMT';
+% $$$     Tl = 19.75;
     name = [base model sprintf('_output%03d',outputs(1)) '_' TYPE '_T' strrep(num2str(Tl),'.','p') 'C.mat']
     eval(['load(name,''' VAR ''');']);
     eval([VAR '(isnan(' VAR ')) = 0.0;']);
@@ -324,8 +329,8 @@ rr = 1;
     end
 
     [xL,yL] = size(lon);
-    xvec = 1:1:xL;
-    yvec = 1:1:yL;
+    xvec = 1:2:xL;
+    yvec = 1:2:yL;
 % $$$     xvec = 720:1:1320; %-100 -> +50
 % $$$     yvec = 540:1:940; % +15 -> +75
 % $$$     xvec = 880:1:1280; %-60 -> +40
@@ -352,9 +357,13 @@ rr = 1;
     sp = 1;
     clim = [-60 0];
 % $$$     sp = 1;
+% $$$     clim = [-60 0];
+% $$$     sp = 1;
 % $$$     clim = [-30 30];
+% $$$     sp = 0.5e-6;
+% $$$     clim = [-1e-5 1e-5];
 
-    cCH = 1; % 0 = symmetric redblue
+    cCH = 2; % 0 = symmetric redblue
              % 1 = negative definite parula
              % 2 = negative parula with +ve's possible
     if (cCH==0)
@@ -436,7 +445,11 @@ poss = [0.1300    0.4553    0.7693    0.4697; ...
     caxis(climn);
 % $$$     if (i==1)
         cb = colorbar;
-        ylabel(cb,'Wm$^{-2}$');
+        if (strcmp(TYPE,'VertInt'))
+            ylabel(cb,'Wm$^{-2}$');
+        else
+            ylabel(cb,'ms$^{-1}$');
+        end
         ylim(cb,clim);
 % $$$     end
     hold on;
@@ -657,6 +670,56 @@ for i=2:length(outputs)
 end
 shflux = shfluxa/length(outputs);
 SST = SSTa/length(outputs);
+
+% diff two runs:
+SSTsave = monmean(SST,3,ndays);
+shfluxsave = monmean(shflux,3,ndays);
+% $$$ SST = monmean(SST,3,ndays)-SSTsave;
+% $$$ shflux = monmean(shflux,3,ndays)-shfluxsave;
+SST = SST-SSTsave;
+shflux = shflux-shfluxsave;
+
+% Diff flux components:
+ffname = '/srv/ccrc/data03/z3500785/mom/ice_month.ncra0.39.diff.nc';
+LH = -ncread(ffname,'LH');
+SH = -ncread(ffname,'SH');
+LW = ncread(ffname,'LW');
+SW = -ncread(ffname,'SW');
+xvec = 1:2:xL;
+yvec = 1:2:yL;
+subplot(2,2,1);
+contourf(lon(xvec,yvec),lat(xvec,yvec),LH(xvec,yvec),[-200 -20:1:20 200],'linestyle','none');
+xlabel('Longitude ($^\circ$E)');
+ylabel('Latitude ($^\circ$N)');
+colorbar;
+caxis([-20 20]);
+title('Latent Heat Flux Anomaly (Wm$^{-2}$)');
+set(gca,'color','k');
+subplot(2,2,2);
+contourf(lon(xvec,yvec),lat(xvec,yvec),SH(xvec,yvec),[-200 -20:1:20 200],'linestyle','none');
+xlabel('Longitude ($^\circ$E)');
+ylabel('Latitude ($^\circ$N)');
+colorbar;
+caxis([-20 20]);
+title('Sensible Heat Flux Anomaly (Wm$^{-2}$)');
+set(gca,'color','k');
+subplot(2,2,3);
+contourf(lon(xvec,yvec),lat(xvec,yvec),LW(xvec,yvec),[-200 -20:1:20 200],'linestyle','none');
+xlabel('Longitude ($^\circ$E)');
+ylabel('Latitude ($^\circ$N)');
+colorbar;
+caxis([-20 20]);
+title('Long-wave Heat Flux Anomaly (Wm$^{-2}$)');
+set(gca,'color','k');
+subplot(2,2,4);
+contourf(lon(xvec,yvec),lat(xvec,yvec),LW(xvec,yvec)+LH(xvec,yvec)+SH(xvec,yvec),[-200 -20:1:20 200],'linestyle','none');
+xlabel('Longitude ($^\circ$E)');
+ylabel('Latitude ($^\circ$N)');
+colorbar;
+caxis([-20 20]);
+title('Sum (Wm$^{-2}$)');
+set(gca,'color','k');
+colormap(redblue)
 
 %If MOM01, fix NaN's in grid:
 if (strfind(model,'01'))
@@ -1029,9 +1092,17 @@ Eqinds = abs(lat)<=LATsplit;
 Ninds = lat>LATsplit;
 Sinds = lat<-LATsplit;
 
+%
+[mask_t,~] = Heat_Budget_Mask('IndoPacific2BAS','','',base,'MOM025_kb3seg');
+
 N50inds = lat>=50;
-reg = [-270 -110 50 90];
-PN50inds = lat > reg(3) & lat < reg(4) & lon > reg(1) & lon < reg(2);
+%reg = [-270 -110 50 90];
+PN50inds = mask_t & N50inds;
+AN50inds = N50inds & ~mask_t;
+
+[mask_t,~] = Heat_Budget_Mask('Atlantic2BAS','','',base,'MOM025_kb3seg');
+AN50inds = N50inds & mask_t;
+Ainds = mask_t==1;
 
 SOAinds = lat < -34 & (lon > -70 & lon < 25);
 SOPinds = lat <-34 & (lon > 25 | lon < -70);
@@ -1046,6 +1117,8 @@ for i=1:12
     SHFEA(i) = nansum(nansum(area(EAinds).*SHFtmp(EAinds),1),2);
     SHFN50(i) = nansum(nansum(area(N50inds).*SHFtmp(N50inds),1),2);
     SHFPN50(i) = nansum(nansum(area(PN50inds).*SHFtmp(PN50inds),1),2);
+    SHFAN50(i) = nansum(nansum(area(AN50inds).*SHFtmp(AN50inds),1),2);
+    SHFA(i) = nansum(nansum(area(Ainds).*SHFtmp(Ainds),1),2);
 
     SHFSOA(i) = nansum(nansum(area(SOAinds).*SHFtmp(SOAinds),1),2);
     SHFSOP(i) = nansum(nansum(area(SOPinds).*SHFtmp(SOPinds),1),2);
@@ -1075,6 +1148,8 @@ for i=1:12
     AREAS(i) = nansum(nansum(Atmp(Sinds)));
     AREAN50(i) = nansum(nansum(Atmp(N50inds)));
     AREAPN50(i) = nansum(nansum(Atmp(PN50inds)));
+    AREAAN50(i) = nansum(nansum(Atmp(AN50inds)));
+    AREAA(i) = nansum(nansum(Atmp(Ainds)));
     AREASOA(i) = nansum(nansum(Atmp(SOAinds)));
     AREASOP(i) = nansum(nansum(Atmp(SOPinds)));
 end
@@ -1088,7 +1163,7 @@ sprintf(' Eq area = %3.2f',monmean(AREAEq,2,ndays)/monmean(AREAtotal,2,ndays)) ;
 sprintf(' EEP area = %3.2f',monmean(AREAEEP,2,ndays)/monmean(AREAtotal,2,ndays)) ; ...
 sprintf(' N50 area = %3.2f',monmean(AREAN50,2,ndays)/monmean(AREAtotal,2,ndays)) ; ...
 sprintf(' PN50 area = %3.2f',monmean(AREAPN50,2,ndays)/monmean(AREAtotal,2,ndays)) ; ...
-sprintf(' PN50 area = %3.2f',monmean(AREAPN50,2,ndays)/monmean(AREAtotal,2,ndays)) ; ...
+sprintf(' AN50 area = %3.2f',monmean(AREAAN50,2,ndays)/monmean(AREAtotal,2,ndays)) ; ...
 sprintf(' EA area = %3.2f',monmean(AREAEA,2,ndays)/monmean(AREAtotal,2,ndays))}
 str = {['Annual totals model ' model]  ; ...
 sprintf(' Total = %3.2f',monmean(SHFAll,2,ndays)/1e15) ; ...
@@ -1098,6 +1173,8 @@ sprintf(' Eq = %3.2fPW (%3.0f)',monmean(SHFEq,2,ndays)/1e15,monmean(SHFEq,2,nday
 sprintf(' EEP = %3.2fPW (%3.0f)',monmean(SHFEEP,2,ndays)/1e15,monmean(SHFEEP,2,ndays)/monmean(SHFAll,2,ndays)*100) ; ...
 sprintf(' N50 = %3.2fPW (%3.0f)',monmean(SHFN50,2,ndays)/1e15,monmean(SHFN50,2,ndays)/monmean(SHFAll,2,ndays)*100) ; ...
 sprintf(' PN50 = %3.2fPW (%3.0f)',monmean(SHFPN50,2,ndays)/1e15,monmean(SHFPN50,2,ndays)/monmean(SHFAll,2,ndays)*100) ; ...
+sprintf(' AN50 = %3.2fPW (%3.0f)',monmean(SHFAN50,2,ndays)/1e15,monmean(SHFAN50,2,ndays)/monmean(SHFAll,2,ndays)*100) ; ...
+sprintf(' A = %3.2fPW (%3.0f)',monmean(SHFA,2,ndays)/1e15,monmean(SHFA,2,ndays)/monmean(SHFAll,2,ndays)*100) ; ...
 sprintf(' SOP = %3.2fPW (%3.0f)',monmean(SHFSOP,2,ndays)/1e15,monmean(SHFSOP,2,ndays)/monmean(SHFAll,2,ndays)*100) ; ...
 sprintf(' SOA = %3.2fPW (%3.0f)',monmean(SHFSOA,2,ndays)/1e15,monmean(SHFSOA,2,ndays)/monmean(SHFAll,2,ndays)*100) ; ...
 sprintf(' 20pSOP = %3.2fPW (%3.0f)',monmean(SHF20pSOP,2,ndays)/1e15,monmean(SHF20pSOP,2,ndays)/monmean(SHFAll,2,ndays)*100) ; ...

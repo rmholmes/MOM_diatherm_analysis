@@ -10,7 +10,7 @@ model = 'MOM025_kb3seg';
 outputs = [101:110];
 onum = 101110;
 
-anavg = zeros(length(outputs)); % Take annual average
+anavg = zeros(length(outputs),1); % Take annual average
 
 % $$$ regions = {'Atlantic2BAS','IndoPacific2BAS','Global'};
 % $$$ regLets = {'A','P','G'};
@@ -66,31 +66,36 @@ for reg = 1:length(regions)
 end
 
 % Also do surface vars for min SST:
-load([base model sprintf('_output%03d_SurfaceVars.mat',outputs(1))],'SST');
+load([base model sprintf('_output%03d_SurfaceVars.mat',outputs(1))]);
 SSTsave = SST;
+shfluxsave = shflux;
 if (anavg(1))
-    load([base model sprintf('_output%03d_BaseVars.mat',outputs(i))]);
+    load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
     if (~exist('ndays'))
         ndays = diff(time_snap);
     end
     SSTsave = monmean(SSTsave,3,ndays);
+    shfluxsave = monmean(shfluxsave,3,ndays);
 end
 
 for i=2:length(outputs)
     i
-    load([base model sprintf('_output%03d_SurfaceVars.mat',outputs(i))],'SST');
+    load([base model sprintf('_output%03d_SurfaceVars.mat',outputs(i))]);
     if (anavg(i))
         load([base model sprintf('_output%03d_BaseVars.mat',outputs(i))]);
         if (~exist('ndays'))
             ndays = diff(time_snap);
         end
         SST = monmean(SST,3,ndays);
+        shflux = monmean(shflux,3,ndays);
     end
 
     SSTsave = SSTsave + SST;
+    shfluxsave = shfluxsave + shflux;
 end
 SST = SSTsave/length(outputs);
-save([base model sprintf('_output%03d_SurfaceVars.mat',onum)],'SST');
+shflux = shfluxsave/length(outputs);
+save([base model sprintf('_output%03d_SurfaceVars.mat',onum)],'SST','shflux');
 
 % Do annual average XYtrans:
 Tls = {'10','12p5','15','20','34'};
