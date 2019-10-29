@@ -63,14 +63,14 @@ rr = 1;
 
 
     %%% Spatial Structure:
-    VAR = 'FlI';
+    VAR = 'FlM';
     TYPE = 'VertInt';
 % $$$     VAR = 'EKE';
 % $$$     TYPE = 'variances';
     Tl = 20;
-% $$$     VAR = 'WMTM';
-% $$$     TYPE = 'WMT';
-% $$$     Tl = 19.75;
+    VAR = 'WMTI';
+    TYPE = 'WMT';
+    Tl = 19.75;
     name = [base model sprintf('_output%03d',outputs(1)) '_' TYPE '_T' strrep(num2str(Tl),'.','p') 'C.mat']
     eval(['load(name,''' VAR ''');']);
     eval([VAR '(isnan(' VAR ')) = 0.0;']);
@@ -354,16 +354,16 @@ rr = 1;
 % $$$     clim = [-125 125];
 % $$$     sp = 2.5;
 % $$$     clim = [-120 0];
-    sp = 1;
-    clim = [-60 0];
+% $$$     sp = 1;
+% $$$     clim = [-60 0];
 % $$$     sp = 1;
 % $$$     clim = [-60 0];
 % $$$     sp = 1;
 % $$$     clim = [-30 30];
-% $$$     sp = 0.5e-6;
-% $$$     clim = [-1e-5 1e-5];
+    sp = 0.5e-6;
+    clim = [-0.5e-5 0.5e-5];
 
-    cCH = 2; % 0 = symmetric redblue
+    cCH = 0; % 0 = symmetric redblue
              % 1 = negative definite parula
              % 2 = negative parula with +ve's possible
     if (cCH==0)
