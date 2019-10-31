@@ -11,6 +11,11 @@ ano = '1SvNAhosing_';
 
 outpost = '_AMOCOFFanom.nc';
 
+% XXX: Plot JFMA (seems to be North Atlantic deep mld seasons in
+% MOM025) MLD and use a criteria (1000m?) to calculate an average
+% dT, dQ and dSSS from Bryams runs in these regions. Then apply
+% this over MOM025?
+
 %%% Interpolated anomaly fields 
 % MOM025 fields:
 fname = [base 'kb3out120_SSTSSS.nc'];
