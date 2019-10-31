@@ -1,16 +1,30 @@
-
-
-% This script makes plots of the heat budget in the MOM
-% simulations.
+% Heat_Budget_Plot_LatT.m
+%
+% R Holmes
+% October 2019
+% 
+% email: ryan.holmes@unsw.edu.au
+%
+% This script makes latitude-temperature plots of the diathermal
+% heat budget from post-processed .mat file data from MOM025
+% Control.
+%
+% This script was used to produce the plots in 
+%
+% Holmes, R.M., Zika, J.D., Ferrari, R., Thompson, A., Newsom, E. and
+% England, M. (2019): Atlantic ocean heat transport enabled by
+% Indo-Pacific heat uptake and mixing, Geophysical Research Letters,
+% accepted. https://dx.doi.org/10.1029/2019GL085160
+% 
 
 close all;
 clear all;
 
-base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
+base = '';
 
 % Load Base Variables:
 model = 'MOM025_kb3seg';
-outputs = [101:110];
+outputs = [101110];
 
 load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
 if (~exist('ndays'))
@@ -19,8 +33,8 @@ end
 % Latitude difference vector for plotting per-degree:
 dy = [yu(2)-yu(1); diff(yu)]; % (First-element is done by hand - but dy is equal to second).
 
-regions = {'Atlantic2BAS','IndoPacific2BAS','Global'};%,'SO_Atlantic','SO_IndoPacific'};
-regLets = {'A','P','G'};%,'SA','SP'};
+regions = {'Atlantic2BAS','IndoPacific2BAS','Global'};
+regLets = {'A','P','G'};
 
 for reg = 1:length(regions)
     region = regions{reg}
@@ -48,7 +62,6 @@ for reg = 1:length(regions)
     
         % Heat Function:
         ZAR.AIadv(:,:,:,i) = ZAR.AHD(:,:,:,i) - rho0*Cp*repmat(Te',[yL 1 tL]).*ZAR.PSI(:,:,:,i); % advective-AI (defined on Te and v-points)
-% $$$     zAIpsi(:,:,:,i) = -rho0*Cp*cumsum(zPSI(:,:,:,i)*dT,2); % Heat Function (defined on Tc, since Psi is on Te, and defined on v-points)
         ZAR.AI(:,:,:,i) = ZAR.AIadv(:,:,:,i)+ZAR.AHDGM(:,:,:,i)+ZAR.AHDSUB(:,:,:,i)+ZAR.AHDR(:,:,:,i); % total internal heat content transport
 
         % NaN lats on zAI for convergence calculation (for sub-regions):
@@ -209,7 +222,7 @@ for gi=1:length(groups)
     eval(['ZA_' groups{gi} '.Mall = ZA_' groups{gi} '.M + ZA_' groups{gi} '.KPPNL+ZA_' groups{gi} '.I;']);
 end
 
-%%%% Summary schematics:
+%%%% Produce number for summary schematic (Fig. 4 Holmes et al. GRL):
 ltminW = -45;
 ltmin = -34;
 ltmax = 90;
@@ -300,7 +313,9 @@ for i=1:1
     disp(sprintf('Residuals                    Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f',RESP(indU)-RESP(indL),RESA(indU)-RESA(indL),RESS(indU)-RESS(indL)))
 end
 
-%% Plot latitude - temperature plane for different basins:
+%% Plot latitude - temperature plane of Psi and AI for different
+%% basins (Fig. 2 panels a-f):
+
 dy = diff(yu);
 dy = [dy(1); dy];
 
@@ -308,14 +323,6 @@ dy = [dy(1); dy];
 fields = { ...
           {'PSI',1/1e6,'$\Psi$',[-30 30],2,'Sv'}, ...
           {'AI',1/1e15,'$\mathcal{A}_I$',[-1.25 1.25],0.05,'PW'}, ...
-};
-
-% Diathermal components nice plot:
-fields = { ...
-          {'Fall',-1./repmat(dy,[1 TL+1])/1e12,'Surface Forcing',[-50 50],5,'TW/$^\circ$latitude'}, ...
-          {'Mall',-1./repmat(dy,[1 TL+1])/1e12,'Mixing',[-50 50],5,'TW/$^\circ$latitude'}, ...
-% $$$           {'N',1./repmat(dy,[1 TL+1])/1e12,'',[-50 50],5,'TW/$^\circ$latitude'}, ...
-% $$$           {'Jdia',1./repmat(dy,[1 TL+1])/1e12,'Total',[-50 50],5,'TW/$^\circ$latitude'}, ...
 };
 
 rego = [3 1 2];
@@ -330,15 +337,9 @@ npts = length(cpts{1});
 clab = [1 1 1 1 1 1];
 
 cmap = redblue(npts-3);
-% $$$ cmap = parula(npts-3);
-% $$$ cmap(end,:) = [0.97 0.97 0.8];
-% $$$ cmap(end-1,:) = (cmap(end-1,:)+cmap(end,:))/2;
 
 AIsp = 0.25;
-% $$$ AIsp = 1;
 latfilt = 1;
-
-% $$$ doZAremap = 0; % remap to depth space
 
 %Fluxes only:
 figure;
@@ -358,13 +359,8 @@ letlabs = {'(a)','(b)','(c)','(d)','(e)','(f)','(g)','(h)','(i)'};
 for i=1:length(fields)
     for r = 1:length(regLets)
         subplot(length(fields),3,3*(i-1)+r);
-        reg = 1;%rego(r);
-% $$$         if (doZAremap)
-% $$$             Yg = repmat(yvec,[1 TL+1]);
-% $$$             Tg = zZTxa;
-% $$$         else
+        reg = rego(r);
         [X,Y] = ndgrid(yt,Te);
-% $$$         end
 
         eval(['VAR = ZA_' regLets{reg} '.' fields{i}{1} '.*fields{i}{2};']);
         VAR(VAR==0) = NaN;
@@ -374,16 +370,8 @@ for i=1:length(fields)
         hold on;
         col = [0 0 0];
 
-% $$$         if (~doZAremap)
-% $$$         plot(yvec,filter_field(meanSST,latfilt,'-t'),':','color',col);
         eval(['plot(yt,filter_field(ZA_' regLets{reg} '.minSST,latfilt,''-t''),'':'',''color'',col);']);
         eval(['plot(yt,filter_field(ZA_' regLets{reg} '.maxTt,latfilt,''-t''),'':k'');']);
-
-% $$$     else
-% $$$         [tt,zz] = ndgrid(yvec,-z);
-% $$$         [c,h] = contour(tt,zz,zTxa,[0:4:34],'-k');
-% $$$         clabel(c,h);
-% $$$     end
 
         if (i>=1)
             eval(['VAR = ZA_' regLets{reg} '.AI/1e15;']);        
@@ -398,12 +386,6 @@ for i=1:length(fields)
                 clabel(c,h);
             end
             
-% $$$             if (i==2 & r == 3)
-% $$$             % 0-contour on Indo-Pacific mixing:
-% $$$             VAR(X>39) = 0.25;
-% $$$             [c,h] = contour(X,Y,VAR,[0 0],'--','color',[0 0.5 0]);
-% $$$             clabel(c,h);
-% $$$             end
         end
         
         ylim([-3 34]);
@@ -411,14 +393,10 @@ for i=1:length(fields)
         if (r > 1)
             plot([66 66],[-3 20],'--k');
         end
-% $$$         plot([-45 -45],[-3 34],'--k');
         caxis(fields{i}{4});
         box on; 
         grid on;
         letno = 3*(i-1)+r;
-% $$$         if (strcmp(fields{i}{1},'Mall'))
-% $$$             letno = letno+3;
-% $$$         end
         if (r == 1)
             xlim([-80 80]);
             text(-79,32.15,[letlabs{letno} ' ' fields{i}{3}]);
@@ -430,11 +408,7 @@ for i=1:length(fields)
             text(-33,32.15,[letlabs{letno} ' ' fields{i}{3}]);
         end
         set(gca,'xtick',[-90:30:90]);
-% $$$         if (i > 1)
             xlabel('Latitude ($^\circ$N)');
-% $$$         else
-% $$$             set(gca,'xticklabel',[]);
-% $$$         end
         if (r == 1)
             ylabel('Temperature $\Theta$ ($^\circ$C)');
         else
@@ -452,7 +426,125 @@ for i=1:length(fields)
 end
 colormap(cmap);
 
-%% Plot global mixing components:
+%% Plot latitude - temperature plane of Surface Forcing and Mixing  for different
+%% basins (Fig. 2 panels g-l):
+
+dy = diff(yu);
+dy = [dy(1); dy];
+
+% Diathermal components nice plot:
+fields = { ...
+          {'Fall',-1./repmat(dy,[1 TL+1])/1e12,'Surface Forcing',[-50 50],5,'TW/$^\circ$latitude'}, ...
+          {'Mall',-1./repmat(dy,[1 TL+1])/1e12,'Mixing',[-50 50],5,'TW/$^\circ$latitude'}, ...
+% $$$           {'N',1./repmat(dy,[1 TL+1])/1e12,'',[-50 50],5,'TW/$^\circ$latitude'}, ...
+};
+
+% Note: uncomment the third line above to plot the heat content
+% tendency field (N) plotting in Supplementary Fig. S1.
+
+rego = [3 1 2];
+names = {'Global','Atlantic','Indo-Pacific'};
+clab = [1 1 1 1 1 1];
+
+cpts = cell(1,length(fields));
+for i=1:length(fields)
+    cpts{i} = [-1e10 fields{i}{4}(1):fields{i}{5}:fields{i}{4}(2) 1e10];
+end
+npts = length(cpts{1});
+clab = [1 1 1 1 1 1];
+
+cmap = redblue(npts-3);
+
+AIsp = 0.25;
+latfilt = 1;
+
+%Fluxes only:
+figure;
+set(gcf,'Position',[2125          11        1680         960]);
+set(gcf,'defaulttextfontsize',15);
+set(gcf,'defaultaxesfontsize',15);
+
+% 2x3:
+poss = [0.11     0.5949    0.25      0.3301; ...
+        0.375    0.5949    0.1875    0.3301; ...
+        0.58     0.5949    0.1719    0.3301; ...
+        0.11     0.2300    0.25      0.3301; ...
+        0.375    0.2300    0.1875    0.3301; ...
+        0.58     0.2300    0.1719    0.3301];
+        
+letlabs = {'(a)','(b)','(c)','(d)','(e)','(f)','(g)','(h)','(i)'};
+for i=1:length(fields)
+    for r = 1:length(regLets)
+        subplot(length(fields),3,3*(i-1)+r);
+        reg = rego(r);
+        [X,Y] = ndgrid(yt,Te);
+
+        eval(['VAR = ZA_' regLets{reg} '.' fields{i}{1} '.*fields{i}{2};']);
+        VAR(VAR==0) = NaN;
+        eval(['VAR(ZA_' regLets{reg} '.NaNst==1) = NaN;']);
+        VAR = filter_field(VAR',latfilt,'-t')';
+        contourf(X,Y,VAR,cpts{i},'linestyle','none');
+        hold on;
+        col = [0 0 0];
+
+        eval(['plot(yt,filter_field(ZA_' regLets{reg} '.minSST,latfilt,''-t''),'':'',''color'',col);']);
+        eval(['plot(yt,filter_field(ZA_' regLets{reg} '.maxTt,latfilt,''-t''),'':k'');']);
+
+        if (i>=1)
+            eval(['VAR = ZA_' regLets{reg} '.AI/1e15;']);        
+            eval(['VAR(ZA_' regLets{reg} '.NaNst==1) = NaN;']);
+            VAR = filter_field(VAR',latfilt,'-t')';
+            [c,h] = contour(X,Y,VAR,[-50:AIsp:-AIsp],'--k');
+            if (clab(i))
+                clabel(c,h);
+            end
+            [c,h] =  contour(X,Y,VAR,[AIsp:AIsp:50],'-k');
+            if (clab(i))
+                clabel(c,h);
+            end
+            
+        end
+        
+        ylim([-3 34]);
+        plot([-34 -34],[-3 34],'--k');
+        if (r > 1)
+            plot([66 66],[-3 20],'--k');
+        end
+        caxis(fields{i}{4});
+        box on; 
+        grid on;
+        letno = 3*(i-1)+r;
+        if (r == 1)
+            xlim([-80 80]);
+            text(-79,32.15,[letlabs{letno} ' ' fields{i}{3}]);
+        elseif (r == 2)
+            xlim([-40 80]);
+            text(-33,32.15,[letlabs{letno} ' ' fields{i}{3}]);
+        else
+            xlim([-40 70]);
+            text(-33,32.15,[letlabs{letno} ' ' fields{i}{3}]);
+        end
+        set(gca,'xtick',[-90:30:90]);
+            xlabel('Latitude ($^\circ$N)');
+        if (r == 1)
+            ylabel('Temperature $\Theta$ ($^\circ$C)');
+        else
+            set(gca,'yticklabel',[]);
+        end
+        if (r == 3)
+            cb = colorbar;
+            ylabel(cb,fields{i}{6});
+        end
+        if (i == 1)
+            title(names{r});
+        end
+        set(gca,'Position',poss(3*(i-1)+r,:));
+    end
+end
+colormap(cmap);
+
+
+%% Plot global mixing components (Supplementary Fig. S2):
 dy = diff(yu);
 dy = [dy(1); dy];
 
@@ -550,25 +642,17 @@ for i=1:length(fields)
 end
 colormap(cmap);
 
-%% Plot MHT:
+%% Plot total meridional heat transport (Fig. 3):
 figure;
 set(gcf,'Position',[1           1        1920         962]);
 colors = {'-k','-b','-r','-m','-c'};
 lfilt = 1;
-% $$$ MHTE = rho0*Cp*ZA_G.psiTu.*ZA_G.maxTu;
-% $$$ MHTI = ZA_G.MHT - avg([0; MHTE]);
 ZA_A.MHT(ZA_A.MHT==0) = NaN;
 ZA_P.MHT(ZA_P.MHT==0) = NaN;
-% $$$ [tmp ind] = min(abs(Te-15));
-% $$$ MHTA15 = ZA_A.AI(:,ind);
-% $$$ MHTA15(MHTA15==0) = NaN;
 plot(yt,filter_field(ZA_A.MHT/1e15,lfilt,'-t'),':r','linewidth',3);
 hold on; 
 plot(yt,filter_field(ZA_P.MHT/1e15,lfilt,'-t'),':b','linewidth',3);
 plot(yt,filter_field(ZA_G.MHT/1e15,lfilt,'-t'),':k','linewidth',3);
-% $$$ plot(yt,filter_field(MHTI/1e15,lfilt,'-t'),'--k','linewidth',2);
-% $$$ plot(yu,filter_field(MHTE/1e15,lfilt,'-t'),':k','linewidth',2);
-% $$$ plot(yu,filter_field(MHTA15/1e15,lfilt,'-t'),'--r','linewidth',2);
 legend({'Atlantic','Indo-Pacific','Global'});%'Global Internal','Global External'});%,'Atlantic Internal $<15^\circ$C'});
 xlabel('Latitude ($^\circ$N)');
 ylabel('PW');
@@ -578,41 +662,41 @@ set(gca,'xtick',[-90:30:90]);
 grid on;
 set(gca,'Position',[0.2196    0.3809    0.4298    0.3662]);
 
-% Add observations:
-obsfile = '../Observations/ANNUAL_TRANSPORTS_1985_1989.ascii.txt';
-data = importdata(obsfile);
-obs_lat = data.data(:,1)/100;
-obs_total_ncep = data.data(:,7)/100;
-obs_atl_ncep = data.data(:,8)/100;
-obs_pac_ncep = data.data(:,9)/100;
-obs_ind_ncep = data.data(:,10)/100;
-obs_total_ecmwf = data.data(:,15)/100;
-obs_atl_ecmwf = data.data(:,16)/100;
-obs_pac_ecmwf = data.data(:,17)/100;
-obs_ind_ecmwf = data.data(:,18)/100;
-
-obs_total_ncep(abs(obs_total_ncep)>5) = 0;
-obs_atl_ncep(abs(obs_atl_ncep)>5) = 0;
-obs_pac_ncep(abs(obs_pac_ncep)>5) = 0;
-obs_ind_ncep(abs(obs_ind_ncep)>5) = 0;
-obs_total_ecmwf(abs(obs_total_ecmwf)>5) = 0;
-obs_atl_ecmwf(abs(obs_atl_ecmwf)>5) = 0;
-obs_pac_ecmwf(abs(obs_pac_ecmwf)>5) = 0;
-obs_ind_ecmwf(abs(obs_ind_ecmwf)>5) = 0;
-
-hold on;
-plot(obs_lat,obs_total_ncep,'xk');
-plot(obs_lat,obs_total_ecmwf,'ok');
-plot(obs_lat,obs_atl_ncep,'xr');
-plot(obs_lat,obs_pac_ncep+obs_ind_ncep,'xb');
-plot(obs_lat,obs_atl_ecmwf,'or');
-plot(obs_lat,obs_pac_ecmwf+obs_ind_ecmwf,'ob');
-% $$$ plot(obs_lat,data.data(:,5)/100,'om');
-
-obsfile = '../Observations/GW2000_MeridionalHeatTransportData.mat';
-load(obsfile);
-hold on;
-errorbar(GLOlat,GLOHT,GLOHTe,'dk','linewidth',2,'MarkerSize',10);
-errorbar(IPAClat,IPACHT,IPACHTe,'db','linewidth',2,'MarkerSize',10);
-errorbar(ATLlat,ATLHT,ATLHTe,'dr','linewidth',2,'MarkerSize',10);
+% $$$ % Add observations (used in Supplementary Fig. S3):
+% $$$ obsfile = '../Observations/ANNUAL_TRANSPORTS_1985_1989.ascii.txt';
+% $$$ data = importdata(obsfile);
+% $$$ obs_lat = data.data(:,1)/100;
+% $$$ obs_total_ncep = data.data(:,7)/100;
+% $$$ obs_atl_ncep = data.data(:,8)/100;
+% $$$ obs_pac_ncep = data.data(:,9)/100;
+% $$$ obs_ind_ncep = data.data(:,10)/100;
+% $$$ obs_total_ecmwf = data.data(:,15)/100;
+% $$$ obs_atl_ecmwf = data.data(:,16)/100;
+% $$$ obs_pac_ecmwf = data.data(:,17)/100;
+% $$$ obs_ind_ecmwf = data.data(:,18)/100;
+% $$$ 
+% $$$ obs_total_ncep(abs(obs_total_ncep)>5) = 0;
+% $$$ obs_atl_ncep(abs(obs_atl_ncep)>5) = 0;
+% $$$ obs_pac_ncep(abs(obs_pac_ncep)>5) = 0;
+% $$$ obs_ind_ncep(abs(obs_ind_ncep)>5) = 0;
+% $$$ obs_total_ecmwf(abs(obs_total_ecmwf)>5) = 0;
+% $$$ obs_atl_ecmwf(abs(obs_atl_ecmwf)>5) = 0;
+% $$$ obs_pac_ecmwf(abs(obs_pac_ecmwf)>5) = 0;
+% $$$ obs_ind_ecmwf(abs(obs_ind_ecmwf)>5) = 0;
+% $$$ 
+% $$$ hold on;
+% $$$ plot(obs_lat,obs_total_ncep,'xk');
+% $$$ plot(obs_lat,obs_total_ecmwf,'ok');
+% $$$ plot(obs_lat,obs_atl_ncep,'xr');
+% $$$ plot(obs_lat,obs_pac_ncep+obs_ind_ncep,'xb');
+% $$$ plot(obs_lat,obs_atl_ecmwf,'or');
+% $$$ plot(obs_lat,obs_pac_ecmwf+obs_ind_ecmwf,'ob');
+% $$$ % $$$ plot(obs_lat,data.data(:,5)/100,'om');
+% $$$ 
+% $$$ obsfile = '../Observations/GW2000_MeridionalHeatTransportData.mat';
+% $$$ load(obsfile);
+% $$$ hold on;
+% $$$ errorbar(GLOlat,GLOHT,GLOHTe,'dk','linewidth',2,'MarkerSize',10);
+% $$$ errorbar(IPAClat,IPACHT,IPACHTe,'db','linewidth',2,'MarkerSize',10);
+% $$$ errorbar(ATLlat,ATLHT,ATLHTe,'dr','linewidth',2,'MarkerSize',10);
 

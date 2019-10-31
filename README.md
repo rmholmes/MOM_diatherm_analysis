@@ -30,6 +30,12 @@ produces .mat files which can then be used by
 `Heat_Budget_Plot_LatT.m` to plot latitude-temperature slices of the
 various diathermal and meridional heat fluxes.
 
+If you already have the processed .mat files (averaged over the last
+10 years of the MOM025 Control simulation) which are publically
+available at the UNSW Data Archive (doi TBA), then the plotting
+routine Heat_Budget_Plot_LatT.m should produce the figures used in the
+GRL article.
+
 If you run into any problems please email me at
 `ryan.holmes@unsw.edu.au`
 
