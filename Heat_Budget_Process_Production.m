@@ -1,19 +1,20 @@
 % This script processes the heat budget and associated variables in
 % MOM025 or MOM01 simulations and save's into .mat files
 
-% $$$ baseL = '/short/e14/rmh561/mom/archive/';
-baseL = '/g/data/e14/rmh561/access-om2/archive/';
+baseL = '/short/e14/rmh561/mom/archive/';
+% $$$ baseL = '/g/data/e14/rmh561/access-om2/archive/';
+% $$$ baseL = '/g/data/e14/rmh561/mom/archive/';
 % $$$ baseL = '/short/e14/rmh561/access-om2/archive/';
 % $$$ baseL = '/srv/ccrc/data03/z3500785/';
 
 % MOM-SIS025:
-% $$$ model = 'MOM025_kb3seg';
-% $$$ baseD = [baseL 'MOM_HeatDiag_kb3seg/']; %Data Directory.
-% $$$ ICdir = [baseL 'MOM_HeatDiag_kb3seg/restart100/'];
+model = 'MOM025_AMOCOFF';
+baseD = [baseL 'MOM_HeatDiag_AMOCOFF/']; %Data Directory.
+ICdir = ['/g/data/e14/rmh561/mom/archive/MOM_HeatDiag_kb3seg/restart100/'];
 % $$$ % ACCESS-OM2:
-model = 'ACCESS-OM2_025deg_jra55_iaf';
-baseD = [baseL '025deg_jra55_iaf_Maurice/']; %Data Directory.
-ICdir = [baseL '025deg_jra55_iaf_Maurice/'];
+% $$$ model = 'ACCESS-OM2_025deg_jra55_iaf';
+% $$$ baseD = [baseL '025deg_jra55_iaf_Maurice/']; %Data Directory.
+% $$$ ICdir = [baseL '025deg_jra55_iaf_Maurice/'];
 % $$$ % MOM-SIS01:
 % $$$ model = 'MOM01';
 % $$$ baseD = [baseL 'MOM01_HeatDiag/']; %Data Directory.
@@ -21,21 +22,21 @@ ICdir = [baseL '025deg_jra55_iaf_Maurice/'];
 outD = [baseD 'mat_data/'];
 rstbaseD = baseD;
 
-post = 'ocean/'; % For ACCESS-OM2 output coulpled;
-% $$$ post = ''; % For MOM-SIS.
+% $$$ post = 'ocean/'; % For ACCESS-OM2 output coulpled;
+post = ''; % For MOM-SIS.
 
 % term options:
-haveRedi = 1; % 1 = Redi diffusion is on, 0 = off
-haveGM = 1; % 1 = GM is on, 0 = off;
+haveRedi = 0; % 1 = Redi diffusion is on, 0 = off
+haveGM = 0; % 1 = GM is on, 0 = off;
 haveSUB = 1; % 1 = submeso is on, 0 = off;
 haveMDS = 0; % 1 = MDS is on, 0 = off;
 haveSIG = 0; % 1 = SIG is on, 0 = off;
-haveMIX = 0; % 1 = Do mixing components (vdiffuse_diff_cbt_*), 0 = don't. 
+haveMIX = 1; % 1 = Do mixing components (vdiffuse_diff_cbt_*), 0 = don't. 
 
 % Processing options:
-doBASE     = 0; % 1 = save BaseVars.mat file
-dodVdtdHdt = 0; % 1 = calculate dVdt/dHdt and save into .nc file
-doNUMDIF   = 0; % 1 = calculate tempdiff x,y,T,t and save into .nc file
+doBASE     = 1; % 1 = save BaseVars.mat file
+dodVdtdHdt = 1; % 1 = calculate dVdt/dHdt and save into .nc file
+doNUMDIF   = 1; % 1 = calculate tempdiff x,y,T,t and save into .nc file
 doSGMviac  = 0; % 1 = calculate SUB/GM influence via binned
                 % convergence (otherwise uses lateral flux). The
                 % better option is to use the lateral flux -> This
@@ -43,13 +44,13 @@ doSGMviac  = 0; % 1 = calculate SUB/GM influence via binned
                 % includes the numerical mixing associated with the GM
                 % and SUB schemes).
 
-doGWB      = 0; % 1 = calculate global online budget terms
-doXY       = 0; % 1 = calculate spatial fluxes-on-an-isotherm
-doWMT      = 1; % 1 = calculate WMT volume fluxes spatial structure
-doSURF     = 0; % 1 = calculate surface flux field and SST
-doZA       = 0; % 1 = calculate zonal average budget
+doGWB      = 1; % 1 = calculate global online budget terms
+doXY       = 1; % 1 = calculate spatial fluxes-on-an-isotherm
+doWMT      = 0; % 1 = calculate WMT volume fluxes spatial structure
+doSURF     = 1; % 1 = calculate surface flux field and SST
+doZA       = 1; % 1 = calculate zonal average budget
 
-doHND      = 0; % 1 = calculate global online numdif
+doHND      = 1; % 1 = calculate global online numdif
 doTENMON   = 0; % 1 = do monthly eulerian tendency binning
 doMONANN   = 0; % 1 = calculate monthly and annually binned eulerian global budget
 doXYall    = 0; % 1 = do all XY calcs (most not used)
@@ -124,9 +125,10 @@ else
 end
 
 % Time  -----------------------------------------
-time = ncread(fname,'time');
-ndays = ncread(fname,'average_DT');
+time = ncread(wname,'time');
+ndays = ncread(wname,'average_DT');
 tL = length(time);
+tLoc = length(ncread(fname,'time'));
 
 if (exist(baser))
     found_rst = 1;rstti = 1;
@@ -813,7 +815,8 @@ end
 
 %% Calculate WMT due to different (resolved) terms %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if (doWMT)
-Tls = [0:2.5:27.5]-0.25;
+    %Tls = [0:2.5:27.5]-0.25;
+    Tls = [10:2.5:27.5]-0.25;
 
 for ii = 1:length(Tls)
     Tl = Tls(ii);
@@ -893,11 +896,11 @@ end
 %% Save surface heat flux, wind stress, SST, meridional heat flux:
 if (doSURF)
 try
-    shflux = ncread(fname,'net_sfc_heating',[1 1 1],[xL yL tL]);
+    shflux = ncread(fname,'net_sfc_heating',[1 1 1],[xL yL tLoc]);
 catch
-    shflux = ncread(fname2,'net_sfc_heating',[1 1 1],[xL yL tL]);
+    shflux = ncread(fname2,'net_sfc_heating',[1 1 1],[xL yL tLoc]);
 end    
-SST = squeeze(ncread(fname,'temp',[1 1 1 1],[xL yL 1 tL]));
+SST = squeeze(ncread(fname,'temp',[1 1 1 1],[xL yL 1 tLoc]));
 % $$$ taux = ncread(fname,'tau_x',[1 1 1],[xL yL tL]);
 % $$$ tauy = ncread(fname,'tau_y',[1 1 1],[xL yL tL]);
 
