@@ -910,40 +910,55 @@ Tls = [10 12.5 15 20 34];
 Nremain = length(Tls);
 Ti = 1;
 
-xflux = zeros(xL,yL); % vdiffuse and nonlocal_KPP
-yflux = zeros(xL,yL); % solar penetration
+qxflux = zeros(xL,yL);
+qyflux = zeros(xL,yL);
+
+mxflux = zeros(xL,yL);
+myflux = zeros(xL,yL);
 
 while (Nremain > 0 & Ti <= TL)
     Tl = Te(Ti+1);
 
     qxtrans = zeros(xL,yL);
     qytrans = zeros(xL,yL);
+    mxtrans = zeros(xL,yL);
+    mytrans = zeros(xL,yL);
     for ti=1:tL
-        sprintf(['Calculating vertically-integrated heat fluxes time %03d of ' ...
+        sprintf(['Calculating vertically-integrated heat and volume fluxes time %03d of ' ...
                  '%03d, temp %2.2f, going up to %2.2f'],ti,tL,Te(Ti),max(Tls))
 
         qxtrans = qxtrans+ncread(wname,'temp_xflux_adv_on_nrho',[1 1 Ti ti],[xL yL 1 1])*ndays(ti);
         qytrans = qytrans+ncread(wname,'temp_yflux_adv_on_nrho',[1 1 Ti ti],[xL yL 1 1])*ndays(ti);
+        mxtrans = mxtrans+ncread(wname,'tx_trans_nrho',[1 1 Ti ti],[xL yL 1 1])*ndays(ti)*tsc/rho0;
+        mytrans = mytrans+ncread(wname,'ty_trans_nrho',[1 1 Ti ti],[xL yL 1 1])*ndays(ti)*tsc/rho0;
 
         % Submesoscale and GM: two options:
         if (haveSUB)
             qxtrans = qxtrans + ncread(wname,'temp_xflux_submeso_on_nrho',[1 1 Ti ti],[xL yL 1 1])*ndays(ti);
             qytrans = qytrans + ncread(wname,'temp_yflux_submeso_on_nrho',[1 1 Ti ti],[xL yL 1 1])*ndays(ti);
+            mxtrans = mxtrans + ncread(wname,'tx_trans_nrho_submeso',[1 1 Ti ti],[xL yL 1 1])*ndays(ti)*tsc/rho0;
+            mytrans = mytrans + ncread(wname,'ty_trans_nrho_submeso',[1 1 Ti ti],[xL yL 1 1])*ndays(ti)*tsc/rho0;
         end
         if (haveGM)
             qxtrans = qxtrans + ncread(wname,'temp_xflux_gm_on_nrho',[1 1 Ti ti],[xL yL 1 1])*ndays(ti);
             qytrans = qytrans + ncread(wname,'temp_yflux_gm_on_nrho',[1 1 Ti ti],[xL yL 1 1])*ndays(ti);
+            qxtrans = qxtrans + ncread(wname,'temp_xflux_ndiffuse_on_nrho',[1 1 Ti ti],[xL yL 1 1])*ndays(ti);
+            qytrans = qytrans + ncread(wname,'temp_yflux_ndiffuse_on_nrho',[1 1 Ti ti],[xL yL 1 1])*ndays(ti);
+            mxtrans = mxtrans + ncread(wname,'tx_trans_nrho_gm',[1 1 Ti ti],[xL yL 1 1])*ndays(ti)*tsc/rho0;
+            mytrans = mytrans + ncread(wname,'ty_trans_nrho_gm',[1 1 Ti ti],[xL yL 1 1])*ndays(ti)*tsc/rho0;
         end
     end
-    xflux = xflux + qxtrans/sum(ndays);
-    yflux = yflux + qytrans/sum(ndays);
+    qxflux = qxflux + qxtrans/sum(ndays);
+    qyflux = qyflux + qytrans/sum(ndays);
+    mxflux = mxflux + mxtrans/sum(ndays);
+    myflux = myflux + mytrans/sum(ndays);
 
     % Save heat flux terms:
     [sp,ind] = min(abs(Tls-Tl));
     if (abs(sp) <= dT/4)
         name = [outD model sprintf('_output%03d',output) '_XYtrans_T' strrep(num2str(Tls(ind)),'.','p') 'C.mat']
 
-        save(name,'xflux','yflux','Tl','-v7.3');
+        save(name,'mxflux','myflux','qxflux','qyflux','Tl','-v7.3');
         Nremain = Nremain-1;
     end
 
