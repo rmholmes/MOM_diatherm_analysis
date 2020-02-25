@@ -90,19 +90,19 @@ rho0 = 1035; % kgm-3
 % $$$ end
 
 %% Get lon-depth slices of variables:
-% $$$ % Equatorial Pacific:
-% $$$ rname = 'EqPM2';
-% $$$ [tmp lt1] = min(abs(lat(1,:)+2));
-% $$$ [tmp lt2] = min(abs(lat(1,:)-2));
-% $$$ [tmp ln1] = min(abs(lon(:,lt1)+240));
-% $$$ [tmp ln2] = min(abs(lon(:,lt1)+70));
+% Equatorial Pacific:
+rname = 'EqPM2';
+[tmp lt1] = min(abs(lat(1,:)+2));
+[tmp lt2] = min(abs(lat(1,:)-2));
+[tmp ln1] = min(abs(lon(:,lt1)+240));
+[tmp ln2] = min(abs(lon(:,lt1)+70));
 
-% Gulf Stream:
-rname = 'GulfSt_42pm0p5';
-[tmp lt1] = min(abs(lat(1,:)-41.5));
-[tmp lt2] = min(abs(lat(1,:)-42.5));
-[tmp ln1] = min(abs(lon(:,lt1)+78));
-[tmp ln2] = min(abs(lon(:,lt1)+8));
+% $$$ % Gulf Stream:
+% $$$ rname = 'GulfSt_42pm0p5';
+% $$$ [tmp lt1] = min(abs(lat(1,:)-41.5));
+% $$$ [tmp lt2] = min(abs(lat(1,:)-42.5));
+% $$$ [tmp ln1] = min(abs(lon(:,lt1)+78));
+% $$$ [tmp ln2] = min(abs(lon(:,lt1)+8));
 
 temp = squeeze(mean(ncread(fname,'temp',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL tL]),2));
 if (strfind(baseD,'01'))

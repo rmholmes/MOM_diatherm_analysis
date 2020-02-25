@@ -63,14 +63,14 @@ rr = 1;
 
 
     %%% Spatial Structure:
-    VAR = 'FlM';
+    VAR = 'FlI';
     TYPE = 'VertInt';
 % $$$     VAR = 'EKE';
 % $$$     TYPE = 'variances';
-    Tl = 20;
-    VAR = 'WMTI';
-    TYPE = 'WMT';
-    Tl = 19.75;
+    Tl = 10;
+% $$$     VAR = 'WMTI';
+% $$$     TYPE = 'WMT';
+% $$$     Tl = 19.75;
     name = [base model sprintf('_output%03d',outputs(1)) '_' TYPE '_T' strrep(num2str(Tl),'.','p') 'C.mat']
     eval(['load(name,''' VAR ''');']);
     eval([VAR '(isnan(' VAR ')) = 0.0;']);
@@ -329,10 +329,10 @@ rr = 1;
     end
 
     [xL,yL] = size(lon);
-    xvec = 1:2:xL;
-    yvec = 1:2:yL;
-% $$$     xvec = 720:1:1320; %-100 -> +50
-% $$$     yvec = 540:1:940; % +15 -> +75
+% $$$     xvec = 1:1:xL;
+% $$$     yvec = 1:1:yL;
+    xvec = 720:1:1320; %-100 -> +50
+    yvec = 540:1:940; % +15 -> +75
 % $$$     xvec = 880:1:1280; %-60 -> +40
 % $$$     yvec = 266:1:396; % -50 -> -25
     txtmonth = {'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'};
@@ -345,13 +345,13 @@ rr = 1;
 % $$$               '(b) March', ...
 % $$$               '(c) July', ...
 % $$$               '(d) November'};
-    months = {[1:12]}; labels = {'(a) Total'};%$15^\circ$C'};
+    months = {[1:12]}; labels = {'(b) 10$^\circ$C'};%$15^\circ$C'};
     
     %Colormap and continents:
 % $$$     sp = 5;
 % $$$     clim = [-100 0];
-% $$$     sp = 5;
-% $$$     clim = [-125 125];
+    sp = 5;
+    clim = [-125 125];
 % $$$     sp = 2.5;
 % $$$     clim = [-120 0];
 % $$$     sp = 1;
@@ -360,8 +360,8 @@ rr = 1;
 % $$$     clim = [-60 0];
 % $$$     sp = 1;
 % $$$     clim = [-30 30];
-    sp = 0.5e-6;
-    clim = [-0.5e-5 0.5e-5];
+% $$$     sp = 0.5e-6;
+% $$$     clim = [-0.5e-5 0.5e-5];
 
     cCH = 0; % 0 = symmetric redblue
              % 1 = negative definite parula
@@ -404,10 +404,12 @@ rr = 1;
     climn = [clim(1)-sp clim(2)];
     
 % $$$ % $$$ %Mean of all months:
-figure;
+    clf;
+% $$$ figure;
 % $$$ set(gcf,'Position',[3          59        1916         914]);
 % $$$ set(gcf,'Position',[88         371        1625         603]);
-set(gcf,'Position',[3          59        1476         921]);
+set(gcf,'Position',[3          59        1476         921]); % Production NumMix first fig.
+set(gcf,'Position',[40    83   990   897]); % North Atlantic zoom.
 set(gcf,'defaulttextfontsize',15);
 set(gcf,'defaultaxesfontsize',15);
 % $$$ 
@@ -477,17 +479,21 @@ poss = [0.1300    0.4553    0.7693    0.4697; ...
     set(gca,'xtick',[-270:30:60]);
     set(gca,'ytick',[-75:15:75]);
     set(gca,'Position',[poss(i,:)]);
-% $$$     ylim([15 65]);
-% $$$     xlim([-100 10]);
-    ylim([-60 60]);
-% $$$     set(gca,'FontSize',17);
+    ylim([15 65]);
+    xlim([-100 10]);
+% $$$     ylim([-60 60]);
+    set(gca,'FontSize',17);
     colormap(cmap);
-% $$$ % $$$     text(-277,-54,labels{i},'BackgroundColor','w','Margin',0.5,'FontSize',20);
-% $$$     text(-98,62,labels{i},'BackgroundColor','w','Margin',0.5,'FontSize',20);
+% $$$     text(-277,-54,labels{i},'BackgroundColor','w','Margin',0.5,'FontSize',20);
+    text(-98,62,labels{i},'BackgroundColor','w','Margin',0.5,'FontSize',17);
 % $$$ % $$$     text(-59.25,-26.5,labels{i},'BackgroundColor','w','Margin',0.5,'FontSize',17);
 % $$$ % $$$     title([strrep(strrep(strrep(strrep(strrep(RUNS{rr}{1},'_',' '),'ACCESS-OM2 ','AOM'),' jra55',''),'ryf8485',''),' may','') ...
 % $$$ % $$$            ' ' num2str(Tl) '$^\circ$C Numerical Mixing']);
 % $$$ end
+    
+    % North Atlantic two panel:
+    set(gca,'Position',[0.1253    0.5318    0.6707    0.4326]);
+    set(gca,'Position',[0.1253    0.08    0.6707    0.4326]);
 
 
 %% Variances:
