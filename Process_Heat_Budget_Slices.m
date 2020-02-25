@@ -1,7 +1,7 @@
 % This script extracts specified data from MOM025 and MOM01 runs 
 
-baseL = '/short/e14/rmh561/mom/archive/';
-% $$$ baseL = '/g/data/e14/rmh561/mom/';
+% $$$ baseL = '/short/e14/rmh561/mom/archive/';
+baseL = '/g/data/e14/rmh561/mom/archive/';
 % $$$ baseL = '/short/e14/rmh561/access-om2/archive/';
 % $$$ baseL = '/srv/ccrc/data03/z3500785/';
 % $$$ types = {'kds50','gfdl50','kds75','kds100','kds135'};
@@ -11,8 +11,8 @@ baseD = [baseL 'MOM_HeatDiag_kb3seg/'];
 
 outD = [baseD];
 
-output = 95;
-% $$$ for output=86:90
+% $$$ output = 95;
+for output=101:110
     if (output==0)
         restart=0;
     else
@@ -45,10 +45,10 @@ tL = length(time);
 Cp = 3992.1; % J kg-1 degC-1
 rho0 = 1035; % kgm-3
 
-% $$$ T = ncread(wname,'neutral');
-% $$$ Te = ncread(wname,'neutralrho_edges');
-% $$$ TL = length(T);dT = T(2)-T(1);
-% $$$ 
+T = ncread(wname,'neutral');
+Te = ncread(wname,'neutralrho_edges');
+TL = length(T);dT = T(2)-T(1);
+
 % $$$ %% Get lat-depth slice of variables:
 % $$$ for lonsl=[-110 -140]
 % $$$ [tmp lt1] = min(abs(lat(1,:)+20));
@@ -142,10 +142,10 @@ swrd = squeeze(mean(ncread(wname,'sw_heat_on_nrho',[ln1 lt1 1 1],[ln2-ln1+1 lt2-
 
 name = [outD 'mat_data/' model sprintf('_output%03d',output) ...
         '_varsat_' rname '.mat']
-% Non-isotherm only:
-save(name,'Xt','Zt','Xu','Zu','Xw','Zw','temp','mld','u','v','u_sq','v_sq','w','w_sq','Tdxsq','Tdysq','Tdzsq');
-% Isotherm only:
-% $$$ save(name,'Xt','Zt','Xu','Zu','temp','kappa','taux','tauy','mld', ...
-% $$$      'vdif','vnlc','pmer','sufc','swrd','ndif');
+
+save(name,'Xt','Zt','Xu','Zu','Xw','Zw','temp','kappa', ...
+     'mld','taux','tauy', ...
+     'u','v','u_sq','v_sq','w','w_sq','Tdxsq','Tdysq','Tdzsq', ...
+     'vdif','vnlc','pmer','sufc','swrd','ndif');
 end
 
