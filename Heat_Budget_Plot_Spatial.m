@@ -14,7 +14,7 @@ RUNS = { ...
 % $$$     {'MOM025',[8:12]}, ...
 % $$$     {'MOM025',[15:19]}, ...
 % $$$ % $$$     {'MOM025_kb1em6',[30]}, ...
-   {'MOM025_kb3seg',[101:110]}, ...
+% $$$    {'MOM025_kb3seg',[101:110]}, ...
 % $$$     {'MOM025_kb3seg',[101110]}, ...
 % $$$     {'MOM025_RCP45',[0:39]}, ...
 % $$$     {'MOM025_kb3seg',[95]}, ...
@@ -30,6 +30,7 @@ RUNS = { ...
 % $$$     {'ACCESS-OM2_025deg_jra55_ryf8485_gmredi',[73]}, ...
 % $$$ %     {'ACCESS-OM2_025deg_jra55_ryf8485_KDS75',[??]}, ...
 % ACCESS-OM2 1-degree:
+         {'ACCESS-OM2_1deg_ryf',[51]}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_july',[39]}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may_TcenGMS',[36]}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_gfdl50_july',[37]}, ...
@@ -55,10 +56,16 @@ rr = 1;
     end
     if (ndays(end) <= 0); ndays(end) = 365-ndays(end);end;
     region = 'Global';
-    nyrs = tL/12;szTe = [TL+1 12 nyrs];szT  = [TL 12 nyrs];
+    nyrs = tL/12;
+    if (round(nyrs)~=nyrs)
+        anavg = 1;
+        nyrs = tL;
+        months = {[1:1]};
+    else
+        anavg = 0;
+        months = {[1:12]};
+    end
     yrs = 1:nyrs;
-    months = 1:12;
-    
     ycur = 1;
 
 
@@ -67,7 +74,8 @@ rr = 1;
     TYPE = 'VertInt';
 % $$$     VAR = 'EKE';
 % $$$     TYPE = 'variances';
-    Tl = 10;
+    Tl = 22.5;
+% $$$     VAR = 'Tdzsq';
 % $$$     VAR = 'WMTI';
 % $$$     TYPE = 'WMT';
 % $$$     Tl = 19.75;
@@ -75,8 +83,12 @@ rr = 1;
     eval(['load(name,''' VAR ''');']);
     eval([VAR '(isnan(' VAR ')) = 0.0;']);
     if (length(outputs)==1)
-        eval([VAR ' = reshape(' VAR ',[length(' VAR '(:,1,1)) length(' VAR '(1,:,1)) 12 nyrs]);']);
-        eval([VAR ' = mean(' VAR '(:,:,:,yrs),4);']);
+        if (anavg)
+            eval([VAR ' = mean(' VAR '(:,:,yrs),3);']);
+        else
+            eval([VAR ' = reshape(' VAR ',[length(' VAR '(:,1,1)) length(' VAR '(1,:,1)) 12 nyrs]);']);
+            eval([VAR ' = mean(' VAR '(:,:,:,yrs),4);']);
+        end
     else
         eval([VAR 'a = ' VAR ';']);
         for i=2:length(outputs)
@@ -90,6 +102,8 @@ rr = 1;
     end
     eval(['FlM = ' VAR ';']);
 
+% $$$     FlMs = FlM;
+% $$$     FlMs = FlMs+FlM;
 % $$$ % CHECK spatial structure sums to total:
 % $$$ Tls = [0:2.5:27.5];
 % $$$ SUM = zeros(size(Tls));
@@ -329,10 +343,10 @@ rr = 1;
     end
 
     [xL,yL] = size(lon);
-% $$$     xvec = 1:1:xL;
-% $$$     yvec = 1:1:yL;
-    xvec = 720:1:1320; %-100 -> +50
-    yvec = 540:1:940; % +15 -> +75
+    xvec = 1:1:xL;
+    yvec = 1:1:yL;
+% $$$     xvec = 720:1:1320; %-100 -> +50
+% $$$     yvec = 540:1:940; % +15 -> +75
 % $$$     xvec = 880:1:1280; %-60 -> +40
 % $$$     yvec = 266:1:396; % -50 -> -25
     txtmonth = {'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'};
@@ -345,13 +359,23 @@ rr = 1;
 % $$$               '(b) March', ...
 % $$$               '(c) July', ...
 % $$$               '(d) November'};
-    months = {[1:12]}; labels = {'(b) 10$^\circ$C'};%$15^\circ$C'};
+% $$$     months = {[1:12]}; 
+    labels = {'Numerical Mixing'};%10$^\circ$C'};%$15^\circ$C'};
+% $$$     labels = {'(b) $\overline{u''u''}+\overline{v''v''}$'};%10$^\circ$C'};%$15^\circ$C'};
+% $$$     labels = {'(d) $|\Delta_x T|^2+|\Delta_y T|^2$'};%\overline{u''u''}+\overline{v''v''}$'};%10$^\circ$C'};%$15^\circ$C'};
+% $$$     labels = {'(f) $|\Delta_z T|^2$'};%\overline{u''u''}+\overline{v''v''}$'};%10$^\circ$C'};%$15^\circ$C'};
     
     %Colormap and continents:
+    sp = 1;
+    clim = [-25 0];
 % $$$     sp = 5;
-% $$$     clim = [-100 0];
-    sp = 5;
-    clim = [-125 125];
+% $$$     clim = [-125 125];
+% $$$     sp = 0.001;
+% $$$     clim = [0 0.02];
+% $$$     sp = 2e-10;
+% $$$     clim = [0 4e-9];
+% $$$     sp = 0.5;
+% $$$     clim = [0 20];
 % $$$     sp = 2.5;
 % $$$     clim = [-120 0];
 % $$$     sp = 1;
@@ -363,7 +387,7 @@ rr = 1;
 % $$$     sp = 0.5e-6;
 % $$$     clim = [-0.5e-5 0.5e-5];
 
-    cCH = 0; % 0 = symmetric redblue
+    cCH = 2; % 0 = symmetric redblue
              % 1 = negative definite parula
              % 2 = negative parula with +ve's possible
     if (cCH==0)
@@ -393,6 +417,7 @@ rr = 1;
                          cmap(end-buf+1,:)*(buf-1-ii)/(buf-1);
         end
     end        
+% $$$     cmap = flipud(cmap);
 
     tmp = LAND;
     tmp(isnan(LAND)) = clim(1)-sp/2;
@@ -402,25 +427,25 @@ rr = 1;
     cmap(1,:) = [0 0 0];
 
     climn = [clim(1)-sp clim(2)];
-    
 % $$$ % $$$ %Mean of all months:
-    clf;
-% $$$ figure;
+% $$$     cla;
+figure;
 % $$$ set(gcf,'Position',[3          59        1916         914]);
 % $$$ set(gcf,'Position',[88         371        1625         603]);
 set(gcf,'Position',[3          59        1476         921]); % Production NumMix first fig.
-set(gcf,'Position',[40    83   990   897]); % North Atlantic zoom.
-set(gcf,'defaulttextfontsize',15);
-set(gcf,'defaultaxesfontsize',15);
+% $$$ set(gcf,'Position',[40    83   990   897]); % North Atlantic zoom.
+% $$$ set(gcf,'Position',[3    40   956   963]);
+% $$$ set(gcf,'defaulttextfontsize',15);
+% $$$ set(gcf,'defaultaxesfontsize',15);
 % $$$ 
 % $$$ % 2x1:
 % $$$ poss = [0.1300    0.54    0.7403    0.4149; ...
 % $$$         0.1300    0.0876    0.7403    0.4149];
 % $$$ % 1+3:
-poss = [0.1300    0.4553    0.7693    0.4697; ...
-        0.1300    0.1389    0.2343    0.2680; ...
-        0.3951    0.1389    0.2343    0.2680; ...
-        0.6681    0.1389    0.2343    0.2680];
+% $$$ poss = [0.1300    0.4553    0.7693    0.4697; ...
+% $$$         0.1300    0.1389    0.2343    0.2680; ...
+% $$$         0.3951    0.1389    0.2343    0.2680; ...
+% $$$         0.6681    0.1389    0.2343    0.2680];
 % $$$ for i=1:length(months)
 % $$$     if (i == 1)
 % $$$         subplot(5,3,[1 9]);
@@ -451,6 +476,7 @@ poss = [0.1300    0.4553    0.7693    0.4697; ...
             ylabel(cb,'Wm$^{-2}$');
         else
             ylabel(cb,'ms$^{-1}$');
+            ylabel(cb,'m$^2$s$^{-2}$');%$^\circ$C$^{2}$');
         end
         ylim(cb,clim);
 % $$$     end
@@ -478,22 +504,23 @@ poss = [0.1300    0.4553    0.7693    0.4697; ...
     ylabel('Latitude ($^\circ$N)');
     set(gca,'xtick',[-270:30:60]);
     set(gca,'ytick',[-75:15:75]);
-    set(gca,'Position',[poss(i,:)]);
-    ylim([15 65]);
-    xlim([-100 10]);
-% $$$     ylim([-60 60]);
-    set(gca,'FontSize',17);
+% $$$     set(gca,'Position',[poss(i,:)]);
+% $$$     ylim([15 65]);
+% $$$     xlim([-100 10]);
+    ylim([-60 60]);
+% $$$     set(gca,'FontSize',17);
     colormap(cmap);
 % $$$     text(-277,-54,labels{i},'BackgroundColor','w','Margin',0.5,'FontSize',20);
-    text(-98,62,labels{i},'BackgroundColor','w','Margin',0.5,'FontSize',17);
+    text(-277,52,labels{i},'BackgroundColor','w','Margin',0.5,'FontSize',20);
+% $$$     text(-98,62,labels{i},'BackgroundColor','w','Margin',0.5,'FontSize',17);
 % $$$ % $$$     text(-59.25,-26.5,labels{i},'BackgroundColor','w','Margin',0.5,'FontSize',17);
 % $$$ % $$$     title([strrep(strrep(strrep(strrep(strrep(RUNS{rr}{1},'_',' '),'ACCESS-OM2 ','AOM'),' jra55',''),'ryf8485',''),' may','') ...
 % $$$ % $$$            ' ' num2str(Tl) '$^\circ$C Numerical Mixing']);
 % $$$ end
     
-    % North Atlantic two panel:
-    set(gca,'Position',[0.1253    0.5318    0.6707    0.4326]);
-    set(gca,'Position',[0.1253    0.08    0.6707    0.4326]);
+% $$$     % North Atlantic two panel:
+% $$$     set(gca,'Position',[0.1253    0.5318    0.6707    0.4326]);
+% $$$     set(gca,'Position',[0.1253    0.08    0.6707    0.4326]);
 
 
 %% Variances:

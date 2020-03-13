@@ -1,5 +1,3 @@
-
-
 % This script makes plots of the heat budget in the MOM
 % simulations.
 
@@ -17,8 +15,8 @@ outputs = [101110];
 % $$$ model = 'MOM025_nipoall';
 % $$$ outputs = [10:19];
 
-model = 'MOM025_RCP45';
-outputs = [0:39];
+% $$$ model = 'MOM025_RCP45';
+% $$$ outputs = [0:39];
 
 % $$$ model = 'MOM025_SOUP15';
 % $$$ outputs = [10:19];
@@ -26,8 +24,11 @@ outputs = [0:39];
 % model = 'MOM01';
 % outputs = [4567];
 
-model = 'ACCESS-OM2_1deg_jra55_iaf';
-outputs = [39];
+% $$$ model = 'ACCESS-OM2_1deg_jra55_iaf';
+% $$$ outputs = [39];
+
+model = 'ACCESS-OM2_1deg_ryf_4dt';
+outputs = [51];
 
 load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
 if (~exist('ndays'))
@@ -145,12 +146,12 @@ end %end region loop
 if (~isfield(ZA_G,'KPPNL'))
     ZA_G.KPPNL = 0*ZA_G.M;
 end
-if (~isfield(ZA_P,'KPPNL'))
-    ZA_P.KPPNL = 0*ZA_P.M;
-end
-if (~isfield(ZA_A,'KPPNL'))
-    ZA_A.KPPNL = 0*ZA_A.M;
-end
+% $$$ if (~isfield(ZA_P,'KPPNL'))
+% $$$     ZA_P.KPPNL = 0*ZA_P.M;
+% $$$ end
+% $$$ if (~isfield(ZA_A,'KPPNL'))
+% $$$     ZA_A.KPPNL = 0*ZA_A.M;
+% $$$ end
 
 % Global:
 dAI_mR_dphi = diff(cat(1,zeros(1,TL+1),ZA_G.AI-ZA_G.AHDR),[],1); % convergence of that transport
@@ -160,39 +161,39 @@ if (isfield(ZA_G,'NUM_SUBlf'))
     ZA_G.NUM = ZA_G.NUM_SUBlf;
 end
 
-% Indo-Pacific:
-dAI_mR_dphi = diff(cat(1,zeros(1,TL+1),ZA_P.AI-ZA_P.AHDR),[],1); % convergence of that transport
-ZA_P.Jdia = -ZA_P.N-dAI_mR_dphi; % total diathermal transport
-ZA_P.I = -(ZA_P.Jdia+ZA_P.M+ZA_P.KPPNL+ZA_P.F+ZA_P.PI+ZA_P.RED+ZA_P.K33+ZA_P.MDS+ZA_P.SIG); % numerical mixing (both advective and submesoscale)
-if (isfield(ZA_P,'NUM_SUBlf'))
-    ZA_P.NUM = ZA_P.NUM_SUBlf;
-end
+% $$$ % Indo-Pacific:
+% $$$ dAI_mR_dphi = diff(cat(1,zeros(1,TL+1),ZA_P.AI-ZA_P.AHDR),[],1); % convergence of that transport
+% $$$ ZA_P.Jdia = -ZA_P.N-dAI_mR_dphi; % total diathermal transport
+% $$$ ZA_P.I = -(ZA_P.Jdia+ZA_P.M+ZA_P.KPPNL+ZA_P.F+ZA_P.PI+ZA_P.RED+ZA_P.K33+ZA_P.MDS+ZA_P.SIG); % numerical mixing (both advective and submesoscale)
+% $$$ if (isfield(ZA_P,'NUM_SUBlf'))
+% $$$     ZA_P.NUM = ZA_P.NUM_SUBlf;
+% $$$ end
+% $$$ 
+% $$$ % Atlantic:
+% $$$ dAI_mR_dphi = diff(cat(1,zeros(1,TL+1),ZA_A.AI-ZA_A.AHDR),[],1); % convergence of that transport
+% $$$ ZA_A.Jdia = -ZA_A.N-dAI_mR_dphi; % total diathermal transport
+% $$$ ind = find(~isnan(ZA_P.AI(:,end)),1,'last'); % 66N indicy (u-points)
+% $$$ ZA_A.Jdia(ind,:) = ZA_A.Jdia(ind,:) + ZA_P.AI(ind-1,:); % Correct for missing bit because main Atlantic overlaps with Bering Strait cutoff
+% $$$ ZA_A.I = -(ZA_A.Jdia+ZA_A.M+ZA_A.KPPNL+ZA_A.F+ZA_A.PI+ZA_A.RED+ZA_A.K33+ZA_A.MDS+ZA_A.SIG); % numerical mixing (both advective and submesoscale)
+% $$$ if (isfield(ZA_A,'NUM_SUBlf'))
+% $$$     ZA_A.NUM = ZA_A.NUM_SUBlf;
+% $$$ end
+% $$$ 
+% $$$ if (exist('ZA_SA'))
+% $$$ % SO Atlantic:
+% $$$ dAI_mR_dphi = diff(cat(1,zeros(1,TL+1),ZA_SA.AI-ZA_SA.AHDR),[],1); % convergence of that transport
+% $$$ ZA_SA.Jdia = -ZA_SA.N-dAI_mR_dphi; % total diathermal transport
+% $$$ ZA_SA.I = -(ZA_SA.Jdia+ZA_SA.M+ZA_SA.KPPNL+ZA_SA.F+ZA_SA.PI+ZA_SA.RED+ZA_SA.K33+ZA_SA.MDS+ZA_SA.SIG); % numerical mixing (both advective and submesoscale)
+% $$$ end
+% $$$ 
+% $$$ if (exist('ZA_SP'))
+% $$$ % SO IndoPacific:
+% $$$ dAI_mR_dphi = diff(cat(1,zeros(1,TL+1),ZA_SP.AI-ZA_SP.AHDR),[],1); % convergence of that transport
+% $$$ ZA_SP.Jdia = -ZA_SP.N-dAI_mR_dphi; % total diathermal transport
+% $$$ ZA_SP.I = -(ZA_SP.Jdia+ZA_SP.M+ZA_SP.KPPNL+ZA_SP.F+ZA_SP.PI+ZA_SP.RED+ZA_SP.K33+ZA_SP.MDS+ZA_SP.SIG); % numerical mixing (both advective and submesoscale)
+% $$$ end
 
-% Atlantic:
-dAI_mR_dphi = diff(cat(1,zeros(1,TL+1),ZA_A.AI-ZA_A.AHDR),[],1); % convergence of that transport
-ZA_A.Jdia = -ZA_A.N-dAI_mR_dphi; % total diathermal transport
-ind = find(~isnan(ZA_P.AI(:,end)),1,'last'); % 66N indicy (u-points)
-ZA_A.Jdia(ind,:) = ZA_A.Jdia(ind,:) + ZA_P.AI(ind-1,:); % Correct for missing bit because main Atlantic overlaps with Bering Strait cutoff
-ZA_A.I = -(ZA_A.Jdia+ZA_A.M+ZA_A.KPPNL+ZA_A.F+ZA_A.PI+ZA_A.RED+ZA_A.K33+ZA_A.MDS+ZA_A.SIG); % numerical mixing (both advective and submesoscale)
-if (isfield(ZA_A,'NUM_SUBlf'))
-    ZA_A.NUM = ZA_A.NUM_SUBlf;
-end
-
-if (exist('ZA_SA'))
-% SO Atlantic:
-dAI_mR_dphi = diff(cat(1,zeros(1,TL+1),ZA_SA.AI-ZA_SA.AHDR),[],1); % convergence of that transport
-ZA_SA.Jdia = -ZA_SA.N-dAI_mR_dphi; % total diathermal transport
-ZA_SA.I = -(ZA_SA.Jdia+ZA_SA.M+ZA_SA.KPPNL+ZA_SA.F+ZA_SA.PI+ZA_SA.RED+ZA_SA.K33+ZA_SA.MDS+ZA_SA.SIG); % numerical mixing (both advective and submesoscale)
-end
-
-if (exist('ZA_SP'))
-% SO IndoPacific:
-dAI_mR_dphi = diff(cat(1,zeros(1,TL+1),ZA_SP.AI-ZA_SP.AHDR),[],1); % convergence of that transport
-ZA_SP.Jdia = -ZA_SP.N-dAI_mR_dphi; % total diathermal transport
-ZA_SP.I = -(ZA_SP.Jdia+ZA_SP.M+ZA_SP.KPPNL+ZA_SP.F+ZA_SP.PI+ZA_SP.RED+ZA_SP.K33+ZA_SP.MDS+ZA_SP.SIG); % numerical mixing (both advective and submesoscale)
-end
-
-groups = {'G','P','A'}%,'SA','SP'};
+groups = {'G'};%,'P','A'}%,'SA','SP'};
 for gi=1:length(groups)
     eval(['ZA_' groups{gi} '.AIF = 0*ZA_G.F;']); % Heat lost max SST line from AI
 
@@ -258,112 +259,112 @@ end
 % $$$ plot(ZA_P.AI(ind,:)/1e15,Te);
 % $$$ %caxis([
 % $$$ 
-%%% Difference two runs:
-% $$$ ZA_Gc = ZA_G;ZA_Pc = ZA_P;ZA_Ac = ZA_A;
-
-fields = fieldnames(ZA_G);
-for f = 1:length(fields)
-    if (~(strcmp(fields{f},'NaNst') | strcmp(fields{f},'NaNsu')))
-        eval(['sz = size(ZA_G.' fields{f} ');']);
-        if (sz(2)>1 | strcmp(fields{f}(1:3),'MHT'))
-            eval(['ZA_G.' fields{f} ' = ZA_G.' fields{f} ' - ZA_Gc.' fields{f} ';']);
-            eval(['ZA_A.' fields{f} ' = ZA_A.' fields{f} ' - ZA_Ac.' fields{f} ';']);
-            eval(['ZA_P.' fields{f} ' = ZA_P.' fields{f} ' - ZA_Pc.' fields{f} ';']);
-        end
-    end
-end
-
-
-%%%% Summary schematics:
-ltminW = -45;
-ltmin = -34;
-ltmax = 90;
-[tmp ltminI] = min(abs(yu-ltmin)); % u-point index
-[tmp ltminWI] = min(abs(yu-ltminW)); % 45S
-[tmp ltmaxI] = min(abs(yu-ltmax)); % u-point index
-[tmp lt50I] = min(abs(yu-50)); % u-point index
-indBS = find(~isnan(ZA_P.AI(:,end)),1,'last');
-[X,Y] = ndgrid(yt,Te);
-
-% Below a given temperature:
-% Atl:
-FAb = nansum(ZA_A.Fall(ltminI+1:ltmaxI,:),1)/1e15;
-MAb = nansum(ZA_A.Mall(ltminI+1:ltmaxI,:),1)/1e15;
-NAb = nansum(ZA_A.N(ltminI+1:ltmaxI,:),1)/1e15;
-AA34Sb = ZA_A.AI(ltminI,:)/1e15;
-AA50Nb = ZA_A.AI(lt50I,:)/1e15;
-% Pac:
-FPb = nansum(ZA_P.Fall(ltminI+1:ltmaxI,:),1)/1e15;
-MPb = nansum(ZA_P.Mall(ltminI+1:ltmaxI,:),1)/1e15;
-NPb = nansum(ZA_P.N(ltminI+1:ltmaxI,:),1)/1e15;
-AP34Sb = ZA_P.AI(ltminI,:)/1e15;
-% Glo and BS:
-A34Sb = ZA_G.AI(ltminI,:)/1e15;
-ABSPb = ZA_P.AI(indBS,:)/1e15;
-
-% SO:
-FSOb = nansum(ZA_G.Fall(1:ltminI,:),1)/1e15;
-MSOb = nansum(ZA_G.Mall(1:ltminI,:),1)/1e15;
-NSOb = nansum(ZA_G.N(1:ltminI,:),1)/1e15;
-
-% SO and warm route:
-FWRb = nansum(ZA_G.Fall((ltminWI+1):ltminI,:),1)/1e15;
-MWRb = nansum(ZA_G.Mall((ltminWI+1):ltminI,:),1)/1e15;
-NWRb = nansum(ZA_G.N((ltminWI+1):ltminI,:),1)/1e15;
-
-if (exist('ZA_SA'))
-% SO Atlantic and SO Pacific surface forcing:
-FSAb = nansum(ZA_SA.Fall(1:ltminI,:),1)/1e15;
-FSPb = nansum(ZA_SP.Fall(1:ltminI,:),1)/1e15;
-FWRAb = nansum(ZA_SA.Fall((ltminWI+1):ltminI,:),1)/1e15;
-FWRPb = nansum(ZA_SP.Fall((ltminWI+1):ltminI,:),1)/1e15;
-else
-FSAb = zeros(size(Te));
-FSPb = FSAb;FWRAb = FSAb;FWRPb=FSAb;    
-end
-
-A45Sb = ZA_G.AI(ltminWI,:)/1e15;
-
-% Residuals by basin:
-RESP = FPb+MPb+AP34Sb-NPb-ABSPb;
-RESA = FAb+MAb+AA34Sb-NAb+ABSPb;
-RESS = FSOb+MSOb-A34Sb-NSOb; % All checks out.
-
-% Summary numbers at temps:
-%sT = [-3 5 10 15 20 34];
-sT = [-3 15 20 34];
-for Ti=(length(sT)-1):-1:1
-    [tmp indL] = min(abs(Te-sT(Ti)));
-    [tmp indU] = min(abs(Te-sT(Ti+1)));
-    
-    disp(' ')
-    disp(['Temperatures ' num2str(Te(indL)) 'C - ' num2str(Te(indU)) 'C:'])
-    disp(['-------------------------------------------------------------'])
-    disp(sprintf('Surface Forcing (into layer) Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f (Atl = %5.2f, Pac = %5.2f), WR = %5.2f (Atl = %5.2f, Pac = %5.2f)',FPb(indU)-FPb(indL),FAb(indU)-FAb(indL),FSOb(indU)-FSOb(indL),FSAb(indU)-FSAb(indL),FSPb(indU)-FSPb(indL),FWRb(indU)-FWRb(indL),FWRAb(indU)-FWRAb(indL),FWRPb(indU)-FWRPb(indL)))
-    disp(sprintf('Mixing      (flux at bottom) Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f, WR = %5.2f',MPb(indL),MAb(indL),MSOb(indL),MWRb(indL)))
-    disp(sprintf('Transport 34S   (into layer) Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f',AP34Sb(indU)-AP34Sb(indL),AA34Sb(indU)-AA34Sb(indL),A34Sb(indU)-A34Sb(indL)))
-    disp(sprintf('Transport 45S   (into layer) SO = %5.2f',A45Sb(indU)-A45Sb(indL)))
-    disp(sprintf('Transport 50N   (into layer) Atlantic = %5.2f',AA50Nb(indU)-AA50Nb(indL)))
-    disp(sprintf('Tendency        (into layer) Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f, WR = %5.2f',NPb(indU)-NPb(indL),NAb(indU)-NAb(indL),NSOb(indU)-NSOb(indL),NWRb(indU)-NWRb(indL)))
-    disp(sprintf('Transport BS    (into layer)            %5.2f.',ABSPb(indU)-ABSPb(indL)))
-    disp(sprintf('Residuals                    Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f',RESP(indU)-RESP(indL),RESA(indU)-RESA(indL),RESS(indU)-RESS(indL)))
-end
-
-% Global:
-indL = 1;indU=TL+1;
-for i=1:1
-    disp(' ')
-    disp(['Temperatures ' num2str(Te(indL)) 'C - ' num2str(Te(indU)) 'C:'])
-    disp(['-------------------------------------------------------------'])
-    disp(sprintf('Surface Forcing (into layer) Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f, WR = %5.2f',FPb(indU)-FPb(indL),FAb(indU)-FAb(indL),FSOb(indU)-FSOb(indL),FWRb(indU)-FWRb(indL)))
-    disp(sprintf('Mixing      (flux at bottom) Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f, WR = %5.2f',MPb(indL),MAb(indL),MSOb(indL),MWRb(indL)))
-    disp(sprintf('Transport 32S   (into layer) Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f, WR = %5.2f',AP34Sb(indU)-AP34Sb(indL),AA34Sb(indU)-AA34Sb(indL),A34Sb(indU)-A34Sb(indL)))
-    disp(sprintf('Transport 45S   (into layer) SO = %5.2f',A45Sb(indU)-A45Sb(indL)))
-    disp(sprintf('Transport 50N   (into layer) Atlantic = %5.2f',AA50Nb(indU)-AA50Nb(indL)))
-    disp(sprintf('Tendency        (into layer) Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f, WR = %5.2f',NPb(indU)-NPb(indL),NAb(indU)-NAb(indL),NSOb(indU)-NSOb(indL),NWRb(indU)-NWRb(indL)))
-    disp(sprintf('Transport BS    (into layer)          = %5.2f',ABSPb(indU)-ABSPb(indL)))
-    disp(sprintf('Residuals                    Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f',RESP(indU)-RESP(indL),RESA(indU)-RESA(indL),RESS(indU)-RESS(indL)))
-end
+% $$$ %%% Difference two runs:
+% $$$ % $$$ ZA_Gc = ZA_G;ZA_Pc = ZA_P;ZA_Ac = ZA_A;
+% $$$ 
+% $$$ fields = fieldnames(ZA_G);
+% $$$ for f = 1:length(fields)
+% $$$     if (~(strcmp(fields{f},'NaNst') | strcmp(fields{f},'NaNsu')))
+% $$$         eval(['sz = size(ZA_G.' fields{f} ');']);
+% $$$         if (sz(2)>1 | strcmp(fields{f}(1:3),'MHT'))
+% $$$             eval(['ZA_G.' fields{f} ' = ZA_G.' fields{f} ' - ZA_Gc.' fields{f} ';']);
+% $$$             eval(['ZA_A.' fields{f} ' = ZA_A.' fields{f} ' - ZA_Ac.' fields{f} ';']);
+% $$$             eval(['ZA_P.' fields{f} ' = ZA_P.' fields{f} ' - ZA_Pc.' fields{f} ';']);
+% $$$         end
+% $$$     end
+% $$$ end
+% $$$ 
+% $$$ 
+% $$$ %%%% Summary schematics:
+% $$$ ltminW = -45;
+% $$$ ltmin = -34;
+% $$$ ltmax = 90;
+% $$$ [tmp ltminI] = min(abs(yu-ltmin)); % u-point index
+% $$$ [tmp ltminWI] = min(abs(yu-ltminW)); % 45S
+% $$$ [tmp ltmaxI] = min(abs(yu-ltmax)); % u-point index
+% $$$ [tmp lt50I] = min(abs(yu-50)); % u-point index
+% $$$ indBS = find(~isnan(ZA_P.AI(:,end)),1,'last');
+% $$$ [X,Y] = ndgrid(yt,Te);
+% $$$ 
+% $$$ % Below a given temperature:
+% $$$ % Atl:
+% $$$ FAb = nansum(ZA_A.Fall(ltminI+1:ltmaxI,:),1)/1e15;
+% $$$ MAb = nansum(ZA_A.Mall(ltminI+1:ltmaxI,:),1)/1e15;
+% $$$ NAb = nansum(ZA_A.N(ltminI+1:ltmaxI,:),1)/1e15;
+% $$$ AA34Sb = ZA_A.AI(ltminI,:)/1e15;
+% $$$ AA50Nb = ZA_A.AI(lt50I,:)/1e15;
+% $$$ % Pac:
+% $$$ FPb = nansum(ZA_P.Fall(ltminI+1:ltmaxI,:),1)/1e15;
+% $$$ MPb = nansum(ZA_P.Mall(ltminI+1:ltmaxI,:),1)/1e15;
+% $$$ NPb = nansum(ZA_P.N(ltminI+1:ltmaxI,:),1)/1e15;
+% $$$ AP34Sb = ZA_P.AI(ltminI,:)/1e15;
+% $$$ % Glo and BS:
+% $$$ A34Sb = ZA_G.AI(ltminI,:)/1e15;
+% $$$ ABSPb = ZA_P.AI(indBS,:)/1e15;
+% $$$ 
+% $$$ % SO:
+% $$$ FSOb = nansum(ZA_G.Fall(1:ltminI,:),1)/1e15;
+% $$$ MSOb = nansum(ZA_G.Mall(1:ltminI,:),1)/1e15;
+% $$$ NSOb = nansum(ZA_G.N(1:ltminI,:),1)/1e15;
+% $$$ 
+% $$$ % SO and warm route:
+% $$$ FWRb = nansum(ZA_G.Fall((ltminWI+1):ltminI,:),1)/1e15;
+% $$$ MWRb = nansum(ZA_G.Mall((ltminWI+1):ltminI,:),1)/1e15;
+% $$$ NWRb = nansum(ZA_G.N((ltminWI+1):ltminI,:),1)/1e15;
+% $$$ 
+% $$$ if (exist('ZA_SA'))
+% $$$ % SO Atlantic and SO Pacific surface forcing:
+% $$$ FSAb = nansum(ZA_SA.Fall(1:ltminI,:),1)/1e15;
+% $$$ FSPb = nansum(ZA_SP.Fall(1:ltminI,:),1)/1e15;
+% $$$ FWRAb = nansum(ZA_SA.Fall((ltminWI+1):ltminI,:),1)/1e15;
+% $$$ FWRPb = nansum(ZA_SP.Fall((ltminWI+1):ltminI,:),1)/1e15;
+% $$$ else
+% $$$ FSAb = zeros(size(Te));
+% $$$ FSPb = FSAb;FWRAb = FSAb;FWRPb=FSAb;    
+% $$$ end
+% $$$ 
+% $$$ A45Sb = ZA_G.AI(ltminWI,:)/1e15;
+% $$$ 
+% $$$ % Residuals by basin:
+% $$$ RESP = FPb+MPb+AP34Sb-NPb-ABSPb;
+% $$$ RESA = FAb+MAb+AA34Sb-NAb+ABSPb;
+% $$$ RESS = FSOb+MSOb-A34Sb-NSOb; % All checks out.
+% $$$ 
+% $$$ % Summary numbers at temps:
+% $$$ %sT = [-3 5 10 15 20 34];
+% $$$ sT = [-3 15 20 34];
+% $$$ for Ti=(length(sT)-1):-1:1
+% $$$     [tmp indL] = min(abs(Te-sT(Ti)));
+% $$$     [tmp indU] = min(abs(Te-sT(Ti+1)));
+% $$$     
+% $$$     disp(' ')
+% $$$     disp(['Temperatures ' num2str(Te(indL)) 'C - ' num2str(Te(indU)) 'C:'])
+% $$$     disp(['-------------------------------------------------------------'])
+% $$$     disp(sprintf('Surface Forcing (into layer) Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f (Atl = %5.2f, Pac = %5.2f), WR = %5.2f (Atl = %5.2f, Pac = %5.2f)',FPb(indU)-FPb(indL),FAb(indU)-FAb(indL),FSOb(indU)-FSOb(indL),FSAb(indU)-FSAb(indL),FSPb(indU)-FSPb(indL),FWRb(indU)-FWRb(indL),FWRAb(indU)-FWRAb(indL),FWRPb(indU)-FWRPb(indL)))
+% $$$     disp(sprintf('Mixing      (flux at bottom) Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f, WR = %5.2f',MPb(indL),MAb(indL),MSOb(indL),MWRb(indL)))
+% $$$     disp(sprintf('Transport 34S   (into layer) Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f',AP34Sb(indU)-AP34Sb(indL),AA34Sb(indU)-AA34Sb(indL),A34Sb(indU)-A34Sb(indL)))
+% $$$     disp(sprintf('Transport 45S   (into layer) SO = %5.2f',A45Sb(indU)-A45Sb(indL)))
+% $$$     disp(sprintf('Transport 50N   (into layer) Atlantic = %5.2f',AA50Nb(indU)-AA50Nb(indL)))
+% $$$     disp(sprintf('Tendency        (into layer) Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f, WR = %5.2f',NPb(indU)-NPb(indL),NAb(indU)-NAb(indL),NSOb(indU)-NSOb(indL),NWRb(indU)-NWRb(indL)))
+% $$$     disp(sprintf('Transport BS    (into layer)            %5.2f.',ABSPb(indU)-ABSPb(indL)))
+% $$$     disp(sprintf('Residuals                    Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f',RESP(indU)-RESP(indL),RESA(indU)-RESA(indL),RESS(indU)-RESS(indL)))
+% $$$ end
+% $$$ 
+% $$$ % Global:
+% $$$ indL = 1;indU=TL+1;
+% $$$ for i=1:1
+% $$$     disp(' ')
+% $$$     disp(['Temperatures ' num2str(Te(indL)) 'C - ' num2str(Te(indU)) 'C:'])
+% $$$     disp(['-------------------------------------------------------------'])
+% $$$     disp(sprintf('Surface Forcing (into layer) Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f, WR = %5.2f',FPb(indU)-FPb(indL),FAb(indU)-FAb(indL),FSOb(indU)-FSOb(indL),FWRb(indU)-FWRb(indL)))
+% $$$     disp(sprintf('Mixing      (flux at bottom) Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f, WR = %5.2f',MPb(indL),MAb(indL),MSOb(indL),MWRb(indL)))
+% $$$     disp(sprintf('Transport 32S   (into layer) Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f, WR = %5.2f',AP34Sb(indU)-AP34Sb(indL),AA34Sb(indU)-AA34Sb(indL),A34Sb(indU)-A34Sb(indL)))
+% $$$     disp(sprintf('Transport 45S   (into layer) SO = %5.2f',A45Sb(indU)-A45Sb(indL)))
+% $$$     disp(sprintf('Transport 50N   (into layer) Atlantic = %5.2f',AA50Nb(indU)-AA50Nb(indL)))
+% $$$     disp(sprintf('Tendency        (into layer) Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f, WR = %5.2f',NPb(indU)-NPb(indL),NAb(indU)-NAb(indL),NSOb(indU)-NSOb(indL),NWRb(indU)-NWRb(indL)))
+% $$$     disp(sprintf('Transport BS    (into layer)          = %5.2f',ABSPb(indU)-ABSPb(indL)))
+% $$$     disp(sprintf('Residuals                    Indo-Pac = %5.2f, Atlantic = %5.2f, SO = %5.2f',RESP(indU)-RESP(indL),RESA(indU)-RESA(indL),RESS(indU)-RESS(indL)))
+% $$$ end
 
 % $$$ % Global 0C-ref:
 % $$$ FAb = nansum(ZA_A.F(ltminI+1:ltmaxI,:)+ZA_A.P(ltminI+1:ltmaxI,:),1)/1e15;
@@ -423,6 +424,11 @@ fields = { ...
 % $$$           {'Mall',-1./repmat(dy,[1 TL+1])/1e12,'Mixing',[-20 20],0.5,'TW/$^\circ$latitude'}, ...
 % $$$           {'Jdia',1./repmat(dy,[1 TL+1])/1e12,'Total',[-20 20],0.5,'TW/$^\circ$latitude'}, ...
 % $$$           {'N',1./repmat(dy,[1 TL+1])/1e12,'Tendency',[-20 20],0.5,'TW/$^\circ$latitude'}, ...
+};
+
+% NumMix:
+fields = { ...
+          {'I',-1./repmat(dy,[1 TL+1])/1e12,'Numerical Mixing',[-20 20],1,'TW/$^\circ$latitude'}, ...
 };
 
 rego = [3 1 2];
@@ -769,7 +775,7 @@ for i=1:(length(fields))
 end     
 
 %% Plot lat-T diffusivity:
-load([base model sprintf('_output%03d_diff_cbt_T.mat',outputs(1))]);
+load([base model sprintf('_output%03d_diff_cbt_T.mat',121)]);%outputs(1))]);
 
 diff_cbt_G = nanmonmean(diff_cbt_T_G,3,ndays);
 diff_cbt_P = nanmonmean(diff_cbt_T_P,3,ndays);

@@ -56,10 +56,10 @@ rr = 1;
     ycur = 1;
 
 % Load Variable and calculate mean:
-reg = 'GulfSt_42pm0p5';
+reg = 'EqPM2';
 load([base model sprintf(['_output%03d_varsat_' reg '.mat'],outputs(1))]);
 
-vars = {'temp','mld','ndif','vdif','vnlc'};
+vars = {'temp','mld','ndif','vdif','vnlc','u_sq','v_sq','u','v','w_sq','w','Tdxsq','Tdysq','Tdzsq'};
 for i=1:length(vars)
     eval(['sz = size(' vars{i} ');']);
     sz(end) = 12;
@@ -78,13 +78,6 @@ for i=1:length(vars)
     eval([vars{i} ' = mean(' vars{i} 'all,length(sz));']);
     eval(['clear ' vars{i} 'all;']);
 end
-
-load([base model sprintf(['_output%03d_varsat_' reg '.mat'],95)]);
-EKE = u_sq - u.^2 + v_sq-v.^2;
-wvar = w_sq - w.^2;
-Tdhsq = Tdxsq+Tdysq;
-clear u v u_sq v_sq w_sq w Tdxsq Tdysq;
-vars = {'temp','mld','EKE','wvar','Tdhsq','Tdzsq'};
 
 [xL,zL,tL] = size(temp);
 TL = length(T);
@@ -166,6 +159,7 @@ for ti=1:tL
         tvec = squeeze(temp(xi,:,ti));
         zvec = -Zt(xi,:);
         tvec(isnan(tvec)) = -1000;
+        tvec(tvec == 0) = -1000;
         tvec = tvec - 0.01*(1:zL);
         Zi(xi,:,ti) = interp1(tvec,zvec,T,'linear');
         ind = find(~isnan(Zi(xi,:,ti)),1,'last');
@@ -176,9 +170,9 @@ Xi = repmat(Xt(:,1),[1 TL]);
 
 var = cumsum(vdif+vnlc,2,'reverse'); % Vertical Mixing Flux
 var = ndif; % Numerical mixing
-var = EKE;
-var = wvar;
-var = Tdhsq;
+var = u_sq - u.^2 + v_sq-v.^2; % EKE
+var = w_sq - w.^2; % Vertical EKE
+var = Tdxsq+Tdysq; % Horizontal T differences
 var = Tdzsq;
 
 months = {[1:12]};
@@ -189,8 +183,14 @@ months = {[1:12]};
     %Colormap and continents:
 % $$$     sp = 1;
 % $$$     clim = [-30 0];
-    sp = 1;
-    clim = [-50 50];
+    sp = 0.01;
+    clim = [0 0.3];
+    sp = 0.1e-8;
+    clim = [0 3e-8];
+    sp = 0.05e-9;
+    clim = [0 1e-9];
+    sp = 0.5;
+    clim = [0 10];
 % $$$     sp = 0.01;
 % $$$     clim = [0 0.3];
 % $$$     sp = 1e-9;
@@ -200,7 +200,7 @@ months = {[1:12]};
 % $$$     sp = 0.2;
 % $$$     clim = [0 10];
 
-    cCH = 0; % 0 = symmetric redblue
+    cCH = 1; % 0 = symmetric redblue
              % 1 = negative definite parula
              % 2 = negative parula with +ve's possible
     if (cCH==0)
@@ -220,7 +220,7 @@ months = {[1:12]};
         cmap(end-1,:) = (cmap(end-1,:)+cmap(end,:))/2;
     end
     if (cCH == 2)
-        buf = 3;
+        buf = 2;
         clim = [clim(1) buf*sp];
         cpts = [-1e10 clim(1):sp:clim(2) 1e10];
         cmap(end+1,:) = cmap(end,:); % 1st positive bin
@@ -230,42 +230,39 @@ months = {[1:12]};
                          cmap(end-buf+1,:)*(buf-1-ii)/(buf-1);
         end
     end        
-    
     cmap = flipud(cmap);
-    % ACCESS-OM2 vertical res:
-    labels = {'(a) GFDL50','(b) KDS50','(c) KDS75','(d) KDS100','(e) KDS135'};
-    poss = [0.0695    0.67      0.3952    0.2690; ...
-            0.5    0.67    0.3952    0.2690; ...
-            0.0695    0.37    0.3952    0.2690; ...
-            0.5    0.37    0.3952    0.2690; ...
-            0.0695    0.0685    0.3952    0.2690; ...
-            0.5    0.0685    0.3952    0.2690];    
+    
+    % MOM025 kb3seg example:
+    labels = {'(a) Numerical Mixing','(b) Vertical Mixing'};%,'(c) KDS75','(d) KDS100','(e) KDS135'};
+    poss = [0.1300    0.1100    0.4154    0.3355; ...
+           0.1300    0.48100    0.4154    0.3355;];    
     
     % MOM025 Control dif vars:
-% $$$     labels = {'(a) Numerical Mixing','(b) Vertical Mixing','(c) $\overline{u''u''}+\overline{v''v''}$', ...
-% $$$               '(d) $\overline{w''w''}$','(e) $|\Delta_x T|^2 + |\Delta_y T|^2$','(f) $|\Delta_z T|^2$'};
-    labels = {'(a) Numerical Mixing','(b) Vertical Mixing','(a) $\overline{u''u''}+\overline{v''v''}$', ...
+    % ACCESS-OM2 vertical res:
+    %    labels = {'(a) GFDL50','(b) KDS50','(c) KDS75','(d) KDS100','(e) KDS135'};
+    labels = {'(a) $\overline{u''u''}+\overline{v''v''}$', ...
               '(b) $\overline{w''w''}$','(c) $|\Delta_x T|^2 + |\Delta_y T|^2$','(d) $|\Delta_z T|^2$'};
-    units = {'$m^2s^{-1}$','$m^2s^{-1}$','$^\circ C^2$','$^\circ C^2$'};
-    poss = [0.0695    0.67      0.36    0.2690; ...
-            0.52    0.67    0.36    0.2690; ...
-            0.0695    0.37    0.36    0.2690; ...
-            0.52    0.37    0.36    0.2690; ...
-            0.0695    0.0685    0.36    0.2690; ...
-            0.52    0.0685    0.36    0.2690];    
+    units = {'$m^2s^{-2}$','$m^2s^{-2}$','$^\circ C^2$','$^\circ C^2$'};
+    poss = [0.05500    0.48100    0.4   0.3355; ...
+           0.53500    0.48100    0.4    0.3355; ...
+           0.05500    0.1100    0.4     0.3355; ...
+           0.53500    0.1100    0.4     0.3355;];    
 
 % $$$ figure;
 % $$$ set(gcf,'Position',[1          36        1920         970]);
 set(gcf,'defaulttextfontsize',15);
 set(gcf,'defaultaxesfontsize',15);
+rr = 4;
 for i=1:length(months)
-    subplot(3,2,rr);
-    contourf(Xi,nanmonmean(Zi(:,:,months{i}),3,ndays(months{i})),nanmonmean(var(:,:,months{i}),3,ndays(months{i})),cpts,'linestyle','none');
-% $$$     contourf(Xu,-Zu,nanmonmean(var(:,:,months{i}),3,ndays(months{i})),cpts,'linestyle','none');
+    subplot(2,2,rr);
+% $$$     contourf(Xi,nanmonmean(Zi(:,:,months{i}),3,ndays(months{i})),nanmonmean(var(:,:,months{i}),3,ndays(months{i})),cpts,'linestyle','none');
+    contourf(Xu,-Zu,nanmonmean(var(:,:,months{i}),3,ndays(months{i})),cpts,'linestyle','none');
     hold on;
-    [c,h] = contour(Xt,-Zt,nanmonmean(temp(:,:,months{i}),3,ndays(months{i})),[0:1:35],'-k');
+    Tout = nanmonmean(temp(:,:,months{i}),3,ndays(months{i}));
+    Tout(Tout==0) = NaN;
+    [c,h] = contour(Xt,-Zt,Tout,[0:1:35],'-k');
     clabel(c,h,[0:2:35]);
-    [c,h] = contour(Xt,-Zt,nanmonmean(temp(:,:,months{i}),3,ndays(months{i})),[22.5 22.5],'-k','linewidth',2);
+    [c,h] = contour(Xt,-Zt,Tout,[22.5 22.5],'-k','linewidth',2);
 % $$$ if (strcmp(model,'MOM01'))
 % $$$     mnu = monthsu01{i};
 % $$$ else
@@ -278,14 +275,14 @@ for i=1:length(months)
 % $$$                 'color',ucol);
 % $$$ clabel(c,h,'color','w');
     plot(Xu(:,1),-monmean(mld(:,months{i}),2,ndays(months{i})),'--','color',[0 0.5 0],'linewidth',3);
-    ylim([-500 0]);
-    xlim([-80 -12]);
-% $$$     xlim([-200 -80]);
+    ylim([-200 0]);
+% $$$     xlim([-80 -12]);
+    xlim([-200 -80]);
 % $$$     if (rr == 2 | rr == 4 | rr == 5)
     if (rr >= 2)
         cb = colorbar;
-% $$$         ylabel(cb,units{rr-2});
-        ylabel(cb,'Wm$^{-2}$');
+        ylabel(cb,units{rr});
+% $$$         ylabel(cb,'Wm$^{-2}$');
     end
     if (rr >=4)
         xlabel('Longitude ($^\circ$E)');
