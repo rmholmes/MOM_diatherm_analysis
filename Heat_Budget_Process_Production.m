@@ -1,41 +1,41 @@
 % This script processes the heat budget and associated variables in
 % MOM025 or MOM01 simulations and save's into .mat files
 
-baseL = '/short/e14/rmh561/mom/archive/';
+baseL = '/g/data/e14/mv7494/access-om2/archive/';
+% $$$ baseL = '/short/e14/rmh561/mom/archive/';
 % $$$ baseL = '/g/data/e14/rmh561/access-om2/archive/';
 % $$$ baseL = '/g/data/e14/rmh561/mom/archive/';
 % $$$ baseL = '/short/e14/rmh561/access-om2/archive/';
 % $$$ baseL = '/srv/ccrc/data03/z3500785/';
 
 % MOM-SIS025:
-model = 'MOM025_AMOCOFF';
-baseD = [baseL 'MOM_HeatDiag_AMOCOFF/']; %Data Directory.
-ICdir = ['/g/data/e14/rmh561/mom/archive/MOM_HeatDiag_kb3seg/restart100/'];
-% $$$ % ACCESS-OM2:
-% $$$ model = 'ACCESS-OM2_025deg_jra55_iaf';
-% $$$ baseD = [baseL '025deg_jra55_iaf_Maurice/']; %Data Directory.
-% $$$ ICdir = [baseL '025deg_jra55_iaf_Maurice/'];
+model = 'ACCESS-OM2_025deg_jra55_iaf';
+baseD = [baseL '025deg_jra55_iaf/']; %Data Directory.
+ICdir = [baseL '025deg_jra55_iaf/'];
 % $$$ % MOM-SIS01:
 % $$$ model = 'MOM01';
 % $$$ baseD = [baseL 'MOM01_HeatDiag/']; %Data Directory.
 
-outD = [baseD 'mat_data/'];
+% $$$ outD = [baseD 'mat_data/'];
+outD = ['/g/data/e14/rmh561/access-om2/025deg_jra55_iaf/mat_data/'];
 rstbaseD = baseD;
 
-% $$$ post = 'ocean/'; % For ACCESS-OM2 output coulpled;
-post = ''; % For MOM-SIS.
+post = 'ocean/'; % For ACCESS-OM2 output coulpled;
+% $$$ post = ''; % For MOM-SIS.
 
 % term options:
-haveRedi = 0; % 1 = Redi diffusion is on, 0 = off
-haveGM = 0; % 1 = GM is on, 0 = off;
+haveRedi = 1; % 1 = Redi diffusion is on, 0 = off
+haveGM = 1; % 1 = GM is on, 0 = off;
 haveSUB = 1; % 1 = submeso is on, 0 = off;
 haveMDS = 0; % 1 = MDS is on, 0 = off;
 haveSIG = 0; % 1 = SIG is on, 0 = off;
-haveMIX = 1; % 1 = Do mixing components (vdiffuse_diff_cbt_*), 0 = don't. 
+haveMIX = 0; % 1 = Do mixing components (vdiffuse_diff_cbt_*), 0 = don't. 
 
 % Processing options:
 doBASE     = 1; % 1 = save BaseVars.mat file
 dodVdtdHdt = 1; % 1 = calculate dVdt/dHdt and save into .nc file
+doVHza       = 1; % 1 = save zonally-integrated V and H fields from
+                % average time slots in a .mat file.
 doNUMDIF   = 1; % 1 = calculate tempdiff x,y,T,t and save into .nc file
 doSGMviac  = 0; % 1 = calculate SUB/GM influence via binned
                 % convergence (otherwise uses lateral flux). The
@@ -283,29 +283,33 @@ netcdf.close(ncid);
 
 end
 
-% $$$ % Calculate non-snap zonal-average annual-average volumes:
-% $$$ V = zeros(yL,TL,tL);
-% $$$ H = zeros(yL,TL,tL);
-% $$$ for ti=1:tL
-% $$$     for zi=1:zL
-% $$$         sprintf('Calculating Vsnap and Hsnap later months time %03d of %03d, depth %02d of %02d',ti,tL,zi,zL)
-% $$$ 
-% $$$         temp = ncread(fname,'temp',[1 1 zi ti],[xL yL 1 1]);
-% $$$         temp(~mask(:,:,zi)) = NaN;
-% $$$         if (max(max(temp))>120);temp = temp-273.15;end;
-% $$$         Vol = ncread(fname,'dzt',[1 1 zi ti],[xL yL 1 1]).*area;
-% $$$         Vol(isnan(Vol)) = 0;
-% $$$         
-% $$$         for Ti=1:TL
-% $$$             %Accumulate sums:
-% $$$             inds = temp>=Te(Ti) & temp<Te(Ti+1);
-% $$$             V(:,Ti,ti) = V(:,Ti,ti) + nansum(Vol.*inds,1)';
-% $$$             Hlay = Vol.*temp.*inds*rho0*Cp;
-% $$$             Hlay(isnan(Hlay)) = 0;
-% $$$             H(:,Ti,ti) = H(:,Ti,ti) + nansum(Hlay,1)';
-% $$$         end
-% $$$     end
-% $$$ end
+if (doVHza)
+    % Calculate non-snap zonal-average annual-average volumes:
+    V = zeros(yL,TL,tL);
+    H = zeros(yL,TL,tL);
+    for ti=1:tL
+        for zi=1:zL
+            sprintf('Calculating V and H time %03d of %03d, depth %02d of %02d',ti,tL,zi,zL)
+
+            temp = ncread(fname,'temp',[1 1 zi ti],[xL yL 1 1]);
+            temp(~mask(:,:,zi)) = NaN;
+            if (max(max(temp))>120);temp = temp-273.15;end;
+            Vol = ncread(fname,'dzt',[1 1 zi ti],[xL yL 1 1]).*area;
+            Vol(isnan(Vol)) = 0;
+        
+            for Ti=1:TL
+                %Accumulate sums:
+                inds = temp>=Te(Ti) & temp<Te(Ti+1);
+                V(:,Ti,ti) = V(:,Ti,ti) + nansum(Vol.*inds,1)';
+                Hlay = Vol.*temp.*inds*rho0*Cp;
+                Hlay(isnan(Hlay)) = 0;
+                H(:,Ti,ti) = H(:,Ti,ti) + nansum(Hlay,1)';
+            end
+        end
+    end
+    save([outD model sprintf('_output%03d',output) '_VHza.mat'],'V','H','-v7.3');
+end
+
 
 %% Calculate numerical mixing by residual from heat budget and save
 %% back into netcdf file:
@@ -1177,14 +1181,14 @@ end % End doZA
 % $$$ end
 % $$$ %% Swap in non-NaN'd lon/lat:
 % $$$ base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
-% $$$ model = 'MOM025';
+% $$$ model = 'MOM025_kb3seg';
 % $$$ 
-% $$$ load([base model sprintf('_output%03d_BaseVars.mat',8)]);
+% $$$ load([base model sprintf('_output%03d_BaseVars.mat',90)]);
 % $$$ region = 'Global';
 % $$$ 
 % $$$ base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
 % $$$ model = 'MOM025_kb3seg';
-% $$$ for output = [87:90]
+% $$$ for output = [101:110]
 % $$$     save([base model sprintf('_output%03d_BaseVars.mat',output)], ...
 % $$$          'lon','lat','lonu','latu','area','-append');
 % $$$ end
