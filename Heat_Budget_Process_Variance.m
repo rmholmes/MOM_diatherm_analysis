@@ -1,7 +1,7 @@
 % This script extracts specified data from MOM025 and MOM01 runs 
 
-baseL = '/short/e14/rmh561/mom/archive/';
-% $$$ baseL = '/g/data/e14/rmh561/mom/';
+% $$$ baseL = '/short/e14/rmh561/mom/archive/';
+baseL = '/g/data/e14/rmh561/mom/archive/';
 % $$$ baseL = '/short/e14/rmh561/access-om2/archive/';
 % $$$ baseL = '/srv/ccrc/data03/z3500785/';
 % $$$ types = {'kds50','gfdl50','kds75','kds100','kds135'};
@@ -14,8 +14,8 @@ outD = [baseD];
 Ts = [10 15 22.5];
 TL = length(Ts);
 
-output = 95;
-% $$$ for output=86:90
+% $$$ output = 95;
+for output=101:110
 
 %% file-names and grid properties:
 base = [baseD sprintf('output%03d/',output)];
@@ -117,3 +117,4 @@ for Ti=1:TL
 end
 
 
+end
