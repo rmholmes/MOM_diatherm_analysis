@@ -217,7 +217,8 @@ for gi=1:length(groups)
     % Correct surface forcing by residual:
     eval(['ZA_' groups{gi} '.AIF = diff(cat(1,zeros(1,TL+1),ZA_' groups{gi} '.AI-ZA_' ...
           groups{gi} '.AHDR),[],1)-ZA_' groups{gi} '.PI-ZA_' groups{gi} '.F-ZA_' ...
-          groups{gi} '.M-ZA_' groups{gi} '.I-ZA_' groups{gi} '.KPPNL+ZA_' groups{gi} '.N;']);
+          groups{gi} '.M-ZA_' groups{gi} '.I-ZA_' groups{gi} '.KPPNL+ZA_' groups{gi} '.N' ...
+          '-ZA_' groups{gi} '.RED-ZA_' groups{gi} '.K33-ZA_' groups{gi} '.MDS-ZA_' groups{gi} '.SIG;']);
 
     % Fix Atlantic Bering Strait part:
     if (strcmp(groups{gi},'A'))
