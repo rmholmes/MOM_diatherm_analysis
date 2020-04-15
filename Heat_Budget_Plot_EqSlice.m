@@ -8,12 +8,12 @@ base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
 
 RUNS = { ...
 % MOM01-SIS:
-% $$$     {'MOM01',[222]}, ...
+    {'MOM01',[444]}, ...
 % $$$ % MOM025-SIS:
 % $$$     {'MOM025',[8:12]}, ...
 % $$$     {'MOM025',[15:19]}, ...
 % $$$     {'MOM025_kb1em6',[30]}, ...
-    {'MOM025_kb3seg',[101:110]}, ...
+% $$$     {'MOM025_kb3seg',[101:110]}, ...
 % $$$     {'MOM025_kb3seg',[95]}, ...
 % $$$     {'MOM025_kb3seg',[75:79]}, ...
 % $$$     {'MOM025_kb1em5',[94]}, ...
@@ -59,7 +59,7 @@ rr = 1;
 reg = 'EqPM2';
 load([base model sprintf(['_output%03d_varsat_' reg '.mat'],outputs(1))]);
 
-vars = {'temp','mld','ndif','vdif','vnlc','u_sq','v_sq','u','v','w_sq','w','Tdxsq','Tdysq','Tdzsq'};
+vars = {'temp','mld','ndif','vdif','vnlc'};%,'u_sq','v_sq','u','v','w_sq','w','Tdxsq','Tdysq','Tdzsq'};
 for i=1:length(vars)
     eval(['sz = size(' vars{i} ');']);
     sz(end) = 12;
@@ -170,10 +170,10 @@ Xi = repmat(Xt(:,1),[1 TL]);
 
 var = cumsum(vdif+vnlc,2,'reverse'); % Vertical Mixing Flux
 var = ndif; % Numerical mixing
-var = u_sq - u.^2 + v_sq-v.^2; % EKE
-var = w_sq - w.^2; % Vertical EKE
-var = Tdxsq+Tdysq; % Horizontal T differences
-var = Tdzsq;
+% $$$ var = u_sq - u.^2 + v_sq-v.^2; % EKE
+% $$$ var = w_sq - w.^2; % Vertical EKE
+% $$$ var = Tdxsq+Tdysq; % Horizontal T differences
+% $$$ var = Tdzsq;
 
 months = {[1:12]};
 % $$$ months = {[1:12],[3],[7],[11]};
@@ -190,7 +190,7 @@ months = {[1:12]};
     sp = 0.05e-9;
     clim = [0 1e-9];
     sp = 0.5;
-    clim = [0 10];
+    clim = [-50 0];
 % $$$     sp = 0.01;
 % $$$     clim = [0 0.3];
 % $$$     sp = 1e-9;
@@ -200,7 +200,7 @@ months = {[1:12]};
 % $$$     sp = 0.2;
 % $$$     clim = [0 10];
 
-    cCH = 1; % 0 = symmetric redblue
+    cCH = 2; % 0 = symmetric redblue
              % 1 = negative definite parula
              % 2 = negative parula with +ve's possible
     if (cCH==0)
@@ -230,33 +230,33 @@ months = {[1:12]};
                          cmap(end-buf+1,:)*(buf-1-ii)/(buf-1);
         end
     end        
-    cmap = flipud(cmap);
+% $$$     cmap = flipud(cmap);
     
     % MOM025 kb3seg example:
     labels = {'(a) Numerical Mixing','(b) Vertical Mixing'};%,'(c) KDS75','(d) KDS100','(e) KDS135'};
-    poss = [0.1300    0.1100    0.4154    0.3355; ...
-           0.1300    0.48100    0.4154    0.3355;];    
-    
-    % MOM025 Control dif vars:
-    % ACCESS-OM2 vertical res:
-    %    labels = {'(a) GFDL50','(b) KDS50','(c) KDS75','(d) KDS100','(e) KDS135'};
-    labels = {'(a) $\overline{u''u''}+\overline{v''v''}$', ...
-              '(b) $\overline{w''w''}$','(c) $|\Delta_x T|^2 + |\Delta_y T|^2$','(d) $|\Delta_z T|^2$'};
-    units = {'$m^2s^{-2}$','$m^2s^{-2}$','$^\circ C^2$','$^\circ C^2$'};
-    poss = [0.05500    0.48100    0.4   0.3355; ...
-           0.53500    0.48100    0.4    0.3355; ...
-           0.05500    0.1100    0.4     0.3355; ...
-           0.53500    0.1100    0.4     0.3355;];    
+    poss = [0.1300    0.4800    0.4154    0.3355; ...
+            0.1300    0.1100    0.4154    0.3355;];    
+% $$$     
+% $$$     % MOM025 Control dif vars:
+% $$$     % ACCESS-OM2 vertical res:
+% $$$     %    labels = {'(a) GFDL50','(b) KDS50','(c) KDS75','(d) KDS100','(e) KDS135'};
+% $$$     labels = {'(a) $\overline{u''u''}+\overline{v''v''}$', ...
+% $$$               '(b) $\overline{w''w''}$','(c) $|\Delta_x T|^2 + |\Delta_y T|^2$','(d) $|\Delta_z T|^2$'};
+% $$$     units = {'$m^2s^{-2}$','$m^2s^{-2}$','$^\circ C^2$','$^\circ C^2$'};
+% $$$     poss = [0.05500    0.48100    0.4   0.3355; ...
+% $$$            0.53500    0.48100    0.4    0.3355; ...
+% $$$            0.05500    0.1100    0.4     0.3355; ...
+% $$$            0.53500    0.1100    0.4     0.3355;];    
 
 % $$$ figure;
 % $$$ set(gcf,'Position',[1          36        1920         970]);
 set(gcf,'defaulttextfontsize',15);
 set(gcf,'defaultaxesfontsize',15);
-rr = 4;
+rr = 1;
 for i=1:length(months)
-    subplot(2,2,rr);
-% $$$     contourf(Xi,nanmonmean(Zi(:,:,months{i}),3,ndays(months{i})),nanmonmean(var(:,:,months{i}),3,ndays(months{i})),cpts,'linestyle','none');
-    contourf(Xu,-Zu,nanmonmean(var(:,:,months{i}),3,ndays(months{i})),cpts,'linestyle','none');
+    subplot(3,3,9);%rr);
+    contourf(Xi,nanmonmean(Zi(:,:,months{i}),3,ndays(months{i})),nanmonmean(var(:,:,months{i}),3,ndays(months{i})),cpts,'linestyle','none');
+% $$$     contourf(Xu,-Zu,nanmonmean(var(:,:,months{i}),3,ndays(months{i})),cpts,'linestyle','none');
     hold on;
     Tout = nanmonmean(temp(:,:,months{i}),3,ndays(months{i}));
     Tout(Tout==0) = NaN;
@@ -279,12 +279,12 @@ for i=1:length(months)
 % $$$     xlim([-80 -12]);
     xlim([-200 -80]);
 % $$$     if (rr == 2 | rr == 4 | rr == 5)
-    if (rr >= 2)
+    if (rr >= 1)
         cb = colorbar;
-        ylabel(cb,units{rr});
-% $$$         ylabel(cb,'Wm$^{-2}$');
+% $$$         ylabel(cb,units{rr});
+        ylabel(cb,'Wm$^{-2}$');
     end
-    if (rr >=4)
+    if (rr >=1)
         xlabel('Longitude ($^\circ$E)');
     end
     if (rr==1 | rr == 3 | rr == 5)
@@ -293,9 +293,9 @@ for i=1:length(months)
     if (rr == 2 | rr == 4)
         set(gca,'yticklabel',[]);
     end
-    if (rr <= 3)
-        set(gca,'xticklabel',[]);
-    end
+% $$$     if (rr <= 3)
+% $$$         set(gca,'xticklabel',[]);
+% $$$     end
     caxis(clim);
     text(-199,-15,labels{rr},'Backgroundcolor','w','FontSize',15,'margin',0.5);
     set(gca,'Position',poss(rr,:));
