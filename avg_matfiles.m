@@ -10,7 +10,7 @@ model = 'MOM025_kb3seg';
 outputs = [101:120];
 onum = 101120;
 
-anavg = [zeros(10,1); ones(10,1)]; % Take annual average (choose these
+anavg = [ones(10,1); zeros(10,1)]; % Take annual average (choose these
                                    % manually for flexibility)
 
 %%%% Global budget
@@ -39,7 +39,7 @@ for i=2:length(outputs)
             ndays = diff(time_snap);
         end
         for ii=1:length(names)
-            eval(['GWB.' names{ii} ' = monmean(GWB.' names{ii} ',3,ndays);']);
+            eval(['GWB.' names{ii} ' = monmean(GWB.' names{ii} ',2,ndays);']);
         end
     end
         
