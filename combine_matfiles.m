@@ -1,7 +1,7 @@
 
-%This script combines the MOM01 3-month files into yearly files.
+%This script combines multiple .mat files into a single file
+%(originally aimed at MOM01).
 base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
-% $$$ base = '/g/data/e14/rmh561/MOM01_HeatDiag/mat_data/';
 model = 'MOM01';
 
 % $$$ for tttt=[1 2]
