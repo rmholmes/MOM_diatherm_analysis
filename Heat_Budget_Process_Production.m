@@ -79,13 +79,12 @@ else
     baser = [rstbaseD sprintf('restart%03d/',restart) post];
 end
 hname = [base 'ocean_heat.nc'];
+fname_month = [base 'ocean_month.nc'];
+fname = [base 'ocean.nc'];
 if (strfind(baseD,'01'))
-    fname = [base 'ocean_month.nc'];
-    m3name = [base 'ocean.nc'];
-else
-    fname = [base 'ocean.nc'];
+    fname_3month = fname;
+    fname = fname_month;
 end
-fname2 = [base 'ocean_month.nc'];
 gname = [base 'ocean_grid.nc'];
 sname = [base 'ocean_snap.nc'];
 wname = [base 'ocean_wmass.nc'];
@@ -100,7 +99,11 @@ yt = ncread(gname,'yt_ocean');yu = ncread(gname,'yu_ocean');
 
 % Vertical grid  -----------------------------------------
 z = ncread(fname,'st_ocean');zL = length(z);
-zw = ncread(fname,'sw_ocean');
+try
+    zw = ncread(fname,'sw_ocean');
+catch
+    zw = ncread(fname_3month,'sw_ocean');
+end
 if (output ==0)
     % Initial dzt accounting for partial bottom cells:
     ht = ncread(gname,'ht');ze = ncread(fname,'st_edges_ocean');
@@ -905,7 +908,7 @@ if (doSURF)
 try
     shflux = ncread(fname,'net_sfc_heating',[1 1 1],[xL yL tLoc]);
 catch
-    shflux = ncread(fname2,'net_sfc_heating',[1 1 1],[xL yL tLoc]);
+    shflux = ncread(fname_month,'net_sfc_heating',[1 1 1],[xL yL tLoc]);
 end    
 SST = squeeze(ncread(fname,'temp',[1 1 1 1],[xL yL 1 tLoc]));
 % $$$ taux = ncread(fname,'tau_x',[1 1 1],[xL yL tL]);
