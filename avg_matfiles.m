@@ -13,6 +13,18 @@ onum = 101120;
 anavg = [ones(10,1); zeros(10,1)]; % Take annual average (choose these
                                    % manually for flexibility)
 
+%%%% BaseVars (take from first output:
+copyfile([base model sprintf('_output%03d_',outputs(1)) 'BaseVars.mat'], ...
+         [base model sprintf('_output%03d_',onum) 'BaseVars.mat']);
+load([base model sprintf('_output%03d_',onum) 'BaseVars.mat']);
+if (find(anavg))         
+    ndays = 1;
+    tL = 1;
+    time = 1;
+    save([base model sprintf('_output%03d_',onum) 'BaseVars.mat'],'time','ndays','tL','-append');
+end
+
+
 %%%% Global budget
 
 load([base model sprintf('_output%03d_',outputs(1)) 'Global_HBud.mat']);
@@ -55,6 +67,56 @@ end
     
 GWB = GWBsave;
 save([base model sprintf('_output%03d_',onum) 'Global_HBud.mat'],'GWB');
+
+%%%% Spatial fluxes
+
+Tls = [0 5 10 15 20 22.5 25 27.5];
+for ind=1:length(Tls)
+    name = [base model sprintf('_output%03d',outputs(1)) '_VertInt_T' strrep(num2str(Tls(ind)),'.','p') 'C.mat']
+    str = load(name);
+    str = rmfield(str,'Tl');
+    strsave = str;
+    names = fieldnames(strsave);
+    if (anavg(1))
+        load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
+        if (~exist('ndays'))
+            ndays = diff(time_snap);
+        end
+        for ii=1:length(names)
+            eval(['strsave.' names{ii} ' = monmean(strsave.' names{ii} ',3,ndays);']);
+        end
+    end
+    
+    for i=2:length(outputs)
+        name = [base model sprintf('_output%03d',outputs(i)) '_VertInt_T' strrep(num2str(Tls(ind)),'.','p') 'C.mat']
+        str = load(name);
+        str = rmfield(str,'Tl');
+    
+        if (anavg(i))
+            load([base model sprintf('_output%03d_BaseVars.mat',outputs(i))]);
+            if (~exist('ndays'))
+                ndays = diff(time_snap);
+            end
+            for ii=1:length(names)
+                eval(['str.' names{ii} ' = monmean(str.' names{ii} ',3,ndays);']);
+            end
+        end
+        
+        for fi=1:length(names)
+            eval(['strsave.' names{fi} ' = strsave.' names{fi} ' + str.' names{fi} ';']);
+        end
+    
+    end
+
+for fi=1:length(names)
+    eval(['strsave.' names{fi} ' = strsave.' names{fi} '/length(outputs);']);
+end
+    
+str = strsave;
+str.Tl = Tls(ind);
+save([base model sprintf('_output%03d_',onum) '_VertInt_T' strrep(num2str(Tls(ind)),'.','p') 'C.mat'],'-struct', 'str')
+
+end
 
 %%%% ZA files
          
