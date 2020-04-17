@@ -114,9 +114,73 @@ end
     
 str = strsave;
 str.Tl = Tls(ind);
-save([base model sprintf('_output%03d_',onum) '_VertInt_T' strrep(num2str(Tls(ind)),'.','p') 'C.mat'],'-struct', 'str')
+save([base model sprintf('_output%03d_',onum) 'VertInt_T' strrep(num2str(Tls(ind)),'.','p') 'C.mat'],'-struct', 'str')
 
 end
+
+%%%% EqPM2
+name = [base model sprintf('_output%03d',outputs(1)) '_varsat_EqPM2.mat']
+str = load(name);
+coords= {'Xt','Xu','Xw','Zt','Zu','Zw'};
+for i=1:length(coords)
+    eval([coords{i} ' = str.' coords{i} ';']);
+    eval(['str=rmfield(str,''' coords{i} ''');']);
+end
+strsave = str;
+names = fieldnames(strsave);
+if (anavg(1))
+    load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
+    if (~exist('ndays'))
+        ndays = diff(time_snap);
+    end
+    for ii=1:length(names)
+        eval(['lsz = length(size(strsave.' names{ii} '));']);
+        if (lsz == 2)
+            eval(['strsave.' names{ii} ' = monmean(strsave.' names{ii} ',2,ndays);']);
+        else 
+            eval(['strsave.' names{ii} ' = monmean(strsave.' names{ii} ',3,ndays);']);
+        end            
+    end
+end
+    
+for i=2:length(outputs)
+    name = [base model sprintf('_output%03d',outputs(i)) '_varsat_EqPM2.mat']
+    str = load(name);
+    coords= {'Xt','Xu','Xw','Zt','Zu','Zw'};
+    for ii=1:length(coords)
+        eval(['str=rmfield(str,''' coords{ii} ''');']);
+    end
+    names = fieldnames(str);
+    if (anavg(i))
+        load([base model sprintf('_output%03d_BaseVars.mat',outputs(i))]);
+        if (~exist('ndays'))
+            ndays = diff(time_snap);
+        end
+        for ii=1:length(names)
+            eval(['lsz = length(size(str.' names{ii} '));']);
+            if (lsz == 2)
+                eval(['str.' names{ii} ' = monmean(str.' names{ii} ',2,ndays);']);
+            else 
+                eval(['str.' names{ii} ' = monmean(str.' names{ii} ',3,ndays);']);
+            end            
+        end
+    end
+    
+    for fi=1:length(names)
+        eval(['strsave.' names{fi} ' = strsave.' names{fi} ' + str.' names{fi} ';']);
+    end
+    
+end
+
+for fi=1:length(names)
+    eval(['strsave.' names{fi} ' = strsave.' names{fi} '/length(outputs);']);
+end
+    
+str = strsave;
+for i=1:length(coords)
+    eval(['str.' coords{i} ' = ' coords{i} ';']);
+end
+save([base model sprintf('_output%03d_',onum) 'varsat_EqPM2.mat'],'-struct', 'str')
 
 %%%% ZA files
          
