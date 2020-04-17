@@ -8,12 +8,12 @@ base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
 
 RUNS = { ...
 % MOM01-SIS:
-    {'MOM01',[444]}, ...
+% $$$     {'MOM01',[444]}, ...
 % $$$ % MOM025-SIS:
 % $$$     {'MOM025',[8:12]}, ...
 % $$$     {'MOM025',[15:19]}, ...
 % $$$     {'MOM025_kb1em6',[30]}, ...
-% $$$     {'MOM025_kb3seg',[101:110]}, ...
+    {'MOM025_kb3seg',[101120]}, ...
 % $$$     {'MOM025_kb3seg',[95]}, ...
 % $$$     {'MOM025_kb3seg',[75:79]}, ...
 % $$$     {'MOM025_kb1em5',[94]}, ...
@@ -44,15 +44,22 @@ rr = 1;
     clearvars -except base RUNS rr outputs model;
     
     load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
-    ndays = diff(time_snap);
-    ndays = ndays(1:12);
+    if (~exist('ndays'))
+        ndays = diff(time_snap);
+        ndays = ndays(1:12);
+    end
     if (ndays(end) <= 0); ndays(end) = 365-ndays(end);end;
     region = 'Global';
-% $$$ region = 'Pacific';
-    nyrs = tL/12;szTe = [TL+1 12 nyrs];szT  = [TL 12 nyrs];
+    nyrs = tL/12;
+    if (round(nyrs)~=nyrs)
+        anavg = 1;
+        nyrs = tL;
+        months = {[1:1]};
+    else
+        anavg = 0;
+        months = {[1:12]};
+    end
     yrs = 1:nyrs;
-    months = 1:12;
-    
     ycur = 1;
 
 % Load Variable and calculate mean:
@@ -62,20 +69,28 @@ load([base model sprintf(['_output%03d_varsat_' reg '.mat'],outputs(1))]);
 vars = {'temp','mld','ndif','vdif','vnlc'};%,'u_sq','v_sq','u','v','w_sq','w','Tdxsq','Tdysq','Tdzsq'};
 for i=1:length(vars)
     eval(['sz = size(' vars{i} ');']);
-    sz(end) = 12;
+    if (~anavg)
+        sz(end) = 12;
+    end
     eval([vars{i} 'all = reshape(' vars{i} ',[sz nyrs]);']);
 end
 for i=2:length(outputs)
     load([base model sprintf(['_output%03d_varsat_' reg '.mat'],outputs(i))]);
     for i=1:length(vars)
         eval(['sz = size(' vars{i} ');']);
-        sz(end) = 12;
+        if (~anavg)
+            sz(end) = 12;
+        end
         eval([vars{i} 'all = cat(4,' vars{i} 'all,reshape(' vars{i} ',[sz nyrs]));']);
     end
 end
 for i=1:length(vars)
     eval(['sz = size(' vars{i} 'all);']);
-    eval([vars{i} ' = mean(' vars{i} 'all,length(sz));']);
+    if (~anavg)
+        eval([vars{i} ' = mean(' vars{i} 'all,length(sz));']);
+    else
+        eval([vars{i} ' = ' vars{i} 'all;']);
+    end
     eval(['clear ' vars{i} 'all;']);
 end
 
@@ -169,13 +184,13 @@ end
 Xi = repmat(Xt(:,1),[1 TL]);
 
 var = cumsum(vdif+vnlc,2,'reverse'); % Vertical Mixing Flux
-var = ndif; % Numerical mixing
+% $$$ var = ndif; % Numerical mixing
 % $$$ var = u_sq - u.^2 + v_sq-v.^2; % EKE
 % $$$ var = w_sq - w.^2; % Vertical EKE
 % $$$ var = Tdxsq+Tdysq; % Horizontal T differences
 % $$$ var = Tdzsq;
 
-months = {[1:12]};
+months = {[1]}%:12]};
 % $$$ months = {[1:12],[3],[7],[11]};
 % $$$ monthsu01 = {[1:4],[1],[3],[4]};
 % $$$ labels = {'Annual','March','July','November'};
@@ -189,7 +204,7 @@ months = {[1:12]};
     clim = [0 3e-8];
     sp = 0.05e-9;
     clim = [0 1e-9];
-    sp = 0.5;
+    sp = 2;
     clim = [-50 0];
 % $$$     sp = 0.01;
 % $$$     clim = [0 0.3];
@@ -252,7 +267,7 @@ months = {[1:12]};
 % $$$ set(gcf,'Position',[1          36        1920         970]);
 set(gcf,'defaulttextfontsize',15);
 set(gcf,'defaultaxesfontsize',15);
-rr = 1;
+rr = 2;
 for i=1:length(months)
     subplot(3,3,9);%rr);
     contourf(Xi,nanmonmean(Zi(:,:,months{i}),3,ndays(months{i})),nanmonmean(var(:,:,months{i}),3,ndays(months{i})),cpts,'linestyle','none');

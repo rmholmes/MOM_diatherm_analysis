@@ -15,7 +15,7 @@ RUNS = { ...
 % $$$     {'MOM025',[15:19]}, ...
 % $$$ % $$$     {'MOM025_kb1em6',[30]}, ...
 % $$$    {'MOM025_kb3seg',[101:110]}, ...
-% $$$     {'MOM025_kb3seg',[101110]}, ...
+    {'MOM025_kb3seg',[101120]}, ...
 % $$$     {'MOM025_RCP45',[0:39]}, ...
 % $$$     {'MOM025_kb3seg',[95]}, ...
 % $$$     {'MOM025_kb3seg_nosubmeso',[91:95]}, ...
@@ -30,7 +30,7 @@ RUNS = { ...
 % $$$     {'ACCESS-OM2_025deg_jra55_ryf8485_gmredi',[73]}, ...
 % $$$ %     {'ACCESS-OM2_025deg_jra55_ryf8485_KDS75',[??]}, ...
 % ACCESS-OM2 1-degree:
-         {'ACCESS-OM2_1deg_ryf_4dt',[51]}, ...
+% $$$          {'ACCESS-OM2_1deg_ryf_4dt',[51]}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_july',[39]}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may_TcenGMS',[36]}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_gfdl50_july',[37]}, ...
@@ -74,11 +74,15 @@ rr = 1;
     TYPE = 'VertInt';
 % $$$     VAR = 'EKE';
 % $$$     TYPE = 'variances';
-    Tl = 22.5;
+    Tls = [15 5];%22.5;
+% $$$     Tls = [22.5 15 5];%22.5;
 % $$$     VAR = 'Tdzsq';
 % $$$     VAR = 'WMTI';
 % $$$     TYPE = 'WMT';
 % $$$     Tl = 19.75;
+    labels = {'(a) $15^\circ$C','(b) $5^\circ$C','(f) $5^\circ$C'};%10$^\circ$C'};%$15^\circ$C'};
+for iii=1:length(Tls)
+    Tl = Tls(iii);
     name = [base model sprintf('_output%03d',outputs(1)) '_' TYPE '_T' strrep(num2str(Tl),'.','p') 'C.mat']
     eval(['load(name,''' VAR ''');']);
     eval([VAR '(isnan(' VAR ')) = 0.0;']);
@@ -89,6 +93,7 @@ rr = 1;
             eval([VAR ' = reshape(' VAR ',[length(' VAR '(:,1,1)) length(' VAR '(1,:,1)) 12 nyrs]);']);
             eval([VAR ' = mean(' VAR '(:,:,:,yrs),4);']);
         end
+        eval([VAR '(' VAR '==0) = NaN;']);
     else
         eval([VAR 'a = ' VAR ';']);
         for i=2:length(outputs)
@@ -101,6 +106,15 @@ rr = 1;
         eval([VAR '(' VAR '==0) = NaN;']);
     end
     eval(['FlM = ' VAR ';']);
+    
+% $$$     % Ratio of FlM and FlI (with averaged output:
+% $$$     name = [base model sprintf('_output%03d',outputs(1)) '_' TYPE '_T' strrep(num2str(Tl),'.','p') 'C.mat']
+% $$$     load(name,'FlI','FlM');
+% $$$     FlM(isnan(FlM)) = 0;
+% $$$     FlI(isnan(FlI)) = 0;
+% $$$     nans = FlM==0.0 | FlI==0.0;
+% $$$     FlM = log10(abs(FlI)./abs(FlM));
+% $$$     FlM(nans) = NaN;
 
 % $$$     FlMs = FlM;
 % $$$     FlMs = FlMs+FlM;
@@ -343,8 +357,8 @@ rr = 1;
     end
 
     [xL,yL] = size(lon);
-    xvec = 1:1:xL;
-    yvec = 1:1:yL;
+    xvec = 1:4:xL;
+    yvec = 1:4:yL;
 % $$$     xvec = 720:1:1320; %-100 -> +50
 % $$$     yvec = 540:1:940; % +15 -> +75
 % $$$     xvec = 880:1:1280; %-60 -> +40
@@ -360,34 +374,17 @@ rr = 1;
 % $$$               '(c) July', ...
 % $$$               '(d) November'};
 % $$$     months = {[1:12]}; 
-    labels = {'Numerical Mixing'};%10$^\circ$C'};%$15^\circ$C'};
 % $$$     labels = {'(b) $\overline{u''u''}+\overline{v''v''}$'};%10$^\circ$C'};%$15^\circ$C'};
 % $$$     labels = {'(d) $|\Delta_x T|^2+|\Delta_y T|^2$'};%\overline{u''u''}+\overline{v''v''}$'};%10$^\circ$C'};%$15^\circ$C'};
 % $$$     labels = {'(f) $|\Delta_z T|^2$'};%\overline{u''u''}+\overline{v''v''}$'};%10$^\circ$C'};%$15^\circ$C'};
     
     %Colormap and continents:
-    sp = 1;
-    clim = [-25 0];
-% $$$     sp = 5;
-% $$$     clim = [-125 125];
-% $$$     sp = 0.001;
-% $$$     clim = [0 0.02];
-% $$$     sp = 2e-10;
-% $$$     clim = [0 4e-9];
-% $$$     sp = 0.5;
-% $$$     clim = [0 20];
-% $$$     sp = 2.5;
-% $$$     clim = [-120 0];
-% $$$     sp = 1;
-% $$$     clim = [-60 0];
-% $$$     sp = 1;
-% $$$     clim = [-60 0];
-% $$$     sp = 1;
-% $$$     clim = [-30 30];
-% $$$     sp = 0.5e-6;
-% $$$     clim = [-0.5e-5 0.5e-5];
+    sp = 5;
+    clim = [-100 0];
+    sp = 0.25;
+    clim = [-2 2];
 
-    cCH = 2; % 0 = symmetric redblue
+    cCH = 0; % 0 = symmetric redblue
              % 1 = negative definite parula
              % 2 = negative parula with +ve's possible
     if (cCH==0)
@@ -430,9 +427,9 @@ rr = 1;
 % $$$ % $$$ %Mean of all months:
 % $$$     cla;
 figure;
-% $$$ set(gcf,'Position',[3          59        1916         914]);
+set(gcf,'Position',[3          59        1916         914]);
 % $$$ set(gcf,'Position',[88         371        1625         603]);
-set(gcf,'Position',[3          59        1476         921]); % Production NumMix first fig.
+% $$$ set(gcf,'Position',[3          59        1476         921]); % Production NumMix first fig.
 % $$$ set(gcf,'Position',[40    83   990   897]); % North Atlantic zoom.
 % $$$ set(gcf,'Position',[3    40   956   963]);
 % $$$ set(gcf,'defaulttextfontsize',15);
@@ -453,6 +450,7 @@ set(gcf,'Position',[3          59        1476         921]); % Production NumMix
 % $$$         subplot(5,3,[10 13]+(i-2));
 % $$$     end
     i = 1;
+% $$$     subplot(3,1,1);
     X = lon(xvec,yvec);
     Y = lat(xvec,yvec);
     if (length(months{i})>1)
@@ -473,7 +471,8 @@ set(gcf,'Position',[3          59        1476         921]); % Production NumMix
 % $$$     if (i==1)
         cb = colorbar;
         if (strcmp(TYPE,'VertInt'))
-            ylabel(cb,'Wm$^{-2}$');
+% $$$             ylabel(cb,'Wm$^{-2}$');
+            ylabel(cb,'$\log_{10}(\mathcal{I}/\mathcal{M})$');
         else
             ylabel(cb,'ms$^{-1}$');
             ylabel(cb,'m$^2$s$^{-2}$');%$^\circ$C$^{2}$');
@@ -507,17 +506,12 @@ set(gcf,'Position',[3          59        1476         921]); % Production NumMix
 % $$$     set(gca,'Position',[poss(i,:)]);
 % $$$     ylim([15 65]);
 % $$$     xlim([-100 10]);
-    ylim([-60 60]);
+    ylim([-65 75]);
 % $$$     set(gca,'FontSize',17);
     colormap(cmap);
-% $$$     text(-277,-54,labels{i},'BackgroundColor','w','Margin',0.5,'FontSize',20);
-    text(-277,52,labels{i},'BackgroundColor','w','Margin',0.5,'FontSize',20);
-% $$$     text(-98,62,labels{i},'BackgroundColor','w','Margin',0.5,'FontSize',17);
-% $$$ % $$$     text(-59.25,-26.5,labels{i},'BackgroundColor','w','Margin',0.5,'FontSize',17);
-% $$$ % $$$     title([strrep(strrep(strrep(strrep(strrep(RUNS{rr}{1},'_',' '),'ACCESS-OM2 ','AOM'),' jra55',''),'ryf8485',''),' may','') ...
-% $$$ % $$$            ' ' num2str(Tl) '$^\circ$C Numerical Mixing']);
-% $$$ end
-    
+    text(-277,70,labels{iii},'BackgroundColor','w','Margin',0.5,'FontSize',20);
+
+    end
 % $$$     % North Atlantic two panel:
 % $$$     set(gca,'Position',[0.1253    0.5318    0.6707    0.4326]);
 % $$$     set(gca,'Position',[0.1253    0.08    0.6707    0.4326]);

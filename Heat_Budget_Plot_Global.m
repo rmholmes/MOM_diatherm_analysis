@@ -4,14 +4,14 @@
 close all;
 clear all;
 
-base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
+base = '/srv/ccrc/data03/z3500785/mom/mat_data/pre_subgm/';
 % $$$ base = 'archive/mat_data/';
 
 RUNS = { ...
 % MOM01-SIS:
-% $$$     {'MOM01',[444]}, ...
+    {'MOM01',[444]}, ...
 % $$$ % MOM025-SIS:
-    {'MOM025_kb3seg',[101120]}, ...
+% $$$     {'MOM025_kb3seg',[101120]}, ...
 % $$$     {'MOM025_kb3seg_nosubmeso',[91]}, ...
 % $$$     {'MOM025',[15:19]}, ...
 % $$$     {'MOM025_kb1em5',[95:99]}, ...
@@ -20,28 +20,30 @@ RUNS = { ...
 % $$$     {'MOM025_btide',[21]}, ...
 % $$$     {'MOM025_wombat',[1978]}, ...
 % ACCESS-OM2 025-degree:
-% $$$     {'ACCESS-OM2_025deg_jra55_ryf8485_gmredi6',[148]}, ...
-% $$$     {'ACCESS-OM2_1deg_ryf',[32]}, ...
-% $$$     {'ACCESS-OM2_025deg_jra55_ryf8485_redi',[59]}, ...
-% $$$     {'ACCESS-OM2_025deg_jra55_ryf8485_gmredi',[73]}, ...
+    {'ACCESS-OM2_025deg_jra55_ryf8485_redi',[59]}, ...
+    {'ACCESS-OM2_025deg_jra55_ryf8485_gmredi',[73]}, ...
+    {'ACCESS-OM2_025deg_jra55_ryf8485_gmredi6',[148]}, ...
+    {'ACCESS-OM2_025deg_jra55_ryf8485',[78]}, ...
 % $$$ %     {'ACCESS-OM2_025deg_jra55_ryf8485_KDS75',[??]}, ...
 % $$$ %     {'ACCESS-OM2_025deg_jra55_ryf8485_gmrediLOW',[??]}, ...
+% $$$          {'ACCESS-OM2_025deg_jra55_iaf',[17:56]}, ...
 % ACCESS-OM2 1-degree:
 % $$$          {'ACCESS-OM2_1deg_ryf_4dt',[51]}, ...
 % $$$          {'ACCESS-OM2_1deg_ryf_4dt',[51]}, ...
 % $$$          {'ACCESS-OM2_1deg_ryf_4dt',[51]}, ...
-         {'ACCESS-OM2_025deg_jra55_iaf',[17:56]}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_july',[39]}, ...
-% $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds75_may',[36]}, ...
-% $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds100_may',[36]}, ...
-% $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds135_may',[36]}, ...
+         {'ACCESS-OM2_1deg_jra55_ryf8485_gfdl50_may',[36]}, ...
+         {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may',[36]}, ...
+         {'ACCESS-OM2_1deg_jra55_ryf8485_kds75_may',[36]}, ...
+         {'ACCESS-OM2_1deg_jra55_ryf8485_kds100_may',[36]}, ...
+         {'ACCESS-OM2_1deg_jra55_ryf8485_kds135_may',[36]}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may_Tcen',[36]}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may_TcenGMS',[36]}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may_kb1em5',[0]}, ...
        };
 
-rr = 1;
-% $$$ for rr = 1:length(RUNS);
+% $$$ rr = 1;
+for rr = 1:length(RUNS);
     rr
     outputs = RUNS{rr}{2};
     model = RUNS{rr}{1};
@@ -73,8 +75,11 @@ rr = 1;
 % $$$     % Annual or Monthly offline Binning:
 % $$$     load([base model sprintf('_output%03d_',outputs(i)) 'GlobalHBud_MonAnBin.mat']);
 % $$$     GWB = GWBann;
-
-        load([base model sprintf('_output%03d_',outputs(i)) region '_HBud.mat']);
+        try
+            load([base model sprintf('_output%03d_',outputs(i)) region '_HBud.mat']);
+        catch        
+            load([base model sprintf('_output%03d_',outputs(i)) region 'HBud.mat']);
+        end
         
         % Fluxes:
         P(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.PME+GWB.RMX,szTe); % PME effective heat flux (W)
@@ -153,19 +158,19 @@ rr = 1;
         G(:,:,ycur:(ycur+nyrs-1)) = dVdt(:,:,ycur:(ycur+nyrs-1)) - JS(:,:,ycur:(ycur+nyrs-1)) + JI(:,:,ycur:(ycur+nyrs-1)); %Water-mass transformation (m3s-1)
 
         % Surface Volume flux base flux (not P!)
-        JSH(:,:,ycur:(ycur+nyrs-1)) = JS(:,:,ycur:(ycur+nyrs-1)).*repmat(Te,[1 tL nyrs])*rho0*Cp;
+        JSH(:,:,ycur:(ycur+nyrs-1)) = JS(:,:,ycur:(ycur+nyrs-1)).*repmat(Te,[1 szTe(2) szTe(3)])*rho0*Cp;
 
         % Interior heat source P:
         PI(:,:,ycur:(ycur+nyrs-1)) = P(:,:,ycur:(ycur+nyrs-1)) - JSH(:,:,ycur:(ycur+nyrs-1));
 
         % Interior heat source Q:
-        QII(:,:,ycur:(ycur+nyrs-1)) = QI(:,:,ycur:(ycur+nyrs-1)) - JI(:,:,ycur:(ycur+nyrs-1)).*repmat(Te,[1 tL nyrs])*rho0*Cp;
+        QII(:,:,ycur:(ycur+nyrs-1)) = QI(:,:,ycur:(ycur+nyrs-1)) - JI(:,:,ycur:(ycur+nyrs-1)).*repmat(Te,[1 szTe(2) szTe(3)])*rho0*Cp;
 
         % Across-isotherm advective heat flux:
-        CIA(:,:,ycur:(ycur+nyrs-1)) = G(:,:,ycur:(ycur+nyrs-1)).*repmat(Te,[1 tL nyrs])*rho0*Cp;
+        CIA(:,:,ycur:(ycur+nyrs-1)) = G(:,:,ycur:(ycur+nyrs-1)).*repmat(Te,[1 szTe(2) szTe(3)])*rho0*Cp;
 
         % External HC Tendency:
-        EHC(:,:,ycur:(ycur+nyrs-1)) = dVdt(:,:,ycur:(ycur+nyrs-1)).*repmat(Te,[1 tL nyrs])*rho0*Cp;
+        EHC(:,:,ycur:(ycur+nyrs-1)) = dVdt(:,:,ycur:(ycur+nyrs-1)).*repmat(Te,[1 szTe(2) szTe(3)])*rho0*Cp;
 
         % Internal HC Tendency:
         N(:,:,ycur:(ycur+nyrs-1)) = dHdt(:,:,ycur:(ycur+nyrs-1)) - EHC(:,:,ycur:(ycur+nyrs-1));
@@ -208,10 +213,10 @@ rr = 1;
         WMT(:,:,ycur:(ycur+nyrs-1)) = WMTM(:,:,ycur:(ycur+nyrs-1))+WMTF(:,:,ycur:(ycur+nyrs-1))+WMTI(:,:,ycur:(ycur+nyrs-1))+WMTR(:,:,ycur:(ycur+nyrs-1));
 
         % WMT HB from B:
-        HWMTM(:,:,ycur:(ycur+nyrs-1)) = rho0*Cp*WMTM(:,:,ycur:(ycur+nyrs-1)).*repmat(T,[1 tL nyrs]);
-        HWMTF(:,:,ycur:(ycur+nyrs-1)) = rho0*Cp*WMTF(:,:,ycur:(ycur+nyrs-1)).*repmat(T,[1 tL nyrs]);
-        HWMTI(:,:,ycur:(ycur+nyrs-1)) = rho0*Cp*WMTI(:,:,ycur:(ycur+nyrs-1)).*repmat(T,[1 tL nyrs]);
-        HWMTR(:,:,ycur:(ycur+nyrs-1)) = rho0*Cp*WMTR(:,:,ycur:(ycur+nyrs-1)).*repmat(T,[1 tL nyrs]);
+        HWMTM(:,:,ycur:(ycur+nyrs-1)) = rho0*Cp*WMTM(:,:,ycur:(ycur+nyrs-1)).*repmat(T,[1 szTe(2) szTe(3)]);
+        HWMTF(:,:,ycur:(ycur+nyrs-1)) = rho0*Cp*WMTF(:,:,ycur:(ycur+nyrs-1)).*repmat(T,[1 szTe(2) szTe(3)]);
+        HWMTI(:,:,ycur:(ycur+nyrs-1)) = rho0*Cp*WMTI(:,:,ycur:(ycur+nyrs-1)).*repmat(T,[1 szTe(2) szTe(3)]);
+        HWMTR(:,:,ycur:(ycur+nyrs-1)) = rho0*Cp*WMTR(:,:,ycur:(ycur+nyrs-1)).*repmat(T,[1 szTe(2) szTe(3)]);
         HWMT(:,:,ycur:(ycur+nyrs-1)) = HWMTM(:,:,ycur:(ycur+nyrs-1))+HWMTF(:,:,ycur:(ycur+nyrs-1))+HWMTI(:,:,ycur:(ycur+nyrs-1))+HWMTR(:,:,ycur:(ycur+nyrs-1));
 
         % Alternative method 3 I from Volume budget (as for spatial structure calc FlI):
@@ -228,11 +233,14 @@ rr = 1;
     yrs = [1:length(P(1,1,:))];
     
     % Print some overall numbers on numerical mixing:
-    Inet = squeeze(sum(I*dT,1));
-    sprintf('Avg. Inet = %5.2f PWdegC',mean(monmean(Inet,2,ndays),3)/1e15);
+    Inet = sum(I*dT,1);
+    [model sprintf('Avg. Inet = %5.2f PWdegC',mean(monmean(Inet,2,ndays(1:12)),3)/1e15)]
     [tmp ind] = min(abs(Te-5));
-    sprintf('Avg. I(5C) = %5.2f PW',mean(monmean(I(ind,:,:),2,ndays),3)/1e15);
-    
+    [model sprintf('Avg. I(5C) = %5.2f PW',mean(monmean(I(ind,:,:),2,ndays(1:12)),3)/1e15)]
+    [tmp ind] = min(abs(Te-22.5));
+    [model sprintf('Avg. I(22.5C) = %5.2f PW',mean(monmean(I(ind,:,:),2,ndays(1:12)),3)/1e15)]
+
+end
 
 % $$$     yrs = [1 5];
 % $$$
