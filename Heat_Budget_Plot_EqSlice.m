@@ -13,17 +13,21 @@ RUNS = { ...
 % $$$     {'MOM025',[8:12]}, ...
 % $$$     {'MOM025',[15:19]}, ...
 % $$$     {'MOM025_kb1em6',[30]}, ...
-    {'MOM025_kb3seg',[101120]}, ...
+% $$$     {'MOM025_kb3seg',[101120]}, ...
 % $$$     {'MOM025_kb3seg',[95]}, ...
 % $$$     {'MOM025_kb3seg',[75:79]}, ...
 % $$$     {'MOM025_kb1em5',[94]}, ...
 % $$$     {'MOM025_wombat',[1978]}, ...
 % ACCESS-OM2 025-degree:
+    {'ACCESS-OM2_025deg_jra55_ryf',[300]}, ...
 % $$$     {'ACCESS-OM2_025deg_jra55_ryf8485',[78]}, ...
 % $$$     {'ACCESS-OM2_025deg_jra55_ryf8485_redi',[59]}, ...
 % $$$     {'ACCESS-OM2_025deg_jra55_ryf8485_gmredi',[73]}, ...
 % $$$ %     {'ACCESS-OM2_025deg_jra55_ryf8485_KDS75',[??]}, ...
 % ACCESS-OM2 1-degree:
+% $$$          {'ACCESS-OM2_1deg_jra55_ryf',[51]}, ...
+% $$$          {'ACCESS-OM2_1deg_jra55_ryf_4dt',[51]}, ...
+% $$$          {'ACCESS-OM2_1deg_jra55_ryf',[52]}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may_Tcen',[36]}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may_TcenGMS',[36]}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_gfdl50_may',[36]}, ...
@@ -34,10 +38,9 @@ RUNS = { ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may_kb1em5',[0]}, ...
        };
 
-set(gcf,'Position',[1923           5        1366         998]);
 
 rr = 1;
-% $$$ for rr = 1:length(RUNS);
+for rr = 1:length(RUNS);
     outputs = RUNS{rr}{2};
     model = RUNS{rr}{1};
 
@@ -67,38 +70,38 @@ reg = 'EqPM2';
 load([base model sprintf(['_output%03d_varsat_' reg '.mat'],outputs(1))]);
 
 vars = {'temp','mld','ndif','vdif','vnlc'};%,'u_sq','v_sq','u','v','w_sq','w','Tdxsq','Tdysq','Tdzsq'};
-for i=1:length(vars)
-    eval(['sz = size(' vars{i} ');']);
-    if (~anavg)
-        sz(end) = 12;
-    end
-    eval([vars{i} 'all = reshape(' vars{i} ',[sz nyrs]);']);
-end
-for i=2:length(outputs)
-    load([base model sprintf(['_output%03d_varsat_' reg '.mat'],outputs(i))]);
-    for i=1:length(vars)
-        eval(['sz = size(' vars{i} ');']);
-        if (~anavg)
-            sz(end) = 12;
-        end
-        eval([vars{i} 'all = cat(4,' vars{i} 'all,reshape(' vars{i} ',[sz nyrs]));']);
-    end
-end
-for i=1:length(vars)
-    eval(['sz = size(' vars{i} 'all);']);
-    if (~anavg)
-        eval([vars{i} ' = mean(' vars{i} 'all,length(sz));']);
-    else
-        eval([vars{i} ' = ' vars{i} 'all;']);
-    end
-    eval(['clear ' vars{i} 'all;']);
-end
+% $$$ for i=1:length(vars)
+% $$$     eval(['sz = size(' vars{i} ');']);
+% $$$     if (~anavg)
+% $$$         sz(end) = 12;
+% $$$     end
+% $$$     eval([vars{i} 'all = reshape(' vars{i} ',[sz nyrs]);']);
+% $$$ end
+% $$$ for i=2:length(outputs)
+% $$$     load([base model sprintf(['_output%03d_varsat_' reg '.mat'],outputs(i))]);
+% $$$     for i=1:length(vars)
+% $$$         eval(['sz = size(' vars{i} ');']);
+% $$$         if (~anavg)
+% $$$             sz(end) = 12;
+% $$$         end
+% $$$         eval([vars{i} 'all = cat(4,' vars{i} 'all,reshape(' vars{i} ',[sz nyrs]));']);
+% $$$     end
+% $$$ end
+% $$$ for i=1:length(vars)
+% $$$     eval(['sz = size(' vars{i} 'all);']);
+% $$$     if (~anavg)
+% $$$         eval([vars{i} ' = mean(' vars{i} 'all,length(sz));']);
+% $$$     else
+% $$$         eval([vars{i} ' = ' vars{i} 'all;']);
+% $$$     end
+% $$$     eval(['clear ' vars{i} 'all;']);
+% $$$ end
 
 [xL,zL,tL] = size(temp);
 TL = length(T);
 
-% $$$ %ACCESS-OM2:
-% $$$ temp = temp-273.15;
+%ACCESS-OM2:
+temp = temp-273.15;
 
 % $$$ %% Plot Temp bias against WOA13:
 % $$$ months = [1:12];
@@ -184,20 +187,21 @@ end
 Xi = repmat(Xt(:,1),[1 TL]);
 
 var = cumsum(vdif+vnlc,2,'reverse'); % Vertical Mixing Flux
-% $$$ var = ndif; % Numerical mixing
+var = ndif; % Numerical mixing
 % $$$ var = u_sq - u.^2 + v_sq-v.^2; % EKE
 % $$$ var = w_sq - w.^2; % Vertical EKE
 % $$$ var = Tdxsq+Tdysq; % Horizontal T differences
 % $$$ var = Tdzsq;
 
-months = {[1]}%:12]};
+months = {[1:tL]}%:12]};
+
+% $$$ var = mean(reshape(var,[163 74 12 10]),4);
+% $$$ months = {[1:12]}%:12]};
 % $$$ months = {[1:12],[3],[7],[11]};
 % $$$ monthsu01 = {[1:4],[1],[3],[4]};
 % $$$ labels = {'Annual','March','July','November'};
 
     %Colormap and continents:
-% $$$     sp = 1;
-% $$$     clim = [-30 0];
     sp = 0.01;
     clim = [0 0.3];
     sp = 0.1e-8;
@@ -206,6 +210,8 @@ months = {[1]}%:12]};
     clim = [0 1e-9];
     sp = 2;
     clim = [-50 0];
+    sp = 1;
+    clim = [-30 0];
 % $$$     sp = 0.01;
 % $$$     clim = [0 0.3];
 % $$$     sp = 1e-9;
@@ -263,13 +269,14 @@ months = {[1]}%:12]};
 % $$$            0.05500    0.1100    0.4     0.3355; ...
 % $$$            0.53500    0.1100    0.4     0.3355;];    
 
-% $$$ figure;
+figure;
+set(gcf,'Position',[1923           5        1366         998]);
 % $$$ set(gcf,'Position',[1          36        1920         970]);
 set(gcf,'defaulttextfontsize',15);
 set(gcf,'defaultaxesfontsize',15);
 rr = 2;
 for i=1:length(months)
-    subplot(3,3,9);%rr);
+% $$$     subplot(3,3,9);%rr);
     contourf(Xi,nanmonmean(Zi(:,:,months{i}),3,ndays(months{i})),nanmonmean(var(:,:,months{i}),3,ndays(months{i})),cpts,'linestyle','none');
 % $$$     contourf(Xu,-Zu,nanmonmean(var(:,:,months{i}),3,ndays(months{i})),cpts,'linestyle','none');
     hold on;
