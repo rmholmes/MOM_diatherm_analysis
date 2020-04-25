@@ -1,42 +1,43 @@
 % This script processes the heat budget and associated variables in
 % MOM025 or MOM01 simulations and save's into .mat files
 
-baseL = '/g/data/e14/mv7494/access-om2/archive/';
+% $$$ baseL = '/g/data/e14/mv7494/access-om2/archive/';
 % $$$ baseL = '/short/e14/rmh561/mom/archive/';
 % $$$ baseL = '/g/data/e14/rmh561/access-om2/archive/';
 % $$$ baseL = '/g/data/e14/rmh561/mom/archive/';
 % $$$ baseL = '/short/e14/rmh561/access-om2/archive/';
 % $$$ baseL = '/srv/ccrc/data03/z3500785/';
+baseL = '/scratch/e14/rmh561/access-om2/archive/';
 
 % MOM-SIS025:
-model = 'ACCESS-OM2_025deg_jra55_iaf';
-baseD = [baseL '025deg_jra55_iaf/']; %Data Directory.
-ICdir = [baseL '025deg_jra55_iaf/'];
+model = 'ACCESS-OM2_01deg_jra55_ryf';
+baseD = [baseL '01deg_jra55_ryf/']; %Data Directory.
+ICdir = [baseL '01deg_jra55_ryf/'];
 % $$$ % MOM-SIS01:
 % $$$ model = 'MOM01';
 % $$$ baseD = [baseL 'MOM01_HeatDiag/']; %Data Directory.
 
-% $$$ outD = [baseD 'mat_data/'];
-outD = ['/g/data/e14/rmh561/access-om2/025deg_jra55_iaf/mat_data/'];
+outD = [baseD 'mat_data/'];
+% $$$ outD = ['/g/data/e14/rmh561/access-om2/025deg_jra55_iaf/mat_data/'];
 rstbaseD = baseD;
 
 post = 'ocean/'; % For ACCESS-OM2 output coulpled;
 % $$$ post = ''; % For MOM-SIS.
 
 % term options:
-haveRedi = 1; % 1 = Redi diffusion is on, 0 = off
-haveGM = 1; % 1 = GM is on, 0 = off;
+haveRedi = 0; % 1 = Redi diffusion is on, 0 = off
+haveGM = 0; % 1 = GM is on, 0 = off;
 haveSUB = 1; % 1 = submeso is on, 0 = off;
 haveMDS = 0; % 1 = MDS is on, 0 = off;
 haveSIG = 0; % 1 = SIG is on, 0 = off;
 haveMIX = 0; % 1 = Do mixing components (vdiffuse_diff_cbt_*), 0 = don't. 
 
 % Processing options:
-doBASE     = 1; % 1 = save BaseVars.mat file
-dodVdtdHdt = 1; % 1 = calculate dVdt/dHdt and save into .nc file
-doVHza       = 1; % 1 = save zonally-integrated V and H fields from
+doBASE     = 0; % 1 = save BaseVars.mat file
+dodVdtdHdt = 0; % 1 = calculate dVdt/dHdt and save into .nc file
+doVHza     = 0; % 1 = save zonally-integrated V and H fields from
                 % average time slots in a .mat file.
-doNUMDIF   = 1; % 1 = calculate tempdiff x,y,T,t and save into .nc file
+doNUMDIF   = 0; % 1 = calculate tempdiff x,y,T,t and save into .nc file
 doSGMviac  = 0; % 1 = calculate SUB/GM influence via binned
                 % convergence (otherwise uses lateral flux). The
                 % better option is to use the lateral flux -> This
@@ -44,13 +45,13 @@ doSGMviac  = 0; % 1 = calculate SUB/GM influence via binned
                 % includes the numerical mixing associated with the GM
                 % and SUB schemes).
 
-doGWB      = 1; % 1 = calculate global online budget terms
-doXY       = 1; % 1 = calculate spatial fluxes-on-an-isotherm
+doGWB      = 0; % 1 = calculate global online budget terms
+doXY       = 0; % 1 = calculate spatial fluxes-on-an-isotherm
 doWMT      = 0; % 1 = calculate WMT volume fluxes spatial structure
-doSURF     = 1; % 1 = calculate surface flux field and SST
-doZA       = 1; % 1 = calculate zonal average budget
+doSURF     = 0; % 1 = calculate surface flux field and SST
+doZA       = 0; % 1 = calculate zonal average budget
 
-doHND      = 1; % 1 = calculate global online numdif
+doHND      = 0; % 1 = calculate global online numdif
 doTENMON   = 0; % 1 = do monthly eulerian tendency binning
 doMONANN   = 0; % 1 = calculate monthly and annually binned eulerian global budget
 doXYall    = 0; % 1 = do all XY calcs (most not used)
@@ -98,7 +99,12 @@ xt = ncread(gname,'xt_ocean');xu = ncread(gname,'xu_ocean');
 yt = ncread(gname,'yt_ocean');yu = ncread(gname,'yu_ocean');
 
 % Vertical grid  -----------------------------------------
-z = ncread(fname,'st_ocean');zL = length(z);
+try
+    z = ncread(fname,'st_ocean');
+catch
+    z = ncread(fname_3month,'st_ocean');
+end
+zL = length(z);
 try
     zw = ncread(fname,'sw_ocean');
 catch
@@ -119,7 +125,11 @@ if (output ==0)
 end
 
 % 3D mask ------------------------------------------------
-mask = ncread(fname,'temp',[1 1 1 1],[xL yL zL 1]);
+try
+    mask = ncread(fname,'temp',[1 1 1 1],[xL yL zL 1]);
+catch
+    mask = ncread(fname_3month,'temp',[1 1 1 1],[xL yL zL 1]);
+end
 mask(~isnan(mask)) = 1; mask(isnan(mask)) = 0;
 mask = mask == 1;
 
@@ -134,8 +144,11 @@ end
 time = ncread(wname,'time');
 ndays = ncread(wname,'average_DT');
 tL = length(time);
-tLoc = length(ncread(fname,'time'));
-
+if (strfind(baseD,'01'))
+    tLoc = length(ncread(fname_3month,'time'));
+else
+    tLoc = length(ncread(fname,'time'));
+end
 if (exist(baser))
     found_rst = 1;rstti = 1;
     rnameT = [baser 'ocean_temp_salt.res.nc'];
@@ -297,10 +310,18 @@ if (doVHza)
         for zi=1:zL
             sprintf('Calculating V and H time %03d of %03d, depth %02d of %02d',ti,tL,zi,zL)
 
-            temp = ncread(fname,'temp',[1 1 zi ti],[xL yL 1 1]);
+            try
+                temp = ncread(fname,'temp',[1 1 zi ti],[xL yL 1 1]);
+            catch
+                temp = ncread(fname_3month,'temp',[1 1 zi ti],[xL yL 1 1]);
+            end
             temp(~mask(:,:,zi)) = NaN;
             if (max(max(temp))>120);temp = temp-273.15;end;
-            Vol = ncread(fname,'dzt',[1 1 zi ti],[xL yL 1 1]).*area;
+            try
+                Vol = ncread(fname,'dzt',[1 1 zi ti],[xL yL 1 1]).*area;
+            catch
+                Vol = ncread(fname_3month,'dzt',[1 1 zi ti],[xL yL 1 1]).*area;
+            end
             Vol(isnan(Vol)) = 0;
         
             for Ti=1:TL
@@ -910,7 +931,11 @@ try
 catch
     shflux = ncread(fname_month,'net_sfc_heating',[1 1 1],[xL yL tLoc]);
 end    
-SST = squeeze(ncread(fname,'temp',[1 1 1 1],[xL yL 1 tLoc]));
+try
+    SST = squeeze(ncread(fname,'temp',[1 1 1 1],[xL yL 1 tLoc]));
+catch
+    SST = squeeze(ncread(fname_3month,'temp',[1 1 1 1],[xL yL 1 tLoc]));
+end    
 % $$$ taux = ncread(fname,'tau_x',[1 1 1],[xL yL tL]);
 % $$$ tauy = ncread(fname,'tau_y',[1 1 1],[xL yL tL]);
 
@@ -1092,11 +1117,22 @@ rname = 'EqPM2';
 [tmp ln1] = min(abs(lon(:,lt1)+240));
 [tmp ln2] = min(abs(lon(:,lt1)+70));
 
-temp = squeeze(mean(ncread(fname,'temp',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL tL]),2));
 if (strfind(baseD,'01'))
-    u = squeeze(mean(ncread(m3name,'u',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL 1]),2));
-    v = squeeze(mean(ncread(m3name,'v',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL 1]),2));
+    temp = squeeze(mean(ncread(fname_3month,'temp',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL tL]),2));
+    u = squeeze(mean(ncread(fname_3month,'u',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL 1]),2));
+    v = squeeze(mean(ncread(fname_3month,'v',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL 1]),2));
+    kappa = squeeze(mean(ncread(fname_3month,'diff_cbt_t',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL tL]),2));
+    w = squeeze(mean(ncread(fname_3month,'wt',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL tL]),2));
+    try
+        u_sq = squeeze(mean(ncread(fname_3month,'u_sq',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL tL]),2));
+        v_sq = squeeze(mean(ncread(fname_3month,'v_sq',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL tL]),2));
+        uvsq = 1;
+    catch
+        uvsq = 0;
+    end
 else
+    w = squeeze(mean(ncread(fname,'wt',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL tL]),2));
+    kappa = squeeze(mean(ncread(fname,'diff_cbt_t',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL tL]),2));
     u = squeeze(mean(ncread(fname,'u',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL tL]),2));
     v = squeeze(mean(ncread(fname,'v',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL tL]),2));
     try
@@ -1107,11 +1143,13 @@ else
         uvsq = 0;
     end
 end
-kappa = squeeze(mean(ncread(fname,'diff_cbt_t',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL tL]),2));
-taux = squeeze(mean(ncread(fname,'tau_x',[ln1 lt1 1],[ln2-ln1+1 lt2-lt1+1 tL]),2));
-tauy = squeeze(mean(ncread(fname,'tau_y',[ln1 lt1 1],[ln2-ln1+1 lt2-lt1+1 tL]),2));
-mld = squeeze(mean(ncread(fname,'mld',[ln1 lt1 1],[ln2-ln1+1 lt2-lt1+1 tL]),2));
-w = squeeze(mean(ncread(fname,'wt',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL tL]),2));
+try
+    mld = squeeze(mean(ncread(fname,'mld',[ln1 lt1 1],[ln2-ln1+1 lt2-lt1+1 tL]),2));
+catch
+    mld = squeeze(mean(ncread(fname_month,'mld',[ln1 lt1 1],[ln2-ln1+1 lt2-lt1+1 tL]),2));
+end    
+% $$$ taux = squeeze(mean(ncread(fname,'tau_x',[ln1 lt1 1],[ln2-ln1+1 lt2-lt1+1 tL]),2));
+% $$$ tauy = squeeze(mean(ncread(fname,'tau_y',[ln1 lt1 1],[ln2-ln1+1 lt2-lt1+1 tL]),2));
 try
     w_sq = squeeze(mean(ncread(fname,'wt_sq',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL tL]),2));
     Tdxsq = squeeze(mean(ncread(fname,'temp_dxsq',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL tL]),2));
@@ -1143,7 +1181,7 @@ name = [outD 'mat_data/' model sprintf('_output%03d',output) ...
 
 save([outD model sprintf('_output%03d',output) '_varsat_' rname '.mat'], ...
      'Xt','Zt','Xu','Zu','Xw','Zw','temp','kappa', ...
-     'mld','taux','tauy', ...
+     'mld', ...#'taux','tauy', ...
      'u','v','w','vdif','vnlc','pmer','sufc','swrd','ndif');
 if (uvsq)
     save([outD model sprintf('_output%03d',output) '_varsat_' rname '.mat'],'u_sq','v_sq','-append');
