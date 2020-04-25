@@ -5,25 +5,33 @@
 close all;
 clear all;
 
-base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
-model = 'MOM025_kb3seg';
-outputs = [101:120];
-onum = 101120;
+% fileavg =0 -> don't take any time-averages on single outputs
+% fileavg =1 -> Take a time average across each output with ndays
 
-anavg = [ones(10,1); zeros(10,1)]; % Take annual average (choose these
-                                   % manually for flexibility)
+base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
+% $$$ model = 'MOM025_kb3seg';
+% $$$ fileavg = [ones(10,1); zeros(10,1)];
+
+% $$$ model = 'ACCESS-OM2_025deg_jra55_ryf';
+% $$$ outputs = [76:80];%101:120];
+% $$$ onum = 7680;
+% $$$ fileavg = [ones(5,1)];
+
+model = 'ACCESS-OM2_01deg_jra55_ryf';
+outputs = [636:639];%101:120];
+onum = 636639;
+fileavg = [zeros(4,1)];
 
 %%%% BaseVars (take from first output:
 copyfile([base model sprintf('_output%03d_',outputs(1)) 'BaseVars.mat'], ...
          [base model sprintf('_output%03d_',onum) 'BaseVars.mat']);
 load([base model sprintf('_output%03d_',onum) 'BaseVars.mat']);
-if (find(anavg))         
+if (find(fileavg))         
     ndays = 1;
     tL = 1;
     time = 1;
     save([base model sprintf('_output%03d_',onum) 'BaseVars.mat'],'time','ndays','tL','-append');
 end
-
 
 %%%% Global budget
 
@@ -31,38 +39,42 @@ load([base model sprintf('_output%03d_',outputs(1)) 'Global_HBud.mat']);
 
 GWBsave = GWB;
 names = fieldnames(GWBsave);
-if (anavg(1))
-    load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
-    if (~exist('ndays'))
-        ndays = diff(time_snap);
-    end
+load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
+if (~exist('ndays'))
+    ndays = diff(time_snap);
+end
+if (fileavg(1))
     for ii=1:length(names)
         eval(['GWBsave.' names{ii} ' = monmean(GWBsave.' names{ii} ',2,ndays);']);
     end
 end
+for ii=1:length(names)
+    eval(['GWBsave.' names{ii} ' = sum(ndays)*GWBsave.' names{ii} ';']);
+end
+cnt = sum(ndays);
     
 for i=2:length(outputs)
     i
     load([base model sprintf('_output%03d_',outputs(i)) 'Global_HBud.mat']);
     
-    if (anavg(i))
-        load([base model sprintf('_output%03d_BaseVars.mat',outputs(i))]);
-        if (~exist('ndays'))
-            ndays = diff(time_snap);
-        end
+    load([base model sprintf('_output%03d_BaseVars.mat',outputs(i))]);
+    if (~exist('ndays'))
+        ndays = diff(time_snap);
+    end
+    if (fileavg(i))
         for ii=1:length(names)
             eval(['GWB.' names{ii} ' = monmean(GWB.' names{ii} ',2,ndays);']);
         end
     end
-        
+
     for fi=1:length(names)
-        eval(['GWBsave.' names{fi} ' = GWBsave.' names{fi} ' + GWB.' names{fi} ';']);
+        eval(['GWBsave.' names{fi} ' = GWBsave.' names{fi} ' + sum(ndays)*GWB.' names{fi} ';']);
     end
-    
+    cnt = cnt+sum(ndays);
 end
 
 for fi=1:length(names)
-    eval(['GWBsave.' names{fi} ' = GWBsave.' names{fi} '/length(outputs);']);
+    eval(['GWBsave.' names{fi} ' = GWBsave.' names{fi} '/cnt;']);
 end
     
 GWB = GWBsave;
@@ -77,39 +89,43 @@ for ind=1:length(Tls)
     str = rmfield(str,'Tl');
     strsave = str;
     names = fieldnames(strsave);
-    if (anavg(1))
-        load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
-        if (~exist('ndays'))
-            ndays = diff(time_snap);
-        end
+    load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
+    if (~exist('ndays'))
+        ndays = diff(time_snap);
+    end
+    if (fileavg(1))
         for ii=1:length(names)
             eval(['strsave.' names{ii} ' = monmean(strsave.' names{ii} ',3,ndays);']);
         end
     end
+    for ii=1:length(names)
+        eval(['strsave.' names{ii} ' = sum(ndays)*strsave.' names{ii} ';']);
+    end
+    cnt = sum(ndays);
     
     for i=2:length(outputs)
         name = [base model sprintf('_output%03d',outputs(i)) '_VertInt_T' strrep(num2str(Tls(ind)),'.','p') 'C.mat']
         str = load(name);
         str = rmfield(str,'Tl');
     
-        if (anavg(i))
-            load([base model sprintf('_output%03d_BaseVars.mat',outputs(i))]);
-            if (~exist('ndays'))
-                ndays = diff(time_snap);
-            end
+        load([base model sprintf('_output%03d_BaseVars.mat',outputs(i))]);
+        if (~exist('ndays'))
+            ndays = diff(time_snap);
+        end
+        if (fileavg(i))
             for ii=1:length(names)
                 eval(['str.' names{ii} ' = monmean(str.' names{ii} ',3,ndays);']);
             end
         end
         
         for fi=1:length(names)
-            eval(['strsave.' names{fi} ' = strsave.' names{fi} ' + str.' names{fi} ';']);
+            eval(['strsave.' names{fi} ' = strsave.' names{fi} ' + sum(ndays)*str.' names{fi} ';']);
         end
-    
+        cnt = cnt+sum(ndays);    
     end
 
 for fi=1:length(names)
-    eval(['strsave.' names{fi} ' = strsave.' names{fi} '/length(outputs);']);
+    eval(['strsave.' names{fi} ' = strsave.' names{fi} '/cnt;']);
 end
     
 str = strsave;
@@ -128,11 +144,11 @@ for i=1:length(coords)
 end
 strsave = str;
 names = fieldnames(strsave);
-if (anavg(1))
-    load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
-    if (~exist('ndays'))
-        ndays = diff(time_snap);
-    end
+load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
+if (~exist('ndays'))
+    ndays = diff(time_snap);
+end
+if (fileavg(1))
     for ii=1:length(names)
         eval(['lsz = length(size(strsave.' names{ii} '));']);
         if (lsz == 2)
@@ -142,6 +158,10 @@ if (anavg(1))
         end            
     end
 end
+for ii=1:length(names)
+    eval(['strsave.' names{ii} ' = sum(ndays)*strsave.' names{ii} ';']);
+end
+cnt = sum(ndays);
     
 for i=2:length(outputs)
     name = [base model sprintf('_output%03d',outputs(i)) '_varsat_EqPM2.mat']
@@ -151,11 +171,11 @@ for i=2:length(outputs)
         eval(['str=rmfield(str,''' coords{ii} ''');']);
     end
     names = fieldnames(str);
-    if (anavg(i))
-        load([base model sprintf('_output%03d_BaseVars.mat',outputs(i))]);
-        if (~exist('ndays'))
-            ndays = diff(time_snap);
-        end
+    load([base model sprintf('_output%03d_BaseVars.mat',outputs(i))]);
+    if (~exist('ndays'))
+        ndays = diff(time_snap);
+    end
+    if (fileavg(i))
         for ii=1:length(names)
             eval(['lsz = length(size(str.' names{ii} '));']);
             if (lsz == 2)
@@ -165,15 +185,15 @@ for i=2:length(outputs)
             end            
         end
     end
-    
+    cnt = cnt + sum(ndays)
     for fi=1:length(names)
-        eval(['strsave.' names{fi} ' = strsave.' names{fi} ' + str.' names{fi} ';']);
+        eval(['strsave.' names{fi} ' = strsave.' names{fi} ' + sum(ndays)*str.' names{fi} ';']);
     end
     
 end
 
 for fi=1:length(names)
-    eval(['strsave.' names{fi} ' = strsave.' names{fi} '/length(outputs);']);
+    eval(['strsave.' names{fi} ' = strsave.' names{fi} '/cnt;']);
 end
     
 str = strsave;
@@ -186,8 +206,10 @@ save([base model sprintf('_output%03d_',onum) 'varsat_EqPM2.mat'],'-struct', 'st
          
 % $$$ regions = {'Atlantic2BAS','IndoPacific2BAS','Global'};
 % $$$ regLets = {'A','P','G'};
-regions = {'SO_Atlantic','SO_IndoPacific'};
-regLets = {'SA','SP'};
+% $$$ regions = {'SO_Atlantic','SO_IndoPacific'};
+% $$$ regLets = {'SA','SP'};
+regions = {'Global'};
+regLets = {'G'};
 
 for reg = 1:length(regions)
     region = regions{reg}
@@ -199,38 +221,42 @@ for reg = 1:length(regions)
 
     ZAsave = ZA;
     names = fieldnames(ZAsave);
-    if (anavg(1))
-        load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
-        if (~exist('ndays'))
-            ndays = diff(time_snap);
-        end
+    load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
+    if (~exist('ndays'))
+        ndays = diff(time_snap);
+    end
+    if (fileavg(1))
         for ii=1:length(names)
             eval(['ZAsave.' names{ii} ' = monmean(ZAsave.' names{ii} ',3,ndays);']);
         end
     end
+    for ii=1:length(names)
+        eval(['ZAsave.' names{ii} ' = sum(ndays)*ZAsave.' names{ii} ';']);
+    end
+    cnt = sum(ndays)
     
     for i=2:length(outputs)
         i
         load([base model sprintf('_output%03d_',outputs(i)) region '_' type 'HBud.mat']);
 
-        if (anavg(i))
-            load([base model sprintf('_output%03d_BaseVars.mat',outputs(i))]);
-            if (~exist('ndays'))
-                ndays = diff(time_snap);
-            end
+        load([base model sprintf('_output%03d_BaseVars.mat',outputs(i))]);
+        if (~exist('ndays'))
+            ndays = diff(time_snap);
+        end
+        if (fileavg(i))
             for ii=1:length(names)
                 eval(['ZA.' names{ii} ' = monmean(ZA.' names{ii} ',3,ndays);']);
             end
         end
         
         for fi=1:length(names)
-            eval(['ZAsave.' names{fi} ' = ZAsave.' names{fi} ' + ZA.' names{fi} ';']);
+            eval(['ZAsave.' names{fi} ' = ZAsave.' names{fi} ' + sum(ndays)*ZA.' names{fi} ';']);
         end
-    
+        cnt = cnt+sum(ndays);
     end
 
     for fi=1:length(names)
-        eval(['ZAsave.' names{fi} ' = ZAsave.' names{fi} '/length(outputs);']);
+        eval(['ZAsave.' names{fi} ' = ZAsave.' names{fi} '/cnt']);
     end
     
     ZA = ZAsave;
@@ -241,55 +267,58 @@ end
 load([base model sprintf('_output%03d_SurfaceVars.mat',outputs(1))]);
 SSTsave = SST;
 shfluxsave = shflux;
-if (anavg(1))
-    load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
-    if (~exist('ndays'))
-        ndays = diff(time_snap);
-    end
+load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
+if (~exist('ndays'))
+    ndays = diff(time_snap);
+end
+if (fileavg(1))
     SSTsave = monmean(SSTsave,3,ndays);
     shfluxsave = monmean(shfluxsave,3,ndays);
 end
+SSTsave = sum(ndays)*SSTsave;
+shfluxsave = sum(ndays)*shfluxsave;
 
 for i=2:length(outputs)
     i
     load([base model sprintf('_output%03d_SurfaceVars.mat',outputs(i))]);
-    if (anavg(i))
-        load([base model sprintf('_output%03d_BaseVars.mat',outputs(i))]);
-        if (~exist('ndays'))
-            ndays = diff(time_snap);
-        end
+    load([base model sprintf('_output%03d_BaseVars.mat',outputs(i))]);
+    if (~exist('ndays'))
+        ndays = diff(time_snap);
+    end
+    if (fileavg(i))
         SST = monmean(SST,3,ndays);
         shflux = monmean(shflux,3,ndays);
     end
-
-    SSTsave = SSTsave + SST;
-    shfluxsave = shfluxsave + shflux;
+    
+    SSTsave = SSTsave + sum(ndays)*SST;
+    shfluxsave = shfluxsave + sum(ndays)*shflux;
+    cnt = cnt+sum(ndays)
 end
-SST = SSTsave/length(outputs);
-shflux = shfluxsave/length(outputs);
+SST = SSTsave/cnt;
+shflux = shfluxsave/cnt;
 save([base model sprintf('_output%03d_SurfaceVars.mat',onum)],'SST','shflux');
 
 
-%%% XYtrans
-% Do annual average XYtrans:
-Tls = {'10','12p5','15','20','34'};
-Tlsn = [10,12.5,15,20,34];
-for ii=1:length(Tls)
-    load([base model sprintf(['_output%03d_XYtrans_T' Tls{ii} 'C.mat'],outputs(1))]);
-    xfluxT = xflux;
-    yfluxT = yflux;
-    for i=2:length(outputs)
-        i
-        load([base model sprintf(['_output%03d_XYtrans_T' Tls{ii} 'C.mat'],outputs(i))]);
-        xfluxT = xfluxT+xflux;
-        yfluxT = yfluxT+yflux;
-    end
-    xflux = xfluxT/length(outputs);
-    yflux = yfluxT/length(outputs);
-    Tl = Tlsn(ii)
-    save([base model sprintf(['_output%03d_XYtrans_T' Tls{ii} 'C.mat'],onum)],'xflux','yflux','Tl');
-end
-
-
-    
-    
+% $$$ %%% XYtrans
+% $$$ % Do annual average XYtrans:
+% $$$ Tls = {'10','12p5','15','20','34'};
+% $$$ Tlsn = [10,12.5,15,20,34];
+% $$$ for ii=1:length(Tls)
+% $$$     load([base model sprintf(['_output%03d_XYtrans_T' Tls{ii} 'C.mat'],outputs(1))]);
+% $$$     xfluxT = xflux;
+% $$$     yfluxT = yflux;
+% $$$     for i=2:length(outputs)
+% $$$         i
+% $$$         load([base model sprintf(['_output%03d_XYtrans_T' Tls{ii} 'C.mat'],outputs(i))]);
+% $$$         xfluxT = xfluxT+xflux;
+% $$$         yfluxT = yfluxT+yflux;
+% $$$     end
+% $$$     xflux = xfluxT/length(outputs);
+% $$$     yflux = yfluxT/length(outputs);
+% $$$     Tl = Tlsn(ii)
+% $$$     save([base model sprintf(['_output%03d_XYtrans_T' Tls{ii} 'C.mat'],onum)],'xflux','yflux','Tl');
+% $$$ end
+% $$$ 
+% $$$ 
+% $$$     
+% $$$     
