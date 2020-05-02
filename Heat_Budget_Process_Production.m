@@ -974,16 +974,20 @@ while (Nremain > 0 & Ti <= TL)
         if (haveSUB)
             qxtrans = qxtrans + ncread(wname,'temp_xflux_submeso_on_nrho',[1 1 Ti ti],[xL yL 1 1])*ndays(ti);
             qytrans = qytrans + ncread(wname,'temp_yflux_submeso_on_nrho',[1 1 Ti ti],[xL yL 1 1])*ndays(ti);
-            mxtrans = mxtrans + ncread(wname,'tx_trans_nrho_submeso',[1 1 Ti ti],[xL yL 1 1])*ndays(ti)*tsc/rho0;
-            mytrans = mytrans + ncread(wname,'ty_trans_nrho_submeso',[1 1 Ti ti],[xL yL 1 1])*ndays(ti)*tsc/rho0;
+% $$$             mxtrans = mxtrans + ncread(wname,'tx_trans_nrho_submeso',[1 1 Ti ti],[xL yL 1 1])*ndays(ti)*tsc/rho0;
+% $$$             mytrans = mytrans + ncread(wname,'ty_trans_nrho_submeso',[1 1 Ti ti],[xL yL 1 1])*ndays(ti)*tsc/rho0;
         end
         if (haveGM)
             qxtrans = qxtrans + ncread(wname,'temp_xflux_gm_on_nrho',[1 1 Ti ti],[xL yL 1 1])*ndays(ti);
             qytrans = qytrans + ncread(wname,'temp_yflux_gm_on_nrho',[1 1 Ti ti],[xL yL 1 1])*ndays(ti);
+% $$$             mxtrans = mxtrans + ncread(wname,'tx_trans_nrho_gm',[1 1 Ti ti],[xL yL 1 1])*ndays(ti)*tsc/rho0;
+% $$$             mytrans = mytrans + ncread(wname,'ty_trans_nrho_gm',[1 1 Ti ti],[xL yL 1 1])*ndays(ti)*tsc/rho0;
+% GM and submeso volume fluxes should not be used - they are not
+% real (skew diffusion) - and they don't sum the same way!
+        end
+        if (haveRedi)
             qxtrans = qxtrans + ncread(wname,'temp_xflux_ndiffuse_on_nrho',[1 1 Ti ti],[xL yL 1 1])*ndays(ti);
             qytrans = qytrans + ncread(wname,'temp_yflux_ndiffuse_on_nrho',[1 1 Ti ti],[xL yL 1 1])*ndays(ti);
-            mxtrans = mxtrans + ncread(wname,'tx_trans_nrho_gm',[1 1 Ti ti],[xL yL 1 1])*ndays(ti)*tsc/rho0;
-            mytrans = mytrans + ncread(wname,'ty_trans_nrho_gm',[1 1 Ti ti],[xL yL 1 1])*ndays(ti)*tsc/rho0;
         end
     end
     qxflux = qxflux + qxtrans/sum(ndays);
@@ -1293,18 +1297,4 @@ end % end doEQPM2
 
 
 
-% $$$ end
-% $$$ %% Swap in non-NaN'd lon/lat:
-% $$$ base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
-% $$$ model = 'MOM025_kb3seg';
-% $$$ 
-% $$$ load([base model sprintf('_output%03d_BaseVars.mat',90)]);
-% $$$ region = 'Global';
-% $$$ 
-% $$$ base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
-% $$$ model = 'MOM025_kb3seg';
-% $$$ for output = [101:110]
-% $$$     save([base model sprintf('_output%03d_BaseVars.mat',output)], ...
-% $$$          'lon','lat','lonu','latu','area','-append');
-% $$$ end
-% $$$ 
+end
