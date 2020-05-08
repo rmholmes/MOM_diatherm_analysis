@@ -175,4 +175,28 @@ ylim([-1000 0]);
 caxis([5 28]);
 
 
+%% Plot Sea level variability:
+base = '/srv/ccrc/data03/z3500785/mom/';
+gname = [base 'ocean_grid.nc'];
+         
+lon = ncread(gname,'geolon_t');
+lat = ncread(gname,'geolat_t');
+[xL,yL] = size(lon);
+xvec = 1:6:xL;
+yvec = 1:6:yL;
+
+cont = ncread([base 'sea_levelsq.cont.ncra.nc'],'sea_levelsq') -
+       ncread([base 'sea_level.cont.ncra.nc'],'sea_level').^2;
+pert = ncread([base 'sea_levelsq.ncra.nc'],'sea_levelsq') -
+       ncread([base 'sea_level.ncra.nc'],'sea_level').^2;
+
+figure;
+subplot(2,2,1);
+pcolPlot(lon(xvec,yvec),lat(xvec,yvec),cont(xvec,yvec));
+subplot(2,2,2);
+pcolPlot(lon(xvec,yvec),lat(xvec,yvec),pert(xvec,yvec));
+subplot(2,2,3);
+pcolPlot(lon(xvec,yvec),lat(xvec,yvec),pert(xvec,yvec)-cont(xvec,yvec));
+
+
 

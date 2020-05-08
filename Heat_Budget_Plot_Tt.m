@@ -189,7 +189,38 @@ rr = 1;
     H = cat(1,cumsum(Hs,1,'reverse'),zeros(1,12,length(yrs)));
     HE = rho0*Cp*V.*repmat(Te,[1 12 length(yrs)]);
     HI = H - HE;    
+    
+    % Remap to ocean percentiles:
+    Vtot = V(1,:,:);
+    p_ofT = V./repmat(Vtot,[TL+1 1 1]);
 
+    p = linspace(0,1,1000);
+    pl = length(p);
+    T_ofp = zeros(pl,12,length(yrs));
+    H_ofp = T_ofp;
+    HI_ofp = T_ofp;
+    HE_ofp = T_ofp;
+    for mi = 1:12
+        for yi = 1:length(yrs)
+            T_ofp(:,mi,yi) = interp1(p_ofT(:,mi,yi)+(1:TL+1)'/1e10,Te,p,'linear');
+            T_ofp(1,mi,yi) = Te(end);
+            H_ofp(:,mi,yi) = interp1(Te,H(:,mi,yi),T_ofp(:,mi,yi),'linear');
+            HE_ofp(:,mi,yi) = interp1(Te,HE(:,mi,yi),T_ofp(:,mi,yi),'linear');
+            HI_ofp(:,mi,yi) = interp1(Te,HI(:,mi,yi),T_ofp(:,mi,yi),'linear');
+        end
+    end
+    
+    % Remap ocean percentiles to depth:
+    Vz = zeros(zL,1);%length(V(1,1,:)));
+    for i=1:length(outputs)
+        load([base model sprintf('_output%03d_BaseVars.mat',outputs(i))]);
+        dnum = [dnum; time];
+
+        file = load([base model sprintf('_output%03d_',outputs(i)) 'VHofz.mat']);
+        Vz = Vz+monmean(file.V,2,ndays);
+    end
+    Vz = Vz/length(outputs);
+    p_Vz = cumsum(Vz)/sum(Vz);
 %%% Temperature vs. time:
 fields = { ...
 % $$$           {N, 'Internal HC Tendency $\partial\mathcal{H}_I/\partial t$','m',2,'-'}, ...
@@ -200,9 +231,15 @@ fields = { ...
 % $$$           {I, 'Numerical Mixing $\mathcal{I}$','b',2,'-'}, ...
 % $$$           {R, 'Redi Mixing $\mathcal{R}$',[0 0.5 0],2,'-'}, ...
 % $$$           {M+I+R, 'Total Mixing $\mathcal{M}+\mathcal{I}+\mathcal{R}$',[0 0.5 0],2,'--'}, ...
-          {HI, 'Internal Heat Content $\mathcal{H}_I$','m',2,'-'}, ...
-          {H, 'Heat Content $\mathcal{H}$','m',2,'-'}, ...
-          {HE, 'External Heat Content $\mathcal{H}_E$','m',2,'-'}, ...
+% $$$           {HI, 'Internal Heat Content $\mathcal{H}_I$','m',2,'-'}, ...
+% $$$           {H, 'Heat Content $\mathcal{H}$','m',2,'-'}, ...
+% $$$           {HE, 'External Heat Content $\mathcal{H}_E$','m',2,'-'}, ...
+% $$$           {HI_ofp, 'Internal Heat Content $\mathcal{H}_I$','m',2,'-'}, ...
+% $$$           {H_ofp, 'Heat Content $\mathcal{H}$','m',2,'-'}, ...
+% $$$           {HE_ofp, 'External Heat Content $\mathcal{H}_E$','m',2,'-'}, ...
+          {HI_ofp, '$\overline{\Theta}(p,t)-\Theta(p,t) = \mathcal{H}_I/(\rho_0 C_p V_T p)$','m',2,'-'}, ...
+          {H_ofp, '$\overline{\Theta}(p,t) = \mathcal{H}/(\rho_0 C_p V_T p)$','m',2,'-'}, ...
+          {HE_ofp, '$\Theta(p,t) = \mathcal{H}_E/(\rho_0 C_p V_T p)$','m',2,'-'}, ...
           };
 
 
@@ -214,10 +251,23 @@ sp = 0.01;
 % Time-integrated fluxes:
 Tint = 0;
 
+% remapping for percentiles:
+premap = 0;
+
+% for percentiles, plot T rather than H:
+plotasT = 1;
+
 % Heat Content:
-scale = 1/1e23;label = '($10^{23}$J)';x = Te;
-caxs = [-1 1];
-sp = 0.01;
+if (~plotasT)
+    scale = 1/1e23;label = '($10^{23}$J)';x = Te;
+    caxs = [-1 1];
+    sp = 0.01;
+else
+    scale = 1;label = '$^\circ$C';x = Te;
+    caxs = [-0.15 0.15];
+    sp = 0.005;
+end    
+
 
 % Subtract climatology:
 Sclim = 1;
@@ -226,6 +276,9 @@ climean = [1976 1986];
 % Annual average:
 AA = 1;
 
+% remap to depth:
+remapz = 1;
+
 cint = [-1e10 caxs(1):sp:caxs(2) 1e10];
 
 for ii=1:length(fields)
@@ -233,35 +286,63 @@ for ii=1:length(fields)
     tvec = dnum;
     if (length(fields{ii}{1}(:,1)) == length(Te))
         x = Te;
+        Torp = 1;
+    elseif (length(fields{ii}{1}(:,1)) == pl)
+        if (premap)
+            x = monmean(mean(T_ofp,3),2,ndays);
+            Torp = 1;
+        else
+            x = p;
+            Torp = 0;
+        end
     else
+        Torp = 1;
         x = T;
     end
     % Annual average:
     if (AA)
-        V = squeeze(monmean(fields{ii}{1},2,ndays))'*scale;
+        var = squeeze(monmean(fields{ii}{1},2,ndays))'*scale;
         tvec = unique(dvec(:,1));
         % Subtract climateology:
         if (Sclim)
-            V = V-repmat(mean(V(find(tvec>=climean(1) & tvec<=climean(2)),:),1),[length(tvec) 1]);
+            var = var-repmat(mean(var(find(tvec>=climean(1) & tvec<=climean(2)),:),1),[length(tvec) 1]);
         end
         % Time-integrate:
         if (Tint == 1)
-            V = cumsum(V*86400*365,1);
+            var = cumsum(var*86400*365,1);
         end
-        [X,Y] = ndgrid(tvec,x);
+        if (plotasT)
+            var = var./rho0/Cp./repmat(squeeze(monmean(Vtot,2,ndays)),[1 ...
+                                length(p)])./repmat(p,[length(tvec) 1]);
+        end
     end
-    contourf(X,Y,V,cint,'linestyle','none');
+    [X,Y] = ndgrid(tvec,x);
+% $$$     if (~remapz)
+    contourf(X,Y,var,cint,'linestyle','none');
+% $$$     else
+% $$$         
+% $$$     end
+    
     cb = colorbar('Location','NorthOutside','FontSize',15);    
-    set(gca,'ytick',-5:5:35);
     ylabel(cb,label);
     if (~AA)
         datetick(gca,'x');
     end
-    ylim([-3 31]);
+    if (Torp)
+        ylim([-3 31]);
+        set(gca,'ytick',-5:5:35);
+    else
+        ylim([0 1]);
+        set(gca,'ydir','reverse');
+    end        
     grid on;
     caxis(caxs);
     if (ii == 1)
-        ylabel('Temperature ($^\circ$C)');
+        if (Torp)
+            ylabel('Temperature ($^\circ$C)');
+        else
+            ylabel('Volume fraction $p$');
+        end
     end
     xlabel('Date');
     title(fields{ii}{2});
@@ -342,5 +423,115 @@ grid on;
 caxis(caxs);
 xlim([2004 2014]);
 title(fields{3}{2});
+set(gca,'FontSize',15);
+colormap(redblue);
+
+%%%% Depth space plot:
+
+% This script makes plots of the heat budget in the MOM
+% simulations.
+
+close all;
+clear all;
+
+base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
+
+RUNS = { ...
+         {'ACCESS-OM2_025deg_jra55_iaf',[17:56]}, ...
+       };
+
+rr = 1;
+    rr
+    outputs = RUNS{rr}{2};
+    model = RUNS{rr}{1};
+
+    clearvars -except base RUNS rr outputs model leg legh;
+    
+    load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
+    if (~exist('ndays'))
+        ndays = diff(time_snap);
+    end
+    region = 'Global';
+    nyrs = tL/12;
+    if (nyrs == round(nyrs))
+        szTe = [TL+1 12 nyrs];szT  = [TL 12 nyrs];
+        yrs = 1:nyrs;
+    else
+        nyrs = 1;
+        szTe = [TL+1 tL];szT = [TL tL];
+    end    
+    ycur = 1;
+    
+    dnum = [];
+    
+    Vs = zeros(zL,tL,1);
+    Hs = zeros(zL,tL,1);
+
+    %% Load Global Budget:
+    for i=1:length(outputs)
+        load([base model sprintf('_output%03d_BaseVars.mat',outputs(i))]);
+        dnum = [dnum; time];
+
+        load([base model sprintf('_output%03d_',outputs(i)) 'VHofz.mat']);
+        Vs(:,:,i) = V;
+        Hs(:,:,i) = H;
+        ycur = ycur+nyrs;
+    end
+    months = [1:length(Vs(1,:,1))];
+    yrs = [1:length(Vs(1,1,:))];
+    
+    % Correct time vector zero year:
+    dvec = datevec(dnum);
+    dvec(:,1) = dvec(:,1) + 1900;
+    dnum = datenum(dvec);
+    
+    Ts = Hs/rho0/Cp./Vs;
+    Vs = cumsum(Vs,1);
+    Hs = cumsum(Hs,1);
+
+% Subtract climatology:
+Sclim = 1;
+climean = [1976 1986];
+
+% Annual average:
+AA = 1;
+
+tvec = dnum;
+% Annual average:
+if (AA)
+    T =  squeeze(monmean(Ts,2,ndays));
+    H =  squeeze(monmean(Hs,2,ndays));
+    V =  squeeze(monmean(Vs,2,ndays));
+    tvec = unique(dvec(:,1));
+else
+    V = Vs;
+    H = Hs;
+end
+% Subtract climateology:
+if (Sclim)
+    T = T-repmat(mean(T(:,find(tvec>=climean(1) & tvec<=climean(2))),2),[1 ...
+                        length(tvec)]);
+    V = V-repmat(mean(V(:,find(tvec>=climean(1) & tvec<=climean(2))),2),[1 ...
+                        length(tvec)]);
+    H = H-repmat(mean(H(:,find(tvec>=climean(1) & tvec<=climean(2))),2),[1 ...
+                        length(tvec)]);
+end
+[X,Y] = ndgrid(tvec,-z);
+% $$$ subplot(1,2,1);
+% $$$ pcolPlot(X,Y,H');
+% $$$ caxs = [-0.8 0.8]*1e23;
+% $$$ sp = 0.005e23
+% $$$ cint = [-1e50 caxs(1):sp:caxs(2) 1e50];
+% $$$ contourf(X,Y,H',cint,'linestyle','none');
+% $$$ title('Heat Content Anomaly above depth level (J)');
+caxs = [-0.15 0.15];
+sp = 0.005
+cint = [-1e50 caxs(1):sp:caxs(2) 1e50];
+contourf(X,Y,T',cint,'linestyle','none');
+cb = colorbar('Location','NorthOutside','FontSize',15);    
+ylabel('Depth (m)');
+xlabel('Date');
+title('Temperature Anomaly $(^\circ$C)');%Heat Content Anomaly above depth level (J)');
+caxis(caxs);%[-0.5 0.5]*1e23);
 set(gca,'FontSize',15);
 colormap(redblue);

@@ -6,18 +6,34 @@ clear all;
 
 base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
 
+
 RUNS = { ...
-    {'ACCESS-OM2_1deg_ryf',[51]}, ...
-    {'ACCESS-OM2_1deg_ryf_4dt',[51]}, ...
-    {'MOM025_kb3seg',[101110]}, ...
-    {'MOM01',[4567]}, ...
-    {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_july',[37]}, ...
-    {'ACCESS-OM2_1deg_jra55_ryf8485_gfdl50_july',[37]}, ...
-    };
+% MOM01-SIS:
+% $$$     {'MOM01',[4567]}, ...
+% $$$ % MOM025-SIS:
+    {'MOM025_kb3seg',[101120],'(a) MOM025 Control'}, ...
+% $$$     {'MOM025',[15:19]}, ...
+% $$$     {'MOM025_kb1em5',[95:99]}, ...
+% $$$     {'MOM025_kb1em6',[30]}, ...
+% $$$ % ACCESS-OM2 Gadi runs:
+         {'ACCESS-OM2_1deg_jra55_ryf',[31],'(b) ACCESS-OM2-1-KDS50'}, ...
+% $$$          {'ACCESS-OM2_1deg_jra55_ryf_gfdl50',[31]}, ...
+% $$$          {'ACCESS-OM2_1deg_jra55_ryf_kds75',[3135]}, ...
+% $$$          {'ACCESS-OM2_1deg_jra55_ryf_kds100',[3135]}, ...
+         {'ACCESS-OM2_1deg_jra55_ryf_kds135',[3135],'(c) ACCESS-OM2-1-KDS135'}, ...
+         {'ACCESS-OM2_025deg_jra55_ryf',[7680],'(d) ACCESS-OM2-025-RG'}, ...
+% $$$          {'ACCESS-OM2_025deg_jra55_ryf8485_gmredi',[73]}, ...
+         {'ACCESS-OM2_025deg_jra55_ryf_norediGM',[7680],'(e) ACCESS-OM2-025'}, ...
+% $$$     {'ACCESS-OM2_025deg_jra55_ryf_noGM',[7680]}, ...
+% $$$          {'ACCESS-OM2_025deg_jra55_ryf',[80]}, ...
+% $$$          {'ACCESS-OM2_025deg_jra55_ryf',[300]}, ...
+         {'ACCESS-OM2_01deg_jra55_ryf',[636639],'(f) ACCESS-OM2-01'}, ...
+       };
 
 for rr = 1:length(RUNS)
     outputs = RUNS{rr}{2};
     model = RUNS{rr}{1};
+    label = RUNS{rr}{3};
 
 load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
 if (~exist('ndays'))
@@ -141,35 +157,35 @@ if (isfield(ZA_G,'NUM_SUBlf'))
     ZA_G.NUM = ZA_G.NUM_SUBlf;
 end
 
-groups = {'G'};%,'P','A'}%,'SA','SP'};
-for gi=1:length(groups)
-    eval(['ZA_' groups{gi} '.AIF = 0*ZA_G.F;']); % Heat lost max SST line from AI
-
-    % Fix above max SST to calculate budgets between theta or max SST
-    % and -2C:
-    for yi=1:yL
-        %PI:
-        eval(['ZA_' groups{gi} '.PI(yi,ZA_' groups{gi} '.maxTit(yi):end) ' ...
-              '= ZA_' groups{gi} '.PI(yi,ZA_' groups{gi} '.maxTit(yi));']);
-        %tendency:
-        eval(['ZA_' groups{gi} '.N(yi,ZA_' groups{gi} '.maxTit(yi):end) ' ...
-              '= ZA_' groups{gi} '.N(yi,ZA_' groups{gi} '.maxTit(yi));']);
-        %Num-mix:
-        eval(['ZA_' groups{gi} '.I(yi,ZA_' groups{gi} '.maxTit(yi):end) ' ...
-              '= ZA_' groups{gi} '.I(yi,ZA_' groups{gi} '.maxTit(yi));']);
-        %AI:
-        eval(['ZA_' groups{gi} '.AI(yi,ZA_' groups{gi} '.maxTiu(yi):end) ' ...
-              '= ZA_' groups{gi} '.AI(yi,ZA_' groups{gi} '.maxTiu(yi));']);
-    end
-    
-    % Correct surface forcing by residual:
-    eval(['ZA_' groups{gi} '.AIF = diff(cat(1,zeros(1,TL+1),ZA_' groups{gi} '.AI-ZA_' ...
-          groups{gi} '.AHDR),[],1)-ZA_' groups{gi} '.PI-ZA_' groups{gi} '.F-ZA_' ...
-          groups{gi} '.M-ZA_' groups{gi} '.I-ZA_' groups{gi} '.KPPNL+ZA_' groups{gi} '.N;']);
-
-    eval(['ZA_' groups{gi} '.Fall = ZA_' groups{gi} '.F + ZA_' groups{gi} '.PI+ZA_' groups{gi} '.AIF;']);
-    eval(['ZA_' groups{gi} '.Mall = ZA_' groups{gi} '.M + ZA_' groups{gi} '.KPPNL+ZA_' groups{gi} '.I;']);
-end
+% $$$ groups = {'G'};%,'P','A'}%,'SA','SP'};
+% $$$ for gi=1:length(groups)
+% $$$     eval(['ZA_' groups{gi} '.AIF = 0*ZA_G.F;']); % Heat lost max SST line from AI
+% $$$ 
+% $$$     % Fix above max SST to calculate budgets between theta or max SST
+% $$$     % and -2C:
+% $$$     for yi=1:yL
+% $$$         %PI:
+% $$$         eval(['ZA_' groups{gi} '.PI(yi,ZA_' groups{gi} '.maxTit(yi):end) ' ...
+% $$$               '= ZA_' groups{gi} '.PI(yi,ZA_' groups{gi} '.maxTit(yi));']);
+% $$$         %tendency:
+% $$$         eval(['ZA_' groups{gi} '.N(yi,ZA_' groups{gi} '.maxTit(yi):end) ' ...
+% $$$               '= ZA_' groups{gi} '.N(yi,ZA_' groups{gi} '.maxTit(yi));']);
+% $$$         %Num-mix:
+% $$$         eval(['ZA_' groups{gi} '.I(yi,ZA_' groups{gi} '.maxTit(yi):end) ' ...
+% $$$               '= ZA_' groups{gi} '.I(yi,ZA_' groups{gi} '.maxTit(yi));']);
+% $$$         %AI:
+% $$$         eval(['ZA_' groups{gi} '.AI(yi,ZA_' groups{gi} '.maxTiu(yi):end) ' ...
+% $$$               '= ZA_' groups{gi} '.AI(yi,ZA_' groups{gi} '.maxTiu(yi));']);
+% $$$     end
+% $$$     
+% $$$     % Correct surface forcing by residual:
+% $$$     eval(['ZA_' groups{gi} '.AIF = diff(cat(1,zeros(1,TL+1),ZA_' groups{gi} '.AI-ZA_' ...
+% $$$           groups{gi} '.AHDR),[],1)-ZA_' groups{gi} '.PI-ZA_' groups{gi} '.F-ZA_' ...
+% $$$           groups{gi} '.M-ZA_' groups{gi} '.I-ZA_' groups{gi} '.KPPNL+ZA_' groups{gi} '.N;']);
+% $$$ 
+% $$$     eval(['ZA_' groups{gi} '.Fall = ZA_' groups{gi} '.F + ZA_' groups{gi} '.PI+ZA_' groups{gi} '.AIF;']);
+% $$$     eval(['ZA_' groups{gi} '.Mall = ZA_' groups{gi} '.M + ZA_' groups{gi} '.KPPNL+ZA_' groups{gi} '.I;']);
+% $$$ end
 
 %% Plot latitude - temperature plane for different basins:
 dy = diff(yu);
@@ -177,7 +193,8 @@ dy = [dy(1); dy];
 
 % NumMix:
 fields = { ...
-          {'I',-1./repmat(dy,[1 TL+1])/1e12,'Numerical Mixing',[-10 10],0.25,'TW/$^\circ$latitude'}, ...
+% $$$           {'I',-1./repmat(dy,[1 TL+1])/1e12,'Numerical Mixing',[-10 10],0.25,'TW/$^\circ$latitude'}, ...
+          {'NUM',1./repmat(dy,[1 TL+1])/1e12,'Numerical Mixing',[-30 0],1,'TW/$^\circ$latitude'}, ...
 };
 
 cpts = cell(1,length(fields));
@@ -187,7 +204,10 @@ end
 npts = length(cpts{1});
 clab = [1 1 1 1 1 1];
 
-cmap = redblue(npts-3);
+% $$$ cmap = redblue(npts-3);
+cmap = parula(npts-3);
+cmap(end,:) = [0.97 0.97 0.8];
+cmap(end-1,:) = (cmap(end-1,:)+cmap(end,:))/2;
 
 AIsp = 0.25;
 latfilt = 1;
@@ -263,7 +283,7 @@ for i=1:length(fields)
         grid on;
         letno = rr;%3*(i-1)+r;
         xlim([-80 80]);
-        text(-79,32.15,[strrep(model,'_','\_')]);%RUNS{letlabs{letno} ' ' fields{i}{3}]);
+        text(-79,32.15,label);%[strrep(model,'_','\_')]);%RUNS{letlabs{letno} ' ' fields{i}{3}]);
         set(gca,'xtick',[-90:30:90]);
         if (rr>=4)
             xlabel('Latitude ($^\circ$N)');
@@ -279,4 +299,3 @@ for i=1:length(fields)
     set(gca,'Position',poss(rr,:));
 colormap(cmap);
 end
-

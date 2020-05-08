@@ -12,15 +12,20 @@ base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
 % $$$ model = 'MOM025_kb3seg';
 % $$$ fileavg = [ones(10,1); zeros(10,1)];
 
-% $$$ model = 'ACCESS-OM2_025deg_jra55_ryf';
+% $$$ model = 'ACCESS-OM2_025deg_jra55_ryf_noGM';
 % $$$ outputs = [76:80];%101:120];
 % $$$ onum = 7680;
 % $$$ fileavg = [ones(5,1)];
 
-model = 'ACCESS-OM2_01deg_jra55_ryf';
-outputs = [636:639];%101:120];
-onum = 636639;
+model = 'ACCESS-OM2_01deg_jra55_ryf_k_smag_iso3';
+outputs = [640:643];%101:120];
+onum = 640643;
 fileavg = [zeros(4,1)];
+
+% $$$ model = 'ACCESS-OM2_1deg_jra55_ryf_kds135';
+% $$$ outputs = [31:35];%101:120];
+% $$$ onum = 3135;
+% $$$ fileavg = [ones(5,1)];
 
 %%%% BaseVars (take from first output:
 copyfile([base model sprintf('_output%03d_',outputs(1)) 'BaseVars.mat'], ...

@@ -1,7 +1,7 @@
 % This script makes plots of the heat budget in the MOM
 % simulations.
 
-close all;
+% $$$ close all;
 clear all;
 
 base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
@@ -9,40 +9,26 @@ base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
 
 RUNS = { ...
 % MOM01-SIS:
-% $$$     {'MOM01',[444]}, ...
+% $$$     {'MOM01',[4567]}, ...
 % $$$ % MOM025-SIS:
 % $$$     {'MOM025_kb3seg',[101120]}, ...
-% $$$     {'MOM025_kb3seg_nosubmeso',[91]}, ...
 % $$$     {'MOM025',[15:19]}, ...
 % $$$     {'MOM025_kb1em5',[95:99]}, ...
 % $$$     {'MOM025_kb1em6',[30]}, ...
-% $$$     {'MOM025_btide',[20]}, ...
-% $$$     {'MOM025_btide',[21]}, ...
-% $$$     {'MOM025_wombat',[1978]}, ...
-% ACCESS-OM2 025-degree:
-% $$$     {'ACCESS-OM2_025deg_jra55_ryf8485_redi',[59]}, ...
-% $$$     {'ACCESS-OM2_025deg_jra55_ryf8485_gmredi',[73]}, ...
-% $$$     {'ACCESS-OM2_025deg_jra55_ryf8485_gmredi6',[148]}, ...
-% $$$     {'ACCESS-OM2_025deg_jra55_ryf8485_gmredi6',[148]}, ...
-% $$$     {'ACCESS-OM2_025deg_jra55_ryf8485',[78]}, ...
-% $$$ %     {'ACCESS-OM2_025deg_jra55_ryf8485_KDS75',[??]}, ...
-% $$$ %     {'ACCESS-OM2_025deg_jra55_ryf8485_gmrediLOW',[??]}, ...
-% $$$          {'ACCESS-OM2_025deg_jra55_iaf',[17:56]}, ...
-% ACCESS-OM2 1-degree:
-         {'ACCESS-OM2_1deg_ryf',[51]}, ...
-         {'ACCESS-OM2_1deg_ryf_4dt',[51]}, ...
-         {'ACCESS-OM2_1deg_jra55_ryf',[52]}, ...
-% $$$          {'ACCESS-OM2_1deg_ryf_4dt',[51]}, ...
-% $$$          {'ACCESS-OM2_1deg_ryf_4dt',[51]}, ...
-% $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_july',[39]}, ...
-% $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_gfdl50_may',[36]}, ...
-% $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may',[36]}, ...
-% $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds75_may',[36]}, ...
-% $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds100_may',[36]}, ...
-% $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds135_may',[36]}, ...
-% $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may_Tcen',[36]}, ...
-% $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may_TcenGMS',[36]}, ...
-% $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may_kb1em5',[0]}, ...
+% $$$ % ACCESS-OM2 Gadi runs:
+% $$$          {'ACCESS-OM2_1deg_jra55_ryf',[31]}, ...
+% $$$          {'ACCESS-OM2_1deg_jra55_ryf_gfdl50',[31]}, ...
+% $$$          {'ACCESS-OM2_1deg_jra55_ryf_kds75',[3135]}, ...
+% $$$          {'ACCESS-OM2_1deg_jra55_ryf_kds100',[3135]}, ...
+% $$$          {'ACCESS-OM2_1deg_jra55_ryf_kds135',[3135]}, ...
+% $$$          {'ACCESS-OM2_025deg_jra55_ryf',[7680]}, ...
+% $$$          {'ACCESS-OM2_025deg_jra55_ryf8485_gmredi',[73]}, ...
+% $$$          {'ACCESS-OM2_025deg_jra55_ryf_norediGM',[7680]}, ...
+% $$$     {'ACCESS-OM2_025deg_jra55_ryf_noGM',[7680]}, ...
+% $$$          {'ACCESS-OM2_025deg_jra55_ryf',[80]}, ...
+% $$$          {'ACCESS-OM2_025deg_jra55_ryf',[300]}, ...
+         {'ACCESS-OM2_01deg_jra55_ryf',[636639]}, ...
+         {'ACCESS-OM2_01deg_jra55_ryf_k_smag_iso3',[640643]}, ...
        };
 
 % $$$ rr = 1;
@@ -57,9 +43,6 @@ for rr = 1:length(RUNS);
     if (~exist('ndays'))
         ndays = diff(time_snap);
     end
-% $$$     ndays = diff(time_snap);
-% $$$     ndays = ndays(1:12);
-% $$$     if (ndays(end) <= 0); ndays(end) = 365-ndays(end);end;
     region = 'Global';
 % $$$     region = 'IndoPacific';
     if (mod(tL,12) == 0) % monthly output
@@ -103,7 +86,7 @@ for rr = 1:length(RUNS);
             VDFwave(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.VDFwave,szTe);
             VDFnloc(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.KNL,szTe);
             VDFsum(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.VDFkppiw+GWB.VDFkppish+GWB.VDFkppicon+ ...
-                GWB.VDFkppbl+GWB.VDFkppdd+GWB.VDFwave+GWB.KNL,szTe);
+                                                     GWB.VDFkppbl+GWB.VDFkppdd+GWB.VDFwave+GWB.KNL,szTe);
             % Note: May be missing enhanced mixing near rivers
             % (river_diffuse_temp) in ACCESS-OM2
         end
@@ -189,8 +172,8 @@ for rr = 1:length(RUNS);
 
         % Implicit mixing:
         I(:,:,ycur:(ycur+nyrs-1)) = N(:,:,ycur:(ycur+nyrs-1)) - F(:,:,ycur:(ycur+nyrs-1)) - P(:,:,ycur:(ycur+nyrs-1)) ...
-                                  - M(:,:,ycur:(ycur+nyrs-1)) - R(:,:,ycur:(ycur+nyrs-1)) + JSH(:,:,ycur:(ycur+nyrs-1)) ...
-                                  - SUB(:,:,ycur:(ycur+nyrs-1)) - GM(:,:,ycur:(ycur+nyrs-1));
+            - M(:,:,ycur:(ycur+nyrs-1)) - R(:,:,ycur:(ycur+nyrs-1)) + JSH(:,:,ycur:(ycur+nyrs-1)) ...
+            - SUB(:,:,ycur:(ycur+nyrs-1)) - GM(:,:,ycur:(ycur+nyrs-1));
 
         % Non-advective flux into volume:
         B(:,:,ycur:(ycur+nyrs-1)) = F(:,:,ycur:(ycur+nyrs-1))+M(:,:,ycur:(ycur+nyrs-1))+I(:,:,ycur:(ycur+nyrs-1))+R(:,:,ycur:(ycur+nyrs-1));
@@ -238,31 +221,34 @@ for rr = 1:length(RUNS);
     
     % Print some overall numbers on numerical mixing:
     Inet = sum(I*dT,1);
-    [model sprintf('Avg. Inet = %5.2f PWdegC',mean(monmean(Inet,2,ndays(1:length(Inet(1,:,1)))),3)/1e15)]
     [tmp ind] = min(abs(Te-5));
-    [model sprintf('Avg. I(5C) = %5.2f PW',mean(monmean(I(ind,:,:),2,ndays(1:length(Inet(1,:,1)))),3)/1e15)]
+    [model sprintf(' Avg. I(5C) = %5.2f PW',mean(monmean(I(ind,:,:),2,ndays(1:length(Inet(1,:,1)))),3)/1e15)]
+    [tmp ind] = min(abs(Te-15));
+    [model sprintf(' Avg. I(15C) = %5.2f PW',mean(monmean(I(ind,:,:),2,ndays(1:length(Inet(1,:,1)))),3)/1e15)]
     [tmp ind] = min(abs(Te-22.5));
-    [model sprintf('Avg. I(22.5C) = %5.2f PW',mean(monmean(I(ind,:,:),2,ndays(1:length(Inet(1,:,1)))),3)/1e15)]
+    [model sprintf(' Avg. I(22.5C) = %5.2f PW',mean(monmean(I(ind,:,:),2,ndays(1:length(Inet(1,:,1)))),3)/1e15)]
+    [model sprintf(' Avg. Inet = %5.2f PWdegC',mean(monmean(Inet,2,ndays(1:length(Inet(1,:,1)))),3)/1e15)]
 
+end
 % $$$ end
-
+% $$$ 
 % $$$     yrs = [1 5];
 % $$$
 % $$$
-%%%%Heat Flux: ---------------------------------------------------------------------------------------------
+    %%%%Heat Flux: ---------------------------------------------------------------------------------------------
 % $$$ % Production fields:
-fields = { ...
-          {N(:,months,yrs), 'Tendency $\partial\mathcal{H}_I/\partial t$','m',2,':'}, ...
-          {F(:,months,yrs)+PI(:,months,yrs), 'Surface Forcing $\mathcal{F}+\mathcal{P}_I$','k',2,':'}, ...
-          {M(:,months,yrs)+MD(:,months,yrs)+SG(:,months,yrs), 'Vertical Mixing $\mathcal{M}$','r',2,':'}, ...
-          {R(:,months,yrs), 'Redi Mixing $\mathcal{R}$',[0 0.5 0],2,':'}, ...
-          {I(:,months,yrs), 'Numerical Mixing $\mathcal{I}$','b',2,':'}, ...
-          {NUM(:,months,yrs), '3D Numerical Mixing Global Sum','g',2,':'}, ...
+    fields = { ...
+        {N(:,months,yrs), 'Tendency $\partial\mathcal{H}_I/\partial t$','m',2,':'}, ...
+        {F(:,months,yrs)+PI(:,months,yrs), 'Surface Forcing $\mathcal{F}+\mathcal{P}_I$','k',2,':'}, ...
+        {M(:,months,yrs)+MD(:,months,yrs)+SG(:,months,yrs), 'Vertical Mixing $\mathcal{M}$','r',2,':'}, ...
+        {R(:,months,yrs), 'Redi Mixing $\mathcal{R}$',[0 0.5 0],2,':'}, ...
+        {I(:,months,yrs), 'Numerical Mixing $\mathcal{I}$','b',2,':'}, ...
+% $$$           {NUM(:,months,yrs), '3D Numerical Mixing Global Sum','g',2,':'}, ...
 % $$$           {GM(:,months,yrs)+SUB(:,months,yrs), 'Submesoscale','c',2,'--'}, ...
 % $$$           {TEN(:,months,yrs), 'Eulerian Tendency','m',1,'--'}, ...
 % $$$           {dHdt(:,months,yrs), 'dH/dt','g',1,'--'}, ...
 % $$$           {ADV(:,months,yrs), 'Eulerian Advection','b',1,'--'}
-          };
+             };
 % $$$ % Eulerian budget binned:
 % $$$ RES = TEN(:,months,yrs)-ADV(:,months,yrs)-SUB(:,months,yrs)-M(:,months,yrs)-R(:,months,yrs)-GM(:,months,yrs)-F(:,months,yrs)-P(:,months,yrs);
 % $$$ fields = { ...
@@ -305,27 +291,30 @@ fields = { ...
 % $$$           {dHdt(:,months,yrs), 'Full HC Tendency $\partial\mathcal{H}/\partial t$','m',2,':'}, ...
 % $$$           };
 % $$$ 
-Fscale = 1/1e15;
-
-% $$$ yrtyps = {'-','--','-.',':','-d','-s','--d','--s',':d',':s','-.d','-.s','-o'}; % line-types for different years
-typs = {'-','-','--',':','-.','-','--',':','-','-','--',':','-.'}; % line-types for different years
-cols = {'m','k','k','k','k','r','r','r',[0.302 0.7451 0.9333],'b','b','b','b'};
-% $$$ wids = {2,2,2,2,2,2,2,2,2,2,2,2,2,2};
-wids = {1,1,1,1,1,1,1,1,1,1,1,1,1,1};
-%Fluxes only:
+    Fscale = 1/1e15;
+% $$$ 
+% $$$ % $$$ yrtyps = {'-','--','-.',':','-d','-s','--d','--s',':d',':s','-.d','-.s','-o'}; % line-types for different years
+% $$$ typs = {'-','-','--',':','-.','-','--',':','-','-','--',':','-.'}; % line-types for different years
+% $$$ cols = {'m','k','k','k','k','r','r','r',[0.302 0.7451 0.9333],'b','b','b','b'};
+% $$$ % $$$ wids = {2,2,2,2,2,2,2,2,2,2,2,2,2,2};
+% $$$ typs = {'-','-','--',':','-.','-','--',':','-','-','--',':','-.'}; % line-types for different years
+% $$$ wids = {1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+    typs = {':','-.','-','-',':','-.','--',':'};
+    wids = {2,2,2,2,2,2,1,1,1,1,1,1,1,1};
+    %Fluxes only:
 % $$$ figure;
 % $$$ set(gcf,'Position',[207          97        1609         815]);
 % $$$ leg = {};
 % $$$ legh = [];
-for i=1:length(fields)
-    hold on;
-    if (length(fields{i}{1}(:,1)) == length(Te))
-        x = Te;
-    else
-        x = T;
-    end
-    
-    % Plot years from a single run separately:
+    for i=1:length(fields)
+        hold on;
+        if (length(fields{i}{1}(:,1)) == length(Te))
+            x = Te;
+        else
+            x = T;
+        end
+        
+        % Plot years from a single run separately:
 % $$$     for j=1:length(yrs) 
 % $$$         h = plot(Te,monmean(fields{i}{1}(:,:,yrs(j)),2,ndays(months))*Fscale,yrtyps{j}, 'color',fields{i}{3} ...
 % $$$              ,'linewidth',3);
@@ -335,28 +324,28 @@ for i=1:length(fields)
 % $$$     end
 % $$$     leg{i} = fields{i}{2};
 
-    % Average years together for a single run:
-    legh(i) = plot(x,mean(monmean(fields{i}{1},2,ndays(months))*Fscale,3),fields{i}{5}, 'color',fields{i}{3} ...
-         ,'linewidth',fields{i}{4});
-    leg{i} = fields{i}{2};
-    
-% $$$     % Average years together for multiple runs:
-% $$$     tmp = plot(x,mean(monmean(fields{i}{1},2,ndays(months))*Fscale,3),yrtyps{rr}, 'color',fields{i}{3} ...
+% $$$     % Average years together for a single run:
+% $$$     legh(i) = plot(x,mean(monmean(fields{i}{1},2,ndays(months))*Fscale,3),fields{i}{5}, 'color',fields{i}{3} ...
 % $$$          ,'linewidth',fields{i}{4});
-% $$$ % $$$     tmp = plot(x,mean(monmean(fields{i}{1},2,ndays(months))*Fscale,3),typs{rr}, 'color',cols{rr}, 'linewidth',wids{rr});
-% $$$     if i==1
-% $$$         leg{rr} = strrep(RUNS{rr}{1},'_',' ');
-% $$$         legh(rr) = tmp;
-% $$$     end
-end
-ylim([-1.5 1.5]);
-xlim([-3 31]);
-box on; 
-grid on;
-ylabel('Heat flux into fluid warmer than $\Theta$ (PW)');
-xlabel('Temperature $\Theta$ ($^\circ$C)');
-lg = legend(legh,leg);
-set(lg,'Position',[0.5881    0.5500    0.2041    0.2588]);
+% $$$     leg{i} = fields{i}{2};
+        
+        % Average years together for multiple runs:
+        tmp = plot(x,mean(monmean(fields{i}{1},2,ndays(months))*Fscale,3),typs{rr}, 'color',fields{i}{3} ...
+                   ,'linewidth',wids{rr});
+% $$$     tmp = plot(x,mean(monmean(fields{i}{1},2,ndays(months))*Fscale,3),typs{rr}, 'color',cols{rr}, 'linewidth',wids{rr});
+        if i==1
+            leg{rr} = strrep(RUNS{rr}{1},'_',' ');
+            legh(rr) = tmp;
+        end
+    end
+    ylim([-1.5 1.5]);
+    xlim([-3 31]);
+    box on; 
+    grid on;
+    ylabel('Heat flux into fluid warmer than $\Theta$ (PW)');
+    xlabel('Temperature $\Theta$ ($^\circ$C)');
+% $$$ lg = legend(legh,leg);
+% $$$ set(lg,'Position',[0.5881    0.5500    0.2041    0.2588]);
 
 % $$$ % Print table at specific values:
 % $$$ [tmp ind1] = min(abs(Te-22.5));
@@ -492,258 +481,258 @@ end
 % $$$ lg = legend(legh,leg);
 % $$$ set(lg,'Position',[0.5881    0.5500    0.2041    0.2588]);
 % $$$ 
-%%% Temperature vs. time:
-months = [1:12];
-fields = { ...
-          {N(:,months,yrs), 'Internal HC Tendency $\partial\mathcal{H}_I/\partial t$','m',2,'-'}, ...
-% $$$           {dHdt(:,months,yrs), 'Total HC Tendency $\partial\mathcal{H}/\partial t$','m',2,'-'}, ...
-% $$$           {EHC(:,months,yrs), 'External HC Tendency $\partial\mathcal{H}/\partial t$','m',2,'-'}, ...
-          {F(:,months,yrs)+PI(:,months,yrs), 'Surface Forcing $\mathcal{F}+\mathcal{P}_I$','k',2,'-'}, ...
-% $$$           {F(:,months,yrs), 'Surface Heat Fluxes $\mathcal{F}$','k',2,'-'}, ...
-% $$$           {P(:,months,yrs), 'Surface Volume Fluxes $\mathcal{P}$',[0.49 0.18 0.56],2,'-'}, ...
-% $$$           {PI(:,months,yrs), 'Surface Volume Fluxes $\mathcal{P}_I$',[0.49 0.18 0.56],2,'--'}, ...
-% $$$           {M(:,months,yrs), 'Vertical Mixing $\mathcal{M}$','r',2,'-'}, ...
-% $$$           {I(:,months,yrs), 'Numerical Mixing $\mathcal{I}$','b',2,'-'}, ...
-% $$$           {R(:,months,yrs), 'Redi Mixing $\mathcal{R}$',[0 0.5 0],2,'-'}, ...
-% $$$           {GM(:,months,yrs), 'GM $\mathcal{G}$',[0 0.5 0],2,'--'}, ...
-% $$$           {SUB(:,months,yrs), 'SUB $\mathcal{S}$',[0 0.5 0],2,':'}, ...
-% $$$           {HWMTI(:,months,yrs), 'Advective Implicit Mixing','b',2,'--'}, ...
-% $$$           {HWMTM(:,months,yrs), 'Advective Vertical Mixing','r',2,'--'}, ...
-% $$$           {HWMTF(:,months,yrs), 'Advective Surface Forcing','k',2,'--'}, ...
-          {M(:,months,yrs)+I(:,months,yrs)+R(:,months,yrs), 'Total Mixing $\mathcal{M}+\mathcal{I}+\mathcal{R}$',[0 0.5 0],2,'--'}, ...
-% $$$           {Nmon(:,months,yrs), 'Monthly-Binned Total','m',2,'--'}, ...
-% $$$           {SW(:,months,yrs), 'Shortwave Redistribution',0.5*[1 1 1],2,'--'}, ...
-% $$$           {dHdt(:,months,yrs), 'HC Tendency $\frac{\partial\mathcal{H}}{\partial t}$','m',2,'--'}, ...
-% $$$           {CIA(:,months,yrs), 'Across-Isotherm Advection $\mathcal{G}\Theta\rho_0C_p$',[0.49 0.18 0.56],2,'--'}, ...
-% $$$           {M(:,months,yrs), 'Vertical Mixing $\mathcal{M}$','r',2,'-'}, ...
-% $$$           {VDFkppiw(:,months,yrs), 'Background','b',2,'-'}, ...
-% $$$           {VDFkppish(:,months,yrs), 'Shear Instability','g',2,'-'}, ...
-% $$$           {M(:,months,yrs) - VDFsum(:,months,yrs) + VDFkppbl(:,months,yrs), 'Vertical Mixing SUM','r',2,'--'}, ...
-% $$$           {VDFkppbl(:,months,yrs), 'KPP Boundary Layer','c',2,'-'}, ...
-% $$$           {VDFwave(:,months,yrs), 'Vertical Diffusion WAVE','k',2,'-'}, ...
-% $$$           {VDFkppicon(:,months,yrs), 'Vertical Diffusion KPPICON','y',2,'-'}, ...
-% $$$           {VDFkppdd(:,months,yrs), 'Vertical Diffusion KPPDD','m',2,'-'}, ...
-% $$$           {VDFsum(:,months,yrs), 'Vertical Diffusion SUM','r',2,'--'}, ...
-% $$$           {KPPnloc(:,months,yrs), 'KPP Non-local','m',2,'--'}, ...
-          };
-
-% Fluxes:
-Tint = 0;
-scale = 1/1e15;label = '(PW)';x = Te;
-caxs = [-0.5 0.5];
-sp = 0.01;
-
-Tint = 1;
-scale = 1/1e23;label = '($10^{23}$J)';x = Te;
-caxs = [-1 1];
-sp = 0.01;
-
-% $$$ % Transformations:
-% $$$ scale = 1/1e6;label = '(Sv)';
-% $$$ caxs = [-250 250];
-% $$$ sp = 25;
-% $$$ caxs = [-70 70];
-% $$$ sp = 3.5;
-
-cint = [-1e10 caxs(1):sp:caxs(2) 1e10];
-
-% $$$ figure;
-%set(gcf,'Position',get(0,'ScreenSize'));
-% $$$ set(gcf,'Position',[3    40   956   963]);
-climean = [1:10];
-for ii=1:length(fields)
-    subplot(1,length(fields),ii);
-% $$$     subplot_tight(3,4,rr);%1,length(fields),ii);
-% $$$     V = mean(fields{ii}{1},3)'*scale;
-    V = squeeze(monmean(fields{ii}{1},2,ndays))'*scale;
-    tL = length(V(:,1));
-    V = V-repmat(mean(V(climean,:),1),[tL 1]);
-    if (Tint == 1)
-        V = cumsum(V*86400*365,1);
-    end
-    if (length(fields{ii}{1}(:,1)) == length(Te))
-        x = Te;
-    else
-        x = T;
-    end
-% $$$     [X,Y] = ndgrid(1:tL,x);
-    [X,Y] = ndgrid(1976:2015,x);
-    contourf(X,Y,V,cint,'linestyle','none');
-    cb = colorbar('Location','NorthOutside','FontSize',15);    
-    set(gca,'ytick',-5:5:35);
-    ylabel(cb,label);
-% $$$     set(gca,'xtick',[1:tL]);
-% $$$     if (rr>=9)
-% $$$         set(gca,'xticklabel',{'Jan','Feb','Mar','Apr','May','Jun', ...
-% $$$                             'Jul','Aug','Sep','Oct','Nov','Dec'});
-% $$$     else
-% $$$         set(gca,'xticklabel',[]);
-% $$$     end
-    ylim([-3 31]);
-    grid on;
-    caxis(caxs);
-% $$$     xlabel('Month');
-% $$$     ylabel('Temperature ($^\circ$C)');
-% $$$     xlabel(cb,strrep(strrep(strrep(RUNS{rr}{1},'_',' '),'ACCESS-OM2 ','AOM'),'deg jra55',''));
-% $$$     xlabel(cb,[model ' ' fields{ii}{2} ' ' ...
-% $$$                label],'FontSize',20);
-% $$$     title(strrep(strrep(strrep(RUNS{rr}{1},'_',' '),'ACCESS-OM2 ','AOM'),'deg jra55',''));
-    title(fields{ii}{2});%strrep(strrep(strrep(RUNS{rr}{1},'_',' '),'ACCESS-OM2 ','AOM'),'deg jra55',''));
-    if (mod(rr,4) == 0)
-        pos = get(gca,'Position');
-        cb = colorbar;
-        set(gca,'Position',pos);
-    end
-    set(gca,'FontSize',15);
-end
-cmap = redblue((length(cint)-3)*2);
-cmap = cmap(1:(length(cint)-3),:);
-colormap(cmap);
-colormap(redblue);
+% $$$ %%% Temperature vs. time:
+% $$$ months = [1:12];
+% $$$ fields = { ...
+% $$$           {N(:,months,yrs), 'Internal HC Tendency $\partial\mathcal{H}_I/\partial t$','m',2,'-'}, ...
+% $$$ % $$$           {dHdt(:,months,yrs), 'Total HC Tendency $\partial\mathcal{H}/\partial t$','m',2,'-'}, ...
+% $$$ % $$$           {EHC(:,months,yrs), 'External HC Tendency $\partial\mathcal{H}/\partial t$','m',2,'-'}, ...
+% $$$           {F(:,months,yrs)+PI(:,months,yrs), 'Surface Forcing $\mathcal{F}+\mathcal{P}_I$','k',2,'-'}, ...
+% $$$ % $$$           {F(:,months,yrs), 'Surface Heat Fluxes $\mathcal{F}$','k',2,'-'}, ...
+% $$$ % $$$           {P(:,months,yrs), 'Surface Volume Fluxes $\mathcal{P}$',[0.49 0.18 0.56],2,'-'}, ...
+% $$$ % $$$           {PI(:,months,yrs), 'Surface Volume Fluxes $\mathcal{P}_I$',[0.49 0.18 0.56],2,'--'}, ...
+% $$$ % $$$           {M(:,months,yrs), 'Vertical Mixing $\mathcal{M}$','r',2,'-'}, ...
+% $$$ % $$$           {I(:,months,yrs), 'Numerical Mixing $\mathcal{I}$','b',2,'-'}, ...
+% $$$ % $$$           {R(:,months,yrs), 'Redi Mixing $\mathcal{R}$',[0 0.5 0],2,'-'}, ...
+% $$$ % $$$           {GM(:,months,yrs), 'GM $\mathcal{G}$',[0 0.5 0],2,'--'}, ...
+% $$$ % $$$           {SUB(:,months,yrs), 'SUB $\mathcal{S}$',[0 0.5 0],2,':'}, ...
+% $$$ % $$$           {HWMTI(:,months,yrs), 'Advective Implicit Mixing','b',2,'--'}, ...
+% $$$ % $$$           {HWMTM(:,months,yrs), 'Advective Vertical Mixing','r',2,'--'}, ...
+% $$$ % $$$           {HWMTF(:,months,yrs), 'Advective Surface Forcing','k',2,'--'}, ...
+% $$$           {M(:,months,yrs)+I(:,months,yrs)+R(:,months,yrs), 'Total Mixing $\mathcal{M}+\mathcal{I}+\mathcal{R}$',[0 0.5 0],2,'--'}, ...
+% $$$ % $$$           {Nmon(:,months,yrs), 'Monthly-Binned Total','m',2,'--'}, ...
+% $$$ % $$$           {SW(:,months,yrs), 'Shortwave Redistribution',0.5*[1 1 1],2,'--'}, ...
+% $$$ % $$$           {dHdt(:,months,yrs), 'HC Tendency $\frac{\partial\mathcal{H}}{\partial t}$','m',2,'--'}, ...
+% $$$ % $$$           {CIA(:,months,yrs), 'Across-Isotherm Advection $\mathcal{G}\Theta\rho_0C_p$',[0.49 0.18 0.56],2,'--'}, ...
+% $$$ % $$$           {M(:,months,yrs), 'Vertical Mixing $\mathcal{M}$','r',2,'-'}, ...
+% $$$ % $$$           {VDFkppiw(:,months,yrs), 'Background','b',2,'-'}, ...
+% $$$ % $$$           {VDFkppish(:,months,yrs), 'Shear Instability','g',2,'-'}, ...
+% $$$ % $$$           {M(:,months,yrs) - VDFsum(:,months,yrs) + VDFkppbl(:,months,yrs), 'Vertical Mixing SUM','r',2,'--'}, ...
+% $$$ % $$$           {VDFkppbl(:,months,yrs), 'KPP Boundary Layer','c',2,'-'}, ...
+% $$$ % $$$           {VDFwave(:,months,yrs), 'Vertical Diffusion WAVE','k',2,'-'}, ...
+% $$$ % $$$           {VDFkppicon(:,months,yrs), 'Vertical Diffusion KPPICON','y',2,'-'}, ...
+% $$$ % $$$           {VDFkppdd(:,months,yrs), 'Vertical Diffusion KPPDD','m',2,'-'}, ...
+% $$$ % $$$           {VDFsum(:,months,yrs), 'Vertical Diffusion SUM','r',2,'--'}, ...
+% $$$ % $$$           {KPPnloc(:,months,yrs), 'KPP Non-local','m',2,'--'}, ...
+% $$$           };
 % $$$ 
-% $$$ %% Global Seasonal Cycle TS
-% $$$ months = 1:12;
-% $$$ Ts = 21.5;
-% $$$ [tmp ind] = min(abs(Te-Ts));
+% $$$ % Fluxes:
+% $$$ Tint = 0;
+% $$$ scale = 1/1e15;label = '(PW)';x = Te;
+% $$$ caxs = [-0.5 0.5];
+% $$$ sp = 0.01;
 % $$$ 
-% $$$ Fscale = 1/1e15;
+% $$$ Tint = 1;
+% $$$ scale = 1/1e23;label = '($10^{23}$J)';x = Te;
+% $$$ caxs = [-1 1];
+% $$$ sp = 0.01;
 % $$$ 
-% $$$ figure;
+% $$$ % $$$ % Transformations:
+% $$$ % $$$ scale = 1/1e6;label = '(Sv)';
+% $$$ % $$$ caxs = [-250 250];
+% $$$ % $$$ sp = 25;
+% $$$ % $$$ caxs = [-70 70];
+% $$$ % $$$ sp = 3.5;
+% $$$ 
+% $$$ cint = [-1e10 caxs(1):sp:caxs(2) 1e10];
+% $$$ 
+% $$$ % $$$ figure;
 % $$$ %set(gcf,'Position',get(0,'ScreenSize'));
-% $$$ set(gcf,'Position',[34          40        1164         963]);
-% $$$ set(gcf,'defaultlinelinewidth',2);
-% $$$ 
-% $$$ 
-% $$$ subplot(2,1,1);
-% $$$ fields = {
-% $$$           {F(ind,months,yrs)+PI(ind,months,yrs), 'Surface Forcing $\mathcal{F}$','k',2,'-'}, ...
-% $$$           {N(ind,months,yrs), 'Total $\mathcal{N}$','m',2,'-'}, ...
-% $$$           {M(ind,months,yrs)+I(ind,months,yrs), 'Total Mixing $\mathcal{M}+\mathcal{I}$',[0 0.5 0],2,'--'}, ...
-% $$$           };
-% $$$ 
-% $$$ leg = {};
-% $$$ legh = [];
-% $$$ for i=1:length(fields)
-% $$$     hold on;
-% $$$ % $$$     for j=1:length(P(1,1,:))
-% $$$ % $$$         plot(1:tL,fields{i}{1}(:,:,j)*Fscale,fields{i}{5}, ...
-% $$$ % $$$              'color',0.7*[1 1 1] ...
-% $$$ % $$$              ,'linewidth',0.5);
+% $$$ % $$$ set(gcf,'Position',[3    40   956   963]);
+% $$$ climean = [1:10];
+% $$$ for ii=1:length(fields)
+% $$$     subplot(1,length(fields),ii);
+% $$$ % $$$     subplot_tight(3,4,rr);%1,length(fields),ii);
+% $$$ % $$$     V = mean(fields{ii}{1},3)'*scale;
+% $$$     V = squeeze(monmean(fields{ii}{1},2,ndays))'*scale;
+% $$$     tL = length(V(:,1));
+% $$$     V = V-repmat(mean(V(climean,:),1),[tL 1]);
+% $$$     if (Tint == 1)
+% $$$         V = cumsum(V*86400*365,1);
+% $$$     end
+% $$$     if (length(fields{ii}{1}(:,1)) == length(Te))
+% $$$         x = Te;
+% $$$     else
+% $$$         x = T;
+% $$$     end
+% $$$ % $$$     [X,Y] = ndgrid(1:tL,x);
+% $$$     [X,Y] = ndgrid(1976:2015,x);
+% $$$     contourf(X,Y,V,cint,'linestyle','none');
+% $$$     cb = colorbar('Location','NorthOutside','FontSize',15);    
+% $$$     set(gca,'ytick',-5:5:35);
+% $$$     ylabel(cb,label);
+% $$$ % $$$     set(gca,'xtick',[1:tL]);
+% $$$ % $$$     if (rr>=9)
+% $$$ % $$$         set(gca,'xticklabel',{'Jan','Feb','Mar','Apr','May','Jun', ...
+% $$$ % $$$                             'Jul','Aug','Sep','Oct','Nov','Dec'});
+% $$$ % $$$     else
+% $$$ % $$$         set(gca,'xticklabel',[]);
 % $$$ % $$$     end
-% $$$     legh(i) = plot(1:tL,mean(fields{i}{1},3)*Fscale,fields{i}{5}, ...
-% $$$          'color',fields{i}{3} ...
-% $$$          ,'linewidth',fields{i}{4});
-% $$$     hold on;
-% $$$     leg{i} = fields{i}{2};
+% $$$     ylim([-3 31]);
+% $$$     grid on;
+% $$$     caxis(caxs);
+% $$$ % $$$     xlabel('Month');
+% $$$ % $$$     ylabel('Temperature ($^\circ$C)');
+% $$$ % $$$     xlabel(cb,strrep(strrep(strrep(RUNS{rr}{1},'_',' '),'ACCESS-OM2 ','AOM'),'deg jra55',''));
+% $$$ % $$$     xlabel(cb,[model ' ' fields{ii}{2} ' ' ...
+% $$$ % $$$                label],'FontSize',20);
+% $$$ % $$$     title(strrep(strrep(strrep(RUNS{rr}{1},'_',' '),'ACCESS-OM2 ','AOM'),'deg jra55',''));
+% $$$     title(fields{ii}{2});%strrep(strrep(strrep(RUNS{rr}{1},'_',' '),'ACCESS-OM2 ','AOM'),'deg jra55',''));
+% $$$     if (mod(rr,4) == 0)
+% $$$         pos = get(gca,'Position');
+% $$$         cb = colorbar;
+% $$$         set(gca,'Position',pos);
+% $$$     end
+% $$$     set(gca,'FontSize',15);
 % $$$ end
-% $$$ xlabel('Month');
-% $$$ ylabel('PW');
-% $$$ lg = legend(legh,leg);
-% $$$ ylim([-5 5]);
-% $$$ xlim([1 tL]);
-% $$$ set(gca,'xtick',[1:tL]);
-% $$$ set(gca,'xticklabel',{'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'});
-% $$$ set(gca,'FontSize',25);
-% $$$ grid on;box on;
-% $$$ LabelAxes(gca,1,25,0.003,0.925);
-% $$$ 
-% $$$ subplot(2,1,2);
-% $$$ fields = {
-% $$$           {M(ind,months,yrs), 'Vertical Mixing $\mathcal{M}$','r',2,'-'}, ...
-% $$$           {VDFkppiw(ind,months,yrs), 'Background',[0 0.5 0],2,'-'}, ...
-% $$$           {VDFkppish(ind,months,yrs), 'Shear Instability',[0 0.5 0],2,'-'}, ...
-% $$$           {VDFkppbl(ind,months,yrs), 'KPP Boundary Layer',[0 0.5 0],2,'-'}, ...
-% $$$           {VDFwave(ind,months,yrs), 'Topographic Internal Wave',[0 0.5 0],2,'-'}, ...
-% $$$           {VDFwave(ind,months,yrs), 'Topographic Internal Wave',[0 0.5 0],2,'-'}, ...
-% $$$           {VDFkppdd(ind,months,yrs)+VDFkppicon(ind,months,yrs)+KPPnloc(ind, ...
-% $$$                                                   months,yrs),'Other',[0.49 0.18 0.56],2,'-'}, ...
-% $$$ % $$$           {I(ind,months,yrs), 'Implicit Mixing $\mathcal{I}$','b',2,'-'}, ...
+% $$$ cmap = redblue((length(cint)-3)*2);
+% $$$ cmap = cmap(1:(length(cint)-3),:);
+% $$$ colormap(cmap);
+% $$$ colormap(redblue);
+% $$$ % $$$ 
+% $$$ % $$$ %% Global Seasonal Cycle TS
+% $$$ % $$$ months = 1:12;
+% $$$ % $$$ Ts = 21.5;
+% $$$ % $$$ [tmp ind] = min(abs(Te-Ts));
+% $$$ % $$$ 
+% $$$ % $$$ Fscale = 1/1e15;
+% $$$ % $$$ 
+% $$$ % $$$ figure;
+% $$$ % $$$ %set(gcf,'Position',get(0,'ScreenSize'));
+% $$$ % $$$ set(gcf,'Position',[34          40        1164         963]);
+% $$$ % $$$ set(gcf,'defaultlinelinewidth',2);
+% $$$ % $$$ 
+% $$$ % $$$ 
+% $$$ % $$$ subplot(2,1,1);
+% $$$ % $$$ fields = {
+% $$$ % $$$           {F(ind,months,yrs)+PI(ind,months,yrs), 'Surface Forcing $\mathcal{F}$','k',2,'-'}, ...
+% $$$ % $$$           {N(ind,months,yrs), 'Total $\mathcal{N}$','m',2,'-'}, ...
 % $$$ % $$$           {M(ind,months,yrs)+I(ind,months,yrs), 'Total Mixing $\mathcal{M}+\mathcal{I}$',[0 0.5 0],2,'--'}, ...
-% $$$           };
-% $$$ leg = {};
-% $$$ legh = [];
-% $$$ for i=1:length(fields)
-% $$$     hold on;
-% $$$ % $$$     for j=1:length(P(1,1,:))
-% $$$ % $$$         plot(1:tL,fields{i}{1}(:,:,j)*Fscale,fields{i}{5}, ...
-% $$$ % $$$              'color',0.7*[1 1 1] ...
-% $$$ % $$$              ,'linewidth',0.5);
-% $$$ % $$$     end
-% $$$     legh(i) = plot(1:tL,mean(fields{i}{1},3)*Fscale,fields{i}{5}, ...
-% $$$          'color',fields{i}{3} ...
-% $$$          ,'linewidth',fields{i}{4});
-% $$$     hold on;
-% $$$     leg{i} = fields{i}{2};
-% $$$ end
-% $$$ xlabel('Month');
-% $$$ ylabel('PW');
-% $$$ lg = legend(legh,leg);
-% $$$ ylim([-2 0]);
-% $$$ xlim([1 tL]);
-% $$$ set(gca,'xticklabel',{'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'});
-% $$$ set(gca,'xtick',[1:tL]);
-% $$$ set(gca,'FontSize',25);
-% $$$ grid on;box on;
-% $$$ LabelAxes(gca,2,25,0.003,0.925);
-
-    %%% Meridional heat flux:
-
-% Load Base Variables:
-base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag_kb3seg/mat_data/';
-model = 'MOM025_kb3seg';
-outputs = [75:79];
-base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag_kb1em5/mat_data/';
-model = 'MOM025_kb1em5';
-outputs = 94;
-base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag/mat_data/';
-model = 'MOM025';
-outputs = [8:12];
-% $$$ base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag_kb1em6/mat_data/';
-% $$$ model = 'MOM025_kb1em6';
-% $$$ outputs = 30;
-base = '/srv/ccrc/data03/z3500785/MOM01_HeatDiag/mat_data/';
-model = 'MOM01';
-outputs = [222];
-load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
-ndays = diff(time_snap);
-
-% Load Variable and calculate mean:
-load([base model sprintf('_output%03d_SurfaceVars.mat',outputs(1))]);
-% $$$ shfluxa = shflux;
-mhfluxa = mhflux;
-for i=2:length(outputs)
-    load([base model sprintf('_output%03d_SurfaceVars.mat',outputs(i))]);
-% $$$     shfluxa = shfluxa+shflux;
-    mhfluxa = mhfluxa+mhflux;
-end
-% $$$ shflux = shfluxa/length(outputs);
-% $$$ shflux = monmean(shflux,3,ndays);
-mhflux = mhfluxa/length(outputs);
-mhflux = monmean(mhflux,2,ndays);
-
-% $$$ % Calculate meridional heat flux inferred:
-% $$$ latV = linspace(-90,90,181);
-% $$$ V = zeros(size(latV));
-% $$$ for i=1:length(latV)
-% $$$     inds = lat < latV(i);
-% $$$     V(i) = nansum(area(inds).*shflux(inds));
-% $$$ end
+% $$$ % $$$           };
+% $$$ % $$$ 
+% $$$ % $$$ leg = {};
+% $$$ % $$$ legh = [];
+% $$$ % $$$ for i=1:length(fields)
+% $$$ % $$$     hold on;
+% $$$ % $$$ % $$$     for j=1:length(P(1,1,:))
+% $$$ % $$$ % $$$         plot(1:tL,fields{i}{1}(:,:,j)*Fscale,fields{i}{5}, ...
+% $$$ % $$$ % $$$              'color',0.7*[1 1 1] ...
+% $$$ % $$$ % $$$              ,'linewidth',0.5);
+% $$$ % $$$ % $$$     end
+% $$$ % $$$     legh(i) = plot(1:tL,mean(fields{i}{1},3)*Fscale,fields{i}{5}, ...
+% $$$ % $$$          'color',fields{i}{3} ...
+% $$$ % $$$          ,'linewidth',fields{i}{4});
+% $$$ % $$$     hold on;
+% $$$ % $$$     leg{i} = fields{i}{2};
+% $$$ % $$$ end
+% $$$ % $$$ xlabel('Month');
+% $$$ % $$$ ylabel('PW');
+% $$$ % $$$ lg = legend(legh,leg);
+% $$$ % $$$ ylim([-5 5]);
+% $$$ % $$$ xlim([1 tL]);
+% $$$ % $$$ set(gca,'xtick',[1:tL]);
+% $$$ % $$$ set(gca,'xticklabel',{'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'});
+% $$$ % $$$ set(gca,'FontSize',25);
+% $$$ % $$$ grid on;box on;
+% $$$ % $$$ LabelAxes(gca,1,25,0.003,0.925);
+% $$$ % $$$ 
+% $$$ % $$$ subplot(2,1,2);
+% $$$ % $$$ fields = {
+% $$$ % $$$           {M(ind,months,yrs), 'Vertical Mixing $\mathcal{M}$','r',2,'-'}, ...
+% $$$ % $$$           {VDFkppiw(ind,months,yrs), 'Background',[0 0.5 0],2,'-'}, ...
+% $$$ % $$$           {VDFkppish(ind,months,yrs), 'Shear Instability',[0 0.5 0],2,'-'}, ...
+% $$$ % $$$           {VDFkppbl(ind,months,yrs), 'KPP Boundary Layer',[0 0.5 0],2,'-'}, ...
+% $$$ % $$$           {VDFwave(ind,months,yrs), 'Topographic Internal Wave',[0 0.5 0],2,'-'}, ...
+% $$$ % $$$           {VDFwave(ind,months,yrs), 'Topographic Internal Wave',[0 0.5 0],2,'-'}, ...
+% $$$ % $$$           {VDFkppdd(ind,months,yrs)+VDFkppicon(ind,months,yrs)+KPPnloc(ind, ...
+% $$$ % $$$                                                   months,yrs),'Other',[0.49 0.18 0.56],2,'-'}, ...
+% $$$ % $$$ % $$$           {I(ind,months,yrs), 'Implicit Mixing $\mathcal{I}$','b',2,'-'}, ...
+% $$$ % $$$ % $$$           {M(ind,months,yrs)+I(ind,months,yrs), 'Total Mixing $\mathcal{M}+\mathcal{I}$',[0 0.5 0],2,'--'}, ...
+% $$$ % $$$           };
+% $$$ % $$$ leg = {};
+% $$$ % $$$ legh = [];
+% $$$ % $$$ for i=1:length(fields)
+% $$$ % $$$     hold on;
+% $$$ % $$$ % $$$     for j=1:length(P(1,1,:))
+% $$$ % $$$ % $$$         plot(1:tL,fields{i}{1}(:,:,j)*Fscale,fields{i}{5}, ...
+% $$$ % $$$ % $$$              'color',0.7*[1 1 1] ...
+% $$$ % $$$ % $$$              ,'linewidth',0.5);
+% $$$ % $$$ % $$$     end
+% $$$ % $$$     legh(i) = plot(1:tL,mean(fields{i}{1},3)*Fscale,fields{i}{5}, ...
+% $$$ % $$$          'color',fields{i}{3} ...
+% $$$ % $$$          ,'linewidth',fields{i}{4});
+% $$$ % $$$     hold on;
+% $$$ % $$$     leg{i} = fields{i}{2};
+% $$$ % $$$ end
+% $$$ % $$$ xlabel('Month');
+% $$$ % $$$ ylabel('PW');
+% $$$ % $$$ lg = legend(legh,leg);
+% $$$ % $$$ ylim([-2 0]);
+% $$$ % $$$ xlim([1 tL]);
+% $$$ % $$$ set(gca,'xticklabel',{'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'});
+% $$$ % $$$ set(gca,'xtick',[1:tL]);
+% $$$ % $$$ set(gca,'FontSize',25);
+% $$$ % $$$ grid on;box on;
+% $$$ % $$$ LabelAxes(gca,2,25,0.003,0.925);
 % $$$ 
-% $$$ %Center the flux:
-% $$$ V = V + (V(1)-V(end))/2;
-
-figure;
-set(gcf,'Position',[260         339        1055         586]);
-set(gcf,'defaulttextfontsize',25);
-set(gcf,'defaultaxesfontsize',25);
-% $$$ plot(latV,V/1e15,'-r','linewidth',2);
-hold on;
-plot(latv,mhflux/1e15,'-b','linewidth',2);
-
-xlabel('Latitude ($^\circ$N)');
-ylabel('Meridional Heat Flux (PW)');
-grid on;
-box on;
-xlim([-90 90]);
-ylim([-1 2]);
-set(gca,'xtick',[-90:30:90]);
+% $$$     %%% Meridional heat flux:
+% $$$ 
+% $$$ % Load Base Variables:
+% $$$ base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag_kb3seg/mat_data/';
+% $$$ model = 'MOM025_kb3seg';
+% $$$ outputs = [75:79];
+% $$$ base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag_kb1em5/mat_data/';
+% $$$ model = 'MOM025_kb1em5';
+% $$$ outputs = 94;
+% $$$ base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag/mat_data/';
+% $$$ model = 'MOM025';
+% $$$ outputs = [8:12];
+% $$$ % $$$ base = '/srv/ccrc/data03/z3500785/MOM_HeatDiag_kb1em6/mat_data/';
+% $$$ % $$$ model = 'MOM025_kb1em6';
+% $$$ % $$$ outputs = 30;
+% $$$ base = '/srv/ccrc/data03/z3500785/MOM01_HeatDiag/mat_data/';
+% $$$ model = 'MOM01';
+% $$$ outputs = [222];
+% $$$ load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
+% $$$ ndays = diff(time_snap);
+% $$$ 
+% $$$ % Load Variable and calculate mean:
+% $$$ load([base model sprintf('_output%03d_SurfaceVars.mat',outputs(1))]);
+% $$$ % $$$ shfluxa = shflux;
+% $$$ mhfluxa = mhflux;
+% $$$ for i=2:length(outputs)
+% $$$     load([base model sprintf('_output%03d_SurfaceVars.mat',outputs(i))]);
+% $$$ % $$$     shfluxa = shfluxa+shflux;
+% $$$     mhfluxa = mhfluxa+mhflux;
+% $$$ end
+% $$$ % $$$ shflux = shfluxa/length(outputs);
+% $$$ % $$$ shflux = monmean(shflux,3,ndays);
+% $$$ mhflux = mhfluxa/length(outputs);
+% $$$ mhflux = monmean(mhflux,2,ndays);
+% $$$ 
+% $$$ % $$$ % Calculate meridional heat flux inferred:
+% $$$ % $$$ latV = linspace(-90,90,181);
+% $$$ % $$$ V = zeros(size(latV));
+% $$$ % $$$ for i=1:length(latV)
+% $$$ % $$$     inds = lat < latV(i);
+% $$$ % $$$     V(i) = nansum(area(inds).*shflux(inds));
+% $$$ % $$$ end
+% $$$ % $$$ 
+% $$$ % $$$ %Center the flux:
+% $$$ % $$$ V = V + (V(1)-V(end))/2;
+% $$$ 
+% $$$ figure;
+% $$$ set(gcf,'Position',[260         339        1055         586]);
+% $$$ set(gcf,'defaulttextfontsize',25);
+% $$$ set(gcf,'defaultaxesfontsize',25);
+% $$$ % $$$ plot(latV,V/1e15,'-r','linewidth',2);
+% $$$ hold on;
+% $$$ plot(latv,mhflux/1e15,'-b','linewidth',2);
+% $$$ 
+% $$$ xlabel('Latitude ($^\circ$N)');
+% $$$ ylabel('Meridional Heat Flux (PW)');
+% $$$ grid on;
+% $$$ box on;
+% $$$ xlim([-90 90]);
+% $$$ ylim([-1 2]);
+% $$$ set(gca,'xtick',[-90:30:90]);

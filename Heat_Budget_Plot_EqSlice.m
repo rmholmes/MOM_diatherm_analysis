@@ -8,34 +8,26 @@ base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
 
 RUNS = { ...
 % MOM01-SIS:
-% $$$     {'MOM01',[444]}, ...
+% $$$     {'MOM01',[4567]}, ...
 % $$$ % MOM025-SIS:
-% $$$     {'MOM025',[8:12]}, ...
-% $$$     {'MOM025',[15:19]}, ...
-% $$$     {'MOM025_kb1em6',[30]}, ...
 % $$$     {'MOM025_kb3seg',[101120]}, ...
-% $$$     {'MOM025_kb3seg',[95]}, ...
-% $$$     {'MOM025_kb3seg',[75:79]}, ...
-% $$$     {'MOM025_kb1em5',[94]}, ...
-% $$$     {'MOM025_wombat',[1978]}, ...
-% ACCESS-OM2 025-degree:
-    {'ACCESS-OM2_025deg_jra55_ryf',[300]}, ...
-% $$$     {'ACCESS-OM2_025deg_jra55_ryf8485',[78]}, ...
-% $$$     {'ACCESS-OM2_025deg_jra55_ryf8485_redi',[59]}, ...
-% $$$     {'ACCESS-OM2_025deg_jra55_ryf8485_gmredi',[73]}, ...
-% $$$ %     {'ACCESS-OM2_025deg_jra55_ryf8485_KDS75',[??]}, ...
-% ACCESS-OM2 1-degree:
-% $$$          {'ACCESS-OM2_1deg_jra55_ryf',[51]}, ...
-% $$$          {'ACCESS-OM2_1deg_jra55_ryf_4dt',[51]}, ...
-% $$$          {'ACCESS-OM2_1deg_jra55_ryf',[52]}, ...
-% $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may_Tcen',[36]}, ...
-% $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may_TcenGMS',[36]}, ...
-% $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_gfdl50_may',[36]}, ...
-% $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may',[36]}, ...
-% $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds75_may',[36]}, ...
-% $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds100_may',[36]}, ...
-% $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds135_may',[36]}, ...
-% $$$          {'ACCESS-OM2_1deg_jra55_ryf8485_kds50_may_kb1em5',[0]}, ...
+% $$$     {'MOM025',[15:19]}, ...
+% $$$     {'MOM025_kb1em5',[95:99]}, ...
+% $$$     {'MOM025_kb1em6',[30]}, ...
+% $$$ % ACCESS-OM2 Gadi runs:
+         {'ACCESS-OM2_1deg_jra55_ryf',[31]}, ...
+% $$$          {'ACCESS-OM2_1deg_jra55_ryf_gfdl50',[31]}, ...
+% $$$          {'ACCESS-OM2_1deg_jra55_ryf_kds75',[3135]}, ...
+% $$$          {'ACCESS-OM2_1deg_jra55_ryf_kds100',[3135]}, ...
+% $$$          {'ACCESS-OM2_1deg_jra55_ryf_kds135',[3135]}, ...
+         {'ACCESS-OM2_1deg_jra55_ryf',[51]}, ...
+         {'ACCESS-OM2_025deg_jra55_ryf',[7680]}, ...
+% $$$          {'ACCESS-OM2_025deg_jra55_ryf_norediGM',[7680]}, ...
+% $$$          {'ACCESS-OM2_025deg_jra55_ryf_noGM',[7680]}, ...
+% $$$ % $$$          {'ACCESS-OM2_025deg_jra55_ryf',[80]}, ...
+% $$$ % $$$          {'ACCESS-OM2_025deg_jra55_ryf',[300]}, ...
+% $$$          {'ACCESS-OM2_025deg_jra55_ryf_norediGM',[7680]}, ...
+% $$$          {'ACCESS-OM2_01deg_jra55_ryf',[636639]}, ...
        };
 
 
@@ -100,8 +92,9 @@ vars = {'temp','mld','ndif','vdif','vnlc'};%,'u_sq','v_sq','u','v','w_sq','w','T
 [xL,zL,tL] = size(temp);
 TL = length(T);
 
-%ACCESS-OM2:
-temp = temp-273.15;
+if (max(max(max(temp)))>100)
+    temp = temp-273.15;
+end
 
 % $$$ %% Plot Temp bias against WOA13:
 % $$$ months = [1:12];
@@ -208,10 +201,12 @@ months = {[1:tL]}%:12]};
     clim = [0 3e-8];
     sp = 0.05e-9;
     clim = [0 1e-9];
-    sp = 2;
-    clim = [-50 0];
-    sp = 1;
-    clim = [-30 0];
+    sp = 0.5;
+    clim = [-20 0];
+% $$$     sp = 0.5;
+% $$$     clim = [-20 0];
+% $$$     sp = 1;
+% $$$     clim = [-30 0];
 % $$$     sp = 0.01;
 % $$$     clim = [0 0.3];
 % $$$     sp = 1e-9;
@@ -241,26 +236,43 @@ months = {[1:tL]}%:12]};
         cmap(end-1,:) = (cmap(end-1,:)+cmap(end,:))/2;
     end
     if (cCH == 2)
-        buf = 2;
+        buf = 12;
+        onebin = 0; % only allow one pink bin
         clim = [clim(1) buf*sp];
         cpts = [-1e10 clim(1):sp:clim(2) 1e10];
-        cmap(end+1,:) = cmap(end,:); % 1st positive bin
-        cmap(end+buf-1,:) = [1 0.7 0.9]; % last pink bin
-        for ii = 1:(buf-2)
-            cmap(end-buf+1+ii,:) = cmap(end,:)*ii/(buf-1) + ...
-                         cmap(end-buf+1,:)*(buf-1-ii)/(buf-1);
+        if (onebin)
+            for ii = 1:buf
+                cmap(end+1,:) = cmap(npts-3,:);
+            end
+            cmap(end,:) = [1 0.7 0.9]; % last pink bin
+        else
+            cmap(end+1,:) = cmap(end,:); % 1st positive bin
+            cmap(end+buf-1,:) = [1 0.7 0.9]; % last pink bin
+            for ii = 1:(buf-2)
+                cmap(end-buf+1+ii,:) = cmap(end,:)*ii/(buf-1) + ...
+                    cmap(end-buf+1,:)*(buf-1-ii)/(buf-1);
+            end
         end
     end        
 % $$$     cmap = flipud(cmap);
     
     % MOM025 kb3seg example:
-    labels = {'(a) Numerical Mixing','(b) Vertical Mixing'};%,'(c) KDS75','(d) KDS100','(e) KDS135'};
-    poss = [0.1300    0.4800    0.4154    0.3355; ...
-            0.1300    0.1100    0.4154    0.3355;];    
+% $$$     labels = {'(a) Numerical Mixing','(b) Vertical Mixing'};%,'(c) KDS75','(d) KDS100','(e) KDS135'};
+% $$$     labels = {strrep(RUNS{rr}{1},'_',' ')}
+% $$$     poss = [0.1300    0.4800    0.4154    0.3355; ...
+% $$$             0.1300    0.1100    0.4154    0.3355;];    
+    % ACCESS-OM2 vertical res:
+    labels = {'(a) KDS50','(b) GFDL50','(c) KDS75','(d) KDS100','(e) KDS135','(f) KDS50 - $\Delta t=1.5$hr'};
+    poss = [0.0886    0.7160    0.3375    0.2581; ...
+            0.4503    0.7160    0.3375    0.2581; ...
+            0.0886    0.4163    0.3375    0.2581; ...
+            0.4503    0.4163    0.3375    0.2581; ...
+            0.0886    0.1142    0.3375    0.2581];
+    % ACCESS-OM2 extras:
+    labels = {'(a) ACCESS-OM2-1-KDS50','(b) ACCESS-OM2-1-KDS50 with $\Delta t=1.5$hr','(c) ACCESS-OM2-025-RG','(d) $1/4^\circ$','(e) $1/4^\circ$ R'};
+            
 % $$$     
 % $$$     % MOM025 Control dif vars:
-% $$$     % ACCESS-OM2 vertical res:
-% $$$     %    labels = {'(a) GFDL50','(b) KDS50','(c) KDS75','(d) KDS100','(e) KDS135'};
 % $$$     labels = {'(a) $\overline{u''u''}+\overline{v''v''}$', ...
 % $$$               '(b) $\overline{w''w''}$','(c) $|\Delta_x T|^2 + |\Delta_y T|^2$','(d) $|\Delta_z T|^2$'};
 % $$$     units = {'$m^2s^{-2}$','$m^2s^{-2}$','$^\circ C^2$','$^\circ C^2$'};
@@ -269,13 +281,14 @@ months = {[1:tL]}%:12]};
 % $$$            0.05500    0.1100    0.4     0.3355; ...
 % $$$            0.53500    0.1100    0.4     0.3355;];    
 
-figure;
+% $$$ figure;
 set(gcf,'Position',[1923           5        1366         998]);
 % $$$ set(gcf,'Position',[1          36        1920         970]);
 set(gcf,'defaulttextfontsize',15);
 set(gcf,'defaultaxesfontsize',15);
-rr = 2;
+% $$$ rr = 2;
 for i=1:length(months)
+    subplot(3,2,rr);
 % $$$     subplot(3,3,9);%rr);
     contourf(Xi,nanmonmean(Zi(:,:,months{i}),3,ndays(months{i})),nanmonmean(var(:,:,months{i}),3,ndays(months{i})),cpts,'linestyle','none');
 % $$$     contourf(Xu,-Zu,nanmonmean(var(:,:,months{i}),3,ndays(months{i})),cpts,'linestyle','none');
@@ -300,13 +313,13 @@ for i=1:length(months)
     ylim([-200 0]);
 % $$$     xlim([-80 -12]);
     xlim([-200 -80]);
-% $$$     if (rr == 2 | rr == 4 | rr == 5)
-    if (rr >= 1)
+    if (rr == 2 | rr == 4 | rr == 5)
+% $$$     if (rr >= 1)
         cb = colorbar;
 % $$$         ylabel(cb,units{rr});
         ylabel(cb,'Wm$^{-2}$');
     end
-    if (rr >=1)
+    if (rr >=2)
         xlabel('Longitude ($^\circ$E)');
     end
     if (rr==1 | rr == 3 | rr == 5)
@@ -315,9 +328,9 @@ for i=1:length(months)
     if (rr == 2 | rr == 4)
         set(gca,'yticklabel',[]);
     end
-% $$$     if (rr <= 3)
-% $$$         set(gca,'xticklabel',[]);
-% $$$     end
+    if (rr <= 1)
+        set(gca,'xticklabel',[]);
+    end
     caxis(clim);
     text(-199,-15,labels{rr},'Backgroundcolor','w','FontSize',15,'margin',0.5);
     set(gca,'Position',poss(rr,:));

@@ -160,6 +160,13 @@ ZA_G.I = -(ZA_G.Jdia+ZA_G.M+ZA_G.KPPNL+ZA_G.F+ZA_G.PI+ZA_G.RED+ZA_G.K33+ZA_G.MDS
 if (isfield(ZA_G,'NUM_SUBlf'))
     ZA_G.NUM = ZA_G.NUM_SUBlf;
 end
+% XXX: Inclusion of Redi here is confusing but correct I think - it
+% should be included in AI (as it is), but to calculate numerical
+% mixing you subtract it off and use the 3D convergence instead (which
+% includes both diathermal and meridional convergences). I've never
+% plotted the diathermal heat flux due to redi diffusion (I guess this
+% is the difference between the meridional flux convergence and the 3D
+% convergence - or is it???)
 
 % $$$ % Indo-Pacific:
 % $$$ dAI_mR_dphi = diff(cat(1,zeros(1,TL+1),ZA_P.AI-ZA_P.AHDR),[],1); % convergence of that transport
