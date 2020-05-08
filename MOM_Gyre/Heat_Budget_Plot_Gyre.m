@@ -8,7 +8,7 @@ base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
 
 RUNS = { ...
 % MOM-Gyre:
-         {'MOM_Gyre',[1]}, ...
+         {'MOM_Gyre',[0]}, ...
 % $$$          {'MOM_Gyre',[2]}, ...
 % $$$          {'MOM_Gyre',[3]}, ...
        };
@@ -22,7 +22,7 @@ clearvars -except base RUNS rr outputs model;
     
 load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
 ndays = diff(time_snap);
-region = 'Global';
+region = '';
 
 %% Global Calculations:
 for i=1:length(outputs)
@@ -68,6 +68,7 @@ HWMT(:,:,i) = HWMTM(:,:,i)+HWMTI(:,:,i);
 end
 
 months = 2:length(M(1,:));
+months = [12:24];
 
 %%%%Heat Flux:
 % Production fields:
@@ -111,52 +112,18 @@ xlabel('Temperature $\Theta$ ($^\circ$C)');
 lg = legend(legh,leg);
 set(lg,'Position',[0.5881    0.5500    0.2041    0.2588]);
 
-% $$$ %%%%WM Transformation / Volume Budget:
-% $$$ fields = { ...
-% $$$           {dVdt(:,months,:), 'Tendency $\frac{\partial\mathcal{V}}{\partial t}$','m',2,'-'}, ...
-% $$$           {WMT(:,months,:), 'Total WMT $\mathcal{G}$',[0 0.5 0],2,'--'}, ...
-% $$$           {WMTM(:,months,:), 'WMT $\mathcal{G}$ from Vertical Mixing','r',2,'-'}, ...
-% $$$           {WMTI(:,months,:), 'WMT $\mathcal{G}$ from Implicit Mixing','b',2,'-'}, ...
-% $$$           };
-% $$$ 
-% $$$ Mscale = 1/1e6;
-% $$$ 
-% $$$ %Fluxes only:
-% $$$ figure;
-% $$$ set(gcf,'Position',[207          97        1609         815]);
-% $$$ leg = {};
-% $$$ legh = [];
-% $$$ for i=1:length(fields)
-% $$$     hold on;
-% $$$     if (length(fields{i}{1}(:,1)) == length(Te))
-% $$$         x = Te;
-% $$$     else
-% $$$         x = T;
-% $$$     end
-% $$$     legh(i) = plot(x,mean(monmean(fields{i}{1},2,ndays(months))*Mscale,3),fields{i}{5}, 'color',fields{i}{3} ...
-% $$$          ,'linewidth',fields{i}{4});
-% $$$     leg{i} = fields{i}{2};
-% $$$ end
-% $$$ ylim([-2 2]);
-% $$$ xlim([-3 31]);
-% $$$ box on;
-% $$$ grid on;
-% $$$ ylabel('Water Mass Transformation (Sv)');
-% $$$ xlabel('Temperature $\Theta$ ($^\circ$C)');
-% $$$ lg = legend(legh,leg);
-% $$$ set(lg,'Position',[0.5881    0.5500    0.2041    0.2588]);
-
 %%% Spatial Structure:
-
-% $$$ VAR = 'FlMkppish';
-VAR = 'FlM';
-% $$$ VAR = 'FlSP';
-% $$$ VAR = 'WMTP';
-% $$$ VAR = 'WMTM';
-% $$$ VAR = 'WMTI';
+VARS = {'FlM','FlI'};
 TYPE = 'VertInt';
-% $$$ TYPE = 'WMT';
-Tl = 18;
+Tl = 16;
+
+%Mean of all months:
+figure;
+set(gcf,'Position',[3          59        1916         914]);
+set(gcf,'defaulttextfontsize',20);
+set(gcf,'defaultaxesfontsize',20);
+for vi = 1:length(VARS)
+    VAR = VARS{vi};
 name = [base model sprintf('_output%03d',outputs(1)) '_' TYPE '_T' strrep(num2str(Tl),'.','p') 'C.mat']
 eval(['load(name,''' VAR ''');']);
 eval([VAR '(isnan(' VAR ')) = 0.0;']);
@@ -170,9 +137,6 @@ end
 eval([VAR ' = ' VAR 'a/length(outputs);']);
 eval([VAR '(' VAR '==0) = NaN;']);
 eval(['FlM = ' VAR ';']);
-
-% $$$ FlMblall = FlM - FlMwave - FlMkppish;
-% $$$ FlM = FlMblall;
 
 % $$$ % CHECK spatial structure sums to total:
 % $$$ % $$$ Tls = [14.75:2.5:27.25]+0.25;
@@ -209,17 +173,10 @@ LAND = zeros(size(FlM(:,:,1)));
 xvec = 1:1:xL;
 yvec = 1:1:yL;
 
-% $$$ if (rr==1)
-% $$$     months = [2:12];
-% $$$ else
-% $$$     months = [2:6];
-% $$$ end
-months = 2:6;
-
 clim = [-10 10];
 sp = 0.1;
 clim = [-50 50];
-sp = 0.5;
+sp = 0.1;
 
 cpts = [-1e10 clim(1):sp:clim(2) 1e10];
 npts = length(cpts)
@@ -228,13 +185,8 @@ cmap = flipud(lbmap(npts-3,'RedBlue'));
 cmap = redblue(npts-3);
 climn = clim;
     
-%Mean of all months:
-figure;
-set(gcf,'Position',[3          59        1916         914]);
-set(gcf,'defaulttextfontsize',20);
-set(gcf,'defaultaxesfontsize',20);
 
-subplot(2,2,1);
+subplot(2,2,vi);
 X = lon(xvec,yvec);
 Y = lat(xvec,yvec);
 tmp = FlM;
@@ -250,5 +202,4 @@ caxis(climn);
 cb = colorbar;
 ylabel(cb,'Wm$^{-2}$');
 colormap(cmap);
-
 end
