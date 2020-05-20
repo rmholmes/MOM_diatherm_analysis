@@ -4,7 +4,7 @@
 baseL = '/scratch/e14/rmh561/mom/archive/';
 
 % MOM-SIS025:
-model = 'MOM_Gyre';
+model = 'MOM_Gyre_Run014';
 baseD = [baseL 'MOM_Gyre/']; %Data Directory.
 ICdir = ['/scratch/e14/rmh561/mom/input/gyre1/'];
 
@@ -14,9 +14,11 @@ rstbaseD = baseD;
 post = ''; % For MOM-SIS.
 
 % term options:
-haveSF = 0; % 1= have surface forcing (vdiffuse_sbc)
+haveSF = 1; % 1= have surface forcing (vdiffuse_sbc)
 haveRedi = 0; % 1 = Redi diffusion is on, 0 = off
+haveKPP = 1; % 1 = KPP is on (need nonlocal term)
 haveGM = 0; % 1 = GM is on, 0 = off;
+haveLT  = 0; % 1 = Laplacian lateral tracer diffusion on. 
 haveSUB = 0; % 1 = submeso is on, 0 = off;
 haveMDS = 0; % 1 = MDS is on, 0 = off;
 haveSIG = 0; % 1 = SIG is on, 0 = off;
@@ -49,8 +51,8 @@ doXYtran   = 0; % 1 = calculate vertically-integrated heat
                 % transports below given isotherm/s.
 tsc = 1e9;
 
-for output = 1;
-    restart = output-1;
+% $$$ for output = 0:5;
+restart = output-1;
 
 % file-names -----------------------------------------
 base = [baseD sprintf('output%03d/',output) post];
@@ -143,11 +145,11 @@ end
 if (not_there)
     xid = netcdf.inqDimID(ncid,'grid_xt_ocean');yid = netcdf.inqDimID(ncid,'grid_yt_ocean');zid = netcdf.inqDimID(ncid,'neutral');tid = netcdf.inqDimID(ncid,'time');
     netcdf.reDef(ncid);
-    dVdtID = netcdf.defVar(ncid,'dVdt','NC_FLOAT',[xid yid zid tid]);
+    dVdtID = netcdf.defVar(ncid,'dVdt','NC_DOUBLE',[xid yid zid tid]);
     netcdf.putAtt(ncid,dVdtID,'long_name','Change in time of volume within temperature bin');
     netcdf.putAtt(ncid,dVdtID,'units','Sv (10^9 kg/s)');
 % $$$     netcdf.putAtt(ncid,dVdtID,'_FillValue',single(-1e20));
-    dHdtID = netcdf.defVar(ncid,'dHdt','NC_FLOAT',[xid yid zid tid]);
+    dHdtID = netcdf.defVar(ncid,'dHdt','NC_DOUBLE',[xid yid zid tid]);
     netcdf.putAtt(ncid,dHdtID,'long_name','Change in time of heat content within temperature bin');
     netcdf.putAtt(ncid,dHdtID,'units','Watts');
 % $$$     netcdf.putAtt(ncid,dHdtID,'_FillValue',single(-1e20));
@@ -302,7 +304,7 @@ end
 if (not_there)
     xid = netcdf.inqDimID(ncid,'grid_xt_ocean');yid = netcdf.inqDimID(ncid,'grid_yt_ocean');zid = netcdf.inqDimID(ncid,'neutralrho_edges');tid = netcdf.inqDimID(ncid,'time');
     netcdf.reDef(ncid);
-    ndifID = netcdf.defVar(ncid,varname,'NC_FLOAT',[xid yid zid tid]);
+    ndifID = netcdf.defVar(ncid,varname,'NC_DOUBLE',[xid yid zid tid]);
     netcdf.putAtt(ncid,ndifID,'long_name',['Diffusion of heat due ' ...
                         'to numerical mixing estimated from heat ' ...
                         'fluxes binned to neutral density']);
@@ -329,7 +331,10 @@ for ti=1:tL
         dHdt = dHdt + double(ncread(wname,'dHdt',[1 1 Ti ti],[xL yL 1 1]))./area;
         dift = dift + ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
         if (haveSF)
-            dift = dift + ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+            dift = dift + ncread(wname,'temp_vdiffuse_sbc_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+        end
+        if (haveKPP)
+            dift = dift + ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
         end
         if (haveRedi)
             dift = dift + ncread(wname,'temp_vdiffuse_k33_on_nrho',[1 1 Ti ti],[xL yL 1 1])+...
@@ -341,6 +346,9 @@ for ti=1:tL
         if (haveSIG)
             dift = dift + ncread(wname,'temp_sigma_diff_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
         end    
+        if (haveLT)
+            dift = dift + ncread(wname,'temp_h_diffuse_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+        end
     
         txtrans = ncread(wname,'tx_trans_nrho',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0;
         tytrans = ncread(wname,'ty_trans_nrho',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0;
@@ -418,6 +426,9 @@ end
 if (haveGM)
     GWB.NGM    = zeros(TL+1,tL); % W due to GM
 end
+if (haveLT)
+    GWB.LTD    = zeros(TL+1,tL); % W due to Lateral Tracer diffusion
+end
 GWB.ADV    = zeros(TL+1,tL); % W due to advection
 GWB.TEN    = zeros(TL+1,tL); % W due to tendency
 
@@ -444,6 +455,9 @@ for ti=1:tL
         GWB.VDS(ii,ti) = nansum(nansum(tmaskREG.*area.*ncread(wname,'temp_vdiffuse_sbc_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     end
     GWB.VDF(ii,ti) = nansum(nansum(tmaskREG.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    if (haveKPP)
+        GWB.VDF(ii,ti) = GWB.VDF(ii,ti) + nansum(nansum(tmaskREG.*area.*ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    end
     if (haveSUB)
     GWB.SUB(ii,ti) = nansum(nansum(tmaskREG.*area.*ncread(wname,'temp_submeso_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     end
@@ -453,6 +467,9 @@ for ti=1:tL
     end
     if (haveGM)
     GWB.NGM(ii,ti) = nansum(nansum(tmaskREG.*area.*ncread(wname,'neutral_gm_on_nrho_temp',[1 1 ii ti],[xL yL 1 1]),1),2);
+    end
+    if (haveLT)
+    GWB.LTD(ii,ti) = nansum(nansum(tmaskREG.*area.*ncread(wname,'temp_h_diffuse_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     end
 for ii=TL-1:-1:1
     sprintf('Calculating global water-mass heat budget time %03d of %03d, temp %03d of %03d',ti,tL,ii,TL)
@@ -464,6 +481,9 @@ for ii=TL-1:-1:1
         GWB.VDS(ii,ti) = GWB.VDS(ii+1,ti) + nansum(nansum(tmaskREG.*area.*ncread(wname,'temp_vdiffuse_sbc_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     end
     GWB.VDF(ii,ti) = GWB.VDF(ii+1,ti) + nansum(nansum(tmaskREG.*area.*ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    if (haveKPP)
+        GWB.VDF(ii,ti) = GWB.VDF(ii,ti) + nansum(nansum(tmaskREG.*area.*ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    end
     if (haveSUB)
     GWB.SUB(ii,ti) = GWB.SUB(ii+1,ti) + nansum(nansum(tmaskREG.*area.*ncread(wname,'temp_submeso_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     end
@@ -474,8 +494,8 @@ for ii=TL-1:-1:1
     if (haveGM)
     GWB.NGM(ii,ti) = GWB.NGM(ii+1,ti) + nansum(nansum(tmaskREG.*area.*ncread(wname,'neutral_gm_on_nrho_temp',[1 1 ii ti],[xL yL 1 1]),1),2);
     end
-    if (haveSIG)
-    GWB.SIG(ii,ti) = GWB.SIG(ii+1,ti) + nansum(nansum(tmaskREG.*area.*ncread(wname,'temp_sigma_diff_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
+    if (haveLT)
+    GWB.LTD(ii,ti) = GWB.LTD(ii+1,ti) + nansum(nansum(tmaskREG.*area.*ncread(wname,'temp_h_diffuse_on_nrho',[1 1 ii ti],[xL yL 1 1]),1),2);
     end
 end
 end
@@ -503,6 +523,9 @@ if (doXYall)
         FlK = zeros(xL,yL,tL); % K33
         FlR = zeros(xL,yL,tL); % Redi
     end
+    if (haveLT)
+        FlL = zeros(xL,yL,tL); % Lateral diffusion
+    end
 end
  
 while (Nremain > 0 & Ti >= 1)
@@ -512,6 +535,9 @@ while (Nremain > 0 & Ti >= 1)
         sprintf(['Calculating water-mass heat budget time %03d of ' ...
                  '%03d, temp %2.2f, going down to %2.2f'],ti,tL,Te(Ti),min(Tls))
         FlM(:,:,ti) = FlM(:,:,ti)+ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+        if (haveKPP)
+           FlM(:,:,ti) = FlM(:,:,ti)+ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+        end
         FlI(:,:,ti) = ncread(wname,'temp_numdiff_heat_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
         if (haveSUB)
             FlSUB(:,:,ti) = FlSUB(:,:,ti)+ncread(wname,'temp_submeso_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
@@ -526,6 +552,9 @@ while (Nremain > 0 & Ti >= 1)
             end
             if (haveSF)
                 FlF(:,:,ti) = FlF(:,:,ti)+ncread(wname,'temp_vdiffuse_sbc_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
+            end
+            if (haveLT)
+                FlL(:,:,ti) = FlL(:,:,ti)+ncread(wname,'temp_h_diffuse_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
             end
         end
     end
@@ -543,9 +572,14 @@ while (Nremain > 0 & Ti >= 1)
             save(name,'FlGM','-append');
         end
         if (doXYall)
-            save(name,'FlF','-append');
+            if (haveSF)
+                save(name,'FlF','-append');
+            end
             if (haveRedi)
                 save(name,'FlK','FlR','-append');
+            end
+            if (haveLT)
+                save(name,'FlL','-append');
             end
         end
         
@@ -653,6 +687,11 @@ if (haveRedi)
     ZA.AHDR   = zeros(yL,TL+1,tL); % Meridional heat flux due to
                                    % Redi diffusion
 end
+if (haveLT)
+    ZA.LTD    = zeros(yL,TL+1,tL); % W due to Lateral diffusion
+    ZA.AHDLT   = zeros(yL,TL+1,tL); % Meridional heat flux due to
+                                   % lateral diffusion
+end
 ZA.JS = zeros(yL,TL+1,tL); % m3s-1deg-1 due to surface volume flux
 ZA.PSI = zeros(yL,TL+1,tL); % m3s-1 northward transport
 ZA.AHD = zeros(yL,TL+1,tL); % W A direct using heat fluxes
@@ -735,5 +774,5 @@ for ti=1:tL
 end
 end % End doZA
 
-end
+% $$$ end
 
