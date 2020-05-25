@@ -50,6 +50,10 @@ doXY       = 1; % 1 = calculate spatial fluxes-on-an-isotherm
 doWMT      = 0; % 1 = calculate WMT volume fluxes spatial structure
 doSURF     = 1; % 1 = calculate surface flux field and SST
 doZA       = 1; % 1 = calculate zonal average budget
+doSURF     = 0; % 1 = calculate surface flux field and SST
+doZA       = 0; % 1 = calculate zonal average budget
+dotempZA   = 1; % 1 = calculate zonal average temp and isotherm depths.
+doVHzsp    = 1; % 1 = calculate globally-averaged V(z,t) and H(z,t)
 
 doHND      = 0; % 1 = calculate global online numdif
 doTENMON   = 0; % 1 = do monthly eulerian tendency binning
@@ -337,6 +341,27 @@ if (doVHza)
     save([outD model sprintf('_output%03d',output) '_VHza.mat'],'V','H','-v7.3');
 end
 
+if (doVHzsp)
+    V = zeros(zL,tLoc);
+    H = zeros(zL,tLoc);
+
+    %Do other times for Vsnap and Hsnap:
+    for ti=1:tLoc
+        for zi=1:zL
+            sprintf('Calculating V and H months time %03d of %03d, depth %02d of %02d',ti,tLoc,zi,zL)
+            
+            temp = ncread(fname,'temp',[1 1 zi ti],[xL yL 1 1]);
+            temp(~mask(:,:,zi)) = NaN;
+            if (max(max(temp))>120);temp = temp-273.15;end;
+            Vol = ncread(fname,'dzt',[1 1 zi ti],[xL yL 1 1]).*area;
+            Vol(isnan(Vol)) = 0;
+
+            V(zi,ti) = nansum(nansum(Vol));
+            H(zi,ti) = rho0*Cp*nansum(nansum(temp.*Vol));
+        end
+    end
+    save([outD model sprintf('_output%03d',output) '_VHofz.mat'],'V','H','z','time','-v7.3');
+end
 
 %% Calculate numerical mixing by residual from heat budget and save
 %% back into netcdf file:
@@ -1236,65 +1261,72 @@ end % end doEQPM2
 % $$$ SST_A = squeeze(ncread('ocean.nc','temp',[1 1 1 1],[xL yL 1 tL])).*repmat(tmaskA,[1 1 tL]);
 % $$$ save('../mat_data/MOM025_kb3seg_output121_SurfaceVars.mat','SST_G','SST_A','SST_P');
 
-% $$$ %% Annual average/max, zonal-average/max depth of isotherms:
-% $$$ 
-% $$$ tempZA = zeros(yL,zL);
-% $$$ saltZA = zeros(yL,zL);
-% $$$ tempZM = -100*zeros(yL,zL);
-% $$$ tempZMA = -100*zeros(yL,zL);
-% $$$ 
-% $$$ for ti=1:tL
-% $$$     sprintf('Calculating zonally-averaged temperature %03d of %03d',ti,tL)
-% $$$     temp = ncread(fname,'temp',[1 1 1 ti],[xL yL zL 1]);
-% $$$     salt = ncread(fname,'salt',[1 1 1 ti],[xL yL zL 1]);
-% $$$     areaNAN = repmat(area,[1 1 zL]).*(~isnan(temp));
-% $$$     
-% $$$     tempZ = squeeze(nansum(areaNAN.*temp,1))./squeeze(nansum(areaNAN,1));
-% $$$     tempZA = tempZA + tempZ;
-% $$$ 
-% $$$     saltZ = squeeze(nansum(areaNAN.*salt,1))./squeeze(nansum(areaNAN,1));
-% $$$     saltZA = saltZA + saltZ;
-% $$$ 
-% $$$     maxt = squeeze(max(temp,[],1));
-% $$$     tempZM = max(tempZM,maxt);
-% $$$     tempZMA = max(tempZMA,tempZ);
-% $$$ end
-% $$$ tempZA = tempZA/tL;
-% $$$ saltZA = saltZA/tL;
-% $$$ 
-% $$$ % Depth of isotherms:
-% $$$ ZAtemp = zeros(yL,TL+1);
-% $$$ ZMtemp = zeros(yL,TL+1);
-% $$$ ZMAtemp = zeros(yL,TL+1);
-% $$$ 'Calculating zonally-averaged isotherms'
-% $$$ for yi=1:yL
-% $$$     tvec = squeeze(tempZA(yi,:));
-% $$$     zvec = -z;
-% $$$     tvec(isnan(tvec)) = -1000;
-% $$$     tvec = tvec - 0.01*(1:zL);
-% $$$     ZAtemp(yi,:) = interp1(tvec,zvec,Te,'linear');
-% $$$     ind = find(~isnan(ZAtemp(yi,:)),1,'last');
-% $$$     ZAtemp(yi,(ind+1):end) = max(zvec);
-% $$$ 
-% $$$     tvec = squeeze(tempZM(yi,:));
-% $$$     tvec(isnan(tvec)) = -1000;
-% $$$     tvec = tvec - 0.01*(1:zL);
-% $$$     ZMtemp(yi,:) = interp1(tvec,zvec,Te,'linear');
-% $$$     ind = find(~isnan(ZMtemp(yi,:)),1,'last');
-% $$$     ZMtemp(yi,(ind+1):end) = max(zvec);
-% $$$ 
-% $$$     tvec = squeeze(tempZMA(yi,:));
-% $$$     tvec(isnan(tvec)) = -1000;
-% $$$     tvec = tvec - 0.01*(1:zL);
-% $$$     ZMAtemp(yi,:) = interp1(tvec,zvec,Te,'linear');
-% $$$     ind = find(~isnan(ZMAtemp(yi,:)),1,'last');
-% $$$     ZMAtemp(yi,(ind+1):end) = max(zvec);
-% $$$ end
-% $$$ 
-% $$$ save([outD model sprintf('_output%03d',output) '_ZAHBud.mat'],'tempZA','saltZA','ZAtemp','tempZM','ZMtemp','tempZMA','ZMAtemp','z','Te','latv','-append');
+%% Annual average/max, zonal-average/max depth of isotherms:
 
-% $$$ end
+if (dotempZA)
+tempZA = zeros(yL,zL);
+saltZA = zeros(yL,zL);
+rhoZA = zeros(yL,zL);
+tempZM = -100*zeros(yL,zL);
+tempZMA = -100*zeros(yL,zL);
 
+for ti=1:tL
+    sprintf('Calculating zonally-averaged temperature %03d of %03d',ti,tL)
+    temp = ncread(fname,'temp',[1 1 1 ti],[xL yL zL 1]);
+    if (max(max(max(temp)))>150)
+        temp = temp-273.15;
+    end
+    salt = ncread(fname,'salt',[1 1 1 ti],[xL yL zL 1]);
+    rho  = ncread(fname,'pot_rho_0',[1 1 1 ti],[xL yL zL 1]);
+    areaNAN = repmat(area,[1 1 zL]).*(~isnan(temp));
+    
+    tempZ = squeeze(nansum(areaNAN.*temp,1))./squeeze(nansum(areaNAN,1));
+    tempZA = tempZA + tempZ;
 
+    saltZ = squeeze(nansum(areaNAN.*salt,1))./squeeze(nansum(areaNAN,1));
+    saltZA = saltZA + saltZ;
+
+    rhoZ = squeeze(nansum(areaNAN.*rho,1))./squeeze(nansum(areaNAN,1));
+    rhoZA = rhoZA + rhoZ;
+
+    maxt = squeeze(max(temp,[],1));
+    tempZM = max(tempZM,maxt);
+    tempZMA = max(tempZMA,tempZ);
+end
+tempZA = tempZA/tL;
+saltZA = saltZA/tL;
+rhoZA = rhoZA/tL;
+
+% Depth of isotherms:
+ZAtemp = zeros(yL,TL+1);
+ZMtemp = zeros(yL,TL+1);
+ZMAtemp = zeros(yL,TL+1);
+'Calculating zonally-averaged isotherms'
+for yi=1:yL
+    tvec = squeeze(tempZA(yi,:));
+    zvec = -z;
+    tvec(isnan(tvec)) = -1000;
+    tvec = tvec - 0.01*(1:zL);
+    ZAtemp(yi,:) = interp1(tvec,zvec,Te,'linear');
+    ind = find(~isnan(ZAtemp(yi,:)),1,'last');
+    ZAtemp(yi,(ind+1):end) = max(zvec);
+
+    tvec = squeeze(tempZM(yi,:));
+    tvec(isnan(tvec)) = -1000;
+    tvec = tvec - 0.01*(1:zL);
+    ZMtemp(yi,:) = interp1(tvec,zvec,Te,'linear');
+    ind = find(~isnan(ZMtemp(yi,:)),1,'last');
+    ZMtemp(yi,(ind+1):end) = max(zvec);
+
+    tvec = squeeze(tempZMA(yi,:));
+    tvec(isnan(tvec)) = -1000;
+    tvec = tvec - 0.01*(1:zL);
+    ZMAtemp(yi,:) = interp1(tvec,zvec,Te,'linear');
+    ind = find(~isnan(ZMAtemp(yi,:)),1,'last');
+    ZMAtemp(yi,(ind+1):end) = max(zvec);
+end
+
+save([outD model sprintf('_output%03d',output) '_' region '_ZAHBud.mat'],'tempZA','saltZA','rhoZA','ZAtemp','tempZM','ZMtemp','tempZMA','ZMAtemp','z','Te','yt','-append');
+end
 
 % $$$ end
