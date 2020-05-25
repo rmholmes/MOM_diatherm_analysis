@@ -6,7 +6,7 @@ clear all;
 
 base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
 
-outs = [0];
+outs = [1:4];
 RUNS = { ...
 % $$$          {'MOM_Gyre',outs}, ...
 % $$$          {'MOM_Gyre_Run002',outs}, ...
@@ -20,7 +20,12 @@ RUNS = { ...
 % $$$          {'MOM_Gyre_Run011',outs,'$k_{smag}=20$, $\kappa_B=5\times10^{-5}$, $\kappa_L=500$m$^2$s$^{-1}$'}, ...
 % $$$          {'MOM_Gyre_Run012',outs,'$k_{smag}=2$, $\kappa_B=5\times10^{-5}$, $\kappa_L=500$m$^2$s$^{-1}$'}, ...
 % $$$          {'MOM_Gyre_Run013',[0],'$k_{smag}=2$, $\kappa_B=5\times10^{-5}$, $\kappa_L=500$m$^2$s$^{-1}$, SRSTR'}, ...
-         {'MOM_Gyre_Run014',[0],'$k_{smag}=2$, $\kappa_B=5\times10^{-5}$, $\kappa_R=500$m$^2$s$^{-1}$, SRSTR'}, ...
+         {'MOM_Gyre_Run014',outs,'Control'}, ...
+% $$$          {'MOM_Gyre_Run015',outs,'dt=1800s'}, ...
+% $$$          {'MOM_Gyre_Run016',outs,'$\kappa_R=300$m$^2$s$^{-1}$'}, ...
+% $$$          {'MOM_Gyre_Run017',outs,'$\kappa_R=300$m$^2$s$^{-1}$, $\kappa_v = 10^{-4}$m$^2$s$^{-1}$'}, ...
+% $$$          {'MOM_Gyre_Run019',outs,'$\kappa_v = 10^{-6}$m$^2$s$^{-1}$'}, ...
+         {'MOM_Gyre_Run018',[5:24],'Double Res.'}, ...
 % $$$          {'MOM_Gyre_Run013',[2],'$k_{smag}=2$, $\kappa_B=5\times10^{-5}$, $\kappa_L=500$m$^2$s$^{-1}$, SRSTR'}, ...
 % $$$          {'MOM_Gyre_Run013',[3],'$k_{smag}=2$, $\kappa_B=5\times10^{-5}$, $\kappa_L=500$m$^2$s$^{-1}$, SRSTR'}, ...
 % $$$          {'MOM_Gyre_Run013',[4],'$k_{smag}=2$, $\kappa_B=5\times10^{-5}$, $\kappa_L=500$m$^2$s$^{-1}$, SRSTR'}, ...
@@ -35,10 +40,12 @@ set(gcf,'Position',[207          97        1609         815]);
 
 rr = 1;
 for rr=1:length(RUNS)
+clearvars -except base RUNS ltype lthic rr;
 outputs = RUNS{rr}{2};
 model = RUNS{rr}{1};
 load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
 region = '';
+
 
 %% Global Calculations:
 for i=1:length(outputs)
@@ -105,7 +112,7 @@ HWMT(:,:,i) = HWMTM(:,:,i)+HWMTI(:,:,i)+HWMTR(:,:,i)+HWMTL(:,:,i)+HWMTF(:,:,i);
 end
 
 months = 1:length(M(1,:,1));
-months = 80:120;
+% $$$ months = 80:120;
 % $$$ months = [12:24];
 
 %%%%Heat Flux:
@@ -155,43 +162,43 @@ end
 
 end
 
-%%% Distributions change in time:
-figure;
-set(gcf,'Position',[3    40   956   963]);%207          97        1609         815]);
-% $$$ axs1 = subplot(2,1,1);
+% $$$ %%% Distributions change in time:
+% $$$ figure;
+% $$$ set(gcf,'Position',[3    40   956   963]);%207          97        1609         815]);
+% $$$ % $$$ axs1 = subplot(2,1,1);
+% $$$ % $$$ hold on;
+% $$$ axs2 = gca;%subplot(2,1,2);
 % $$$ hold on;
-axs2 = gca;%subplot(2,1,2);
-hold on;
-for rr=1:length(RUNS)
-outputs = RUNS{rr}{2};
-model = RUNS{rr}{1};
-load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
-
-for i=1:length(outputs)
-load([base model sprintf('_output%03d',outputs(i)) ...
-      '_VHza.mat']);
-Vs(:,:,i) = squeeze(nansum(V,1));
-Hs(:,:,i) = squeeze(nansum(H,1));
-end
-
-V = cat(1,cumsum(Vs,1,'reverse'),zeros(1,length(Vs(1,:,1)),length(Vs(1,1,:))));
-H = cat(1,cumsum(Hs,1,'reverse'),zeros(1,length(Vs(1,:,1)),length(Vs(1,1,:))));
-HE = rho0*Cp*V.*repmat(Te,[1 length(Vs(1,:,1)) length(Vs(1,1,:))]);
-HI = H - HE;    
-
-% $$$ if (rr==1)
-% $$$     plot(Te,V(:,1,1),'-k','Parent',axs1);
+% $$$ for rr=1:length(RUNS)
+% $$$ outputs = RUNS{rr}{2};
+% $$$ model = RUNS{rr}{1};
+% $$$ load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
+% $$$ 
+% $$$ for i=1:length(outputs)
+% $$$ load([base model sprintf('_output%03d',outputs(i)) ...
+% $$$       '_VHza.mat']);
+% $$$ Vs(:,:,i) = squeeze(nansum(V,1));
+% $$$ Hs(:,:,i) = squeeze(nansum(H,1));
 % $$$ end
-% $$$ plot(Te,V(:,end,end),ltype{rr},'color','r','Parent',axs1);
-if (rr==1)
-    plot(Te,H(:,1,1),'-k','Parent',axs2,'linewidth',2);
-    plot(Te,HI(:,1,1),'-r','Parent',axs2,'linewidth',2);
-    plot(Te,HE(:,1,1),'-b','Parent',axs2,'linewidth',2);
-end
-plot(Te,H(:,end,end),ltype{rr},'color','k','Parent',axs2);
-plot(Te,HI(:,end,end),ltype{rr},'color','r','Parent',axs2);
-plot(Te,HE(:,end,end),ltype{rr},'color','b','Parent',axs2);
-end
+% $$$ 
+% $$$ V = cat(1,cumsum(Vs,1,'reverse'),zeros(1,length(Vs(1,:,1)),length(Vs(1,1,:))));
+% $$$ H = cat(1,cumsum(Hs,1,'reverse'),zeros(1,length(Vs(1,:,1)),length(Vs(1,1,:))));
+% $$$ HE = rho0*Cp*V.*repmat(Te,[1 length(Vs(1,:,1)) length(Vs(1,1,:))]);
+% $$$ HI = H - HE;    
+% $$$ 
+% $$$ % $$$ if (rr==1)
+% $$$ % $$$     plot(Te,V(:,1,1),'-k','Parent',axs1);
+% $$$ % $$$ end
+% $$$ % $$$ plot(Te,V(:,end,end),ltype{rr},'color','r','Parent',axs1);
+% $$$ if (rr==1)
+% $$$     plot(Te,H(:,1,1),'-k','Parent',axs2,'linewidth',2);
+% $$$     plot(Te,HI(:,1,1),'-r','Parent',axs2,'linewidth',2);
+% $$$     plot(Te,HE(:,1,1),'-b','Parent',axs2,'linewidth',2);
+% $$$ end
+% $$$ plot(Te,H(:,end,end),ltype{rr},'color','k','Parent',axs2);
+% $$$ plot(Te,HI(:,end,end),ltype{rr},'color','r','Parent',axs2);
+% $$$ plot(Te,HE(:,end,end),ltype{rr},'color','b','Parent',axs2);
+% $$$ end
 
 %%% Spatial Structure:
 rr = 1;
@@ -204,7 +211,7 @@ VARS = {'FlM','FlI'};
 TYPE = 'VertInt';
 Tls = [20 18 12];
 months = 1:tL;%length(M(1,:,1));
-months = 80:tL;%length(M(1,:,1));
+% $$$ months = 80:tL;%length(M(1,:,1));
 
 %Mean of all months:
 figure;

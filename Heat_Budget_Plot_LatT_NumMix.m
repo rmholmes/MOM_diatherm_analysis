@@ -11,24 +11,26 @@ RUNS = { ...
 % MOM01-SIS:
 % $$$     {'MOM01',[4567]}, ...
 % $$$ % MOM025-SIS:
-    {'MOM025_kb3seg',[101120],'(a) MOM025 Control'}, ...
+% $$$     {'MOM025_kb3seg',[101120],'(a) MOM025 Control'}, ...
 % $$$     {'MOM025',[15:19]}, ...
 % $$$     {'MOM025_kb1em5',[95:99]}, ...
 % $$$     {'MOM025_kb1em6',[30]}, ...
 % $$$ % ACCESS-OM2 Gadi runs:
-         {'ACCESS-OM2_1deg_jra55_ryf',[31],'(b) ACCESS-OM2-1-KDS50'}, ...
+% $$$          {'ACCESS-OM2_1deg_jra55_ryf',[31],'(b) ACCESS-OM2-1-KDS50'}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf_gfdl50',[31]}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf_kds75',[3135]}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf_kds100',[3135]}, ...
-         {'ACCESS-OM2_1deg_jra55_ryf_kds135',[3135],'(c) ACCESS-OM2-1-KDS135'}, ...
+% $$$          {'ACCESS-OM2_1deg_jra55_ryf_kds135',[3135],'(c) ACCESS-OM2-1-KDS135'}, ...
          {'ACCESS-OM2_025deg_jra55_ryf',[7680],'(d) ACCESS-OM2-025-RG'}, ...
 % $$$          {'ACCESS-OM2_025deg_jra55_ryf8485_gmredi',[73]}, ...
          {'ACCESS-OM2_025deg_jra55_ryf_norediGM',[7680],'(e) ACCESS-OM2-025'}, ...
-% $$$     {'ACCESS-OM2_025deg_jra55_ryf_noGM',[7680]}, ...
+         {'ACCESS-OM2_025deg_jra55_ryf_noGM',[7680],'(e) ACCESS-OM2-025-R'}, ...
 % $$$          {'ACCESS-OM2_025deg_jra55_ryf',[80]}, ...
 % $$$          {'ACCESS-OM2_025deg_jra55_ryf',[300]}, ...
-         {'ACCESS-OM2_01deg_jra55_ryf',[636639],'(f) ACCESS-OM2-01'}, ...
+% $$$          {'ACCESS-OM2_01deg_jra55_ryf',[636639],'(f) ACCESS-OM2-01'}, ...
+% $$$          {'ACCESS-OM2_01deg_jra55_ryf_k_smag_iso3',[640643],'(f) ACCESS-OM2-01'}, ...
        };
+doZAremap = 1;
 
 for rr = 1:length(RUNS)
     outputs = RUNS{rr}{2};
@@ -45,9 +47,14 @@ dy = [yu(2)-yu(1); diff(yu)]; % (First-element is done by hand - but dy is equal
 regions = {'Global'};
 regLets = {'G'};
 
+% $$$     if (rr == 6);
+% $$$         NUMs = ZA_G.NUM;
+% $$$     end
+
 for reg = 1:length(regions)
     region = regions{reg}
     regLet = regLets{reg};
+    
 
     %% Make Vars
     type = 'ZA';
@@ -80,7 +87,16 @@ for reg = 1:length(regions)
         ZAR.JSH(:,:,:,i) = ZAR.JS(:,:,:,i).*repmat(Te',[yL 1 tL])*rho0*Cp;
         ZAR.PI(:,:,:,i)  = ZAR.P(:,:,:,i) - ZAR.JSH(:,:,:,i);
         ZAR.N(:,:,:,i) = ZAR.dHdt(:,:,:,i) - ZAR.dVdt(:,:,:,i).*repmat(Te',[yL 1 tL])*rho0*Cp;
+        if (doZAremap)
+            ZAtempS(:,:,i) = ZAtemp;
+            tempZAS(:,:,i) = tempZA;
+            rhoZAS(:,:,i) = rhoZA;
+        end
     end
+    
+    ZAtemp = mean(ZAtempS,3);
+    tempZA = mean(tempZAS,3);
+    rhoZA = mean(rhoZAS,3);
 
     % Take annual and mean across outputs:
     names = fieldnames(ZAR);
@@ -125,10 +141,10 @@ for reg = 1:length(regions)
     else
         maskREG = ones(size(SST(:,:,1)));
     end
-    SST = SST.*repmat(maskREG,[1 1 tL]);
+    SST = SST.*repmat(maskREG,[1 1 length(SST(1,1,:))]);
     SST(SST==0) = NaN;
-    ZAR.minSST = squeeze(min(monmean(SST,3,ndays),[],1)');
-    if (max(ZAR.minSST)>100); ZAR.minSST = ZAR.minSST-273.15; end
+% $$$     ZAR.minSST = squeeze(min(monmean(SST,3,ndays),[],1)');
+% $$$     if (max(ZAR.minSST)>100); ZAR.minSST = ZAR.minSST-273.15; end
 
     % Total MHTs:
     ZAR.MHTSUB = ZAR.AHDSUB(:,end);
@@ -136,11 +152,18 @@ for reg = 1:length(regions)
     ZAR.MHTGM  = ZAR.AHDGM(:,end);
     ZAR.MHTR   = ZAR.AHDR(:,end);
     ZAR.MHT    = ZAR.MHTADV + ZAR.MHTSUB + ZAR.MHTGM + ZAR.MHTR;
+    
+% $$$     % Zonal average isotherm depths for remapping:
+% $$$     ZAR.
 
     eval(['ZA_' regLet ' = ZAR;']);
     clear ZAR;
 end %end region loop
     
+% $$$     if (rr == 6)
+% $$$         ZA_G.NUM = ZA_G.NUM-NUMs;
+% $$$     end
+% $$$     
 %% Calculate total diathermal transport and numerical mixing (special for Atlantic):
 [X,Y] = ndgrid(yt,Te);
 
@@ -194,7 +217,8 @@ dy = [dy(1); dy];
 % NumMix:
 fields = { ...
 % $$$           {'I',-1./repmat(dy,[1 TL+1])/1e12,'Numerical Mixing',[-10 10],0.25,'TW/$^\circ$latitude'}, ...
-          {'NUM',1./repmat(dy,[1 TL+1])/1e12,'Numerical Mixing',[-30 0],1,'TW/$^\circ$latitude'}, ...
+          {'NUM',1./repmat(dy,[1 TL+1])/1e12,'Numerical Mixing',[-25 0],0.5,'TW/$^\circ$latitude'}, ...
+% $$$           {'NUM',1./repmat(dy,[1 TL+1])/1e12,'Numerical Mixing',[-10 10],0.5,'TW/$^\circ$latitude'}, ...
 };
 
 cpts = cell(1,length(fields));
@@ -235,7 +259,12 @@ poss = [0.11     0.5949    0.21    0.3301; ...
 letlabs = {'(a)','(b)','(c)','(d)','(e)','(f)','(g)','(h)','(i)'};
 for i=1:length(fields)
     subplot(2,3,rr);
-    [X,Y] = ndgrid(yt,Te);
+    if (doZAremap)    
+        X =repmat(yt,[1 TL+1]);
+        Y = ZAtemp;
+    else
+        [X,Y] = ndgrid(yt,Te);
+    end
 
     eval(['VAR = ZA_' regLets{reg} '.' fields{i}{1} '.*fields{i}{2};']);
     VAR(VAR==0) = NaN;
@@ -244,17 +273,21 @@ for i=1:length(fields)
     contourf(X,Y,VAR,cpts{i},'linestyle','none');
     hold on;
     col = [0 0 0];
-
-% $$$         if (~doZAremap)
+    if (doZAremap)
+        [X,Y] = ndgrid(yt,-z);
+        [c,h] = contour(X,Y,tempZA,[-2:2:34],'-k');
+        clabel(c,h);
+        [c,h] = contour(X,Y,rhoZA,[1020:0.2:1040],'-','color',[0.5 0.5 0.5]);
+        sp = 0.02
+        [c,h] = contour(X,Y,rhoZAD,[-1:sp:-sp],'--','color',[0.5 0.5 0.5]);
+        clabel(c,h);
+        [c,h] = contour(X,Y,rhoZAD,[sp:sp:1],'-','color',[0.5 0.5 0.5]);
+        clabel(c,h);
+    else
 % $$$         plot(yvec,filter_field(meanSST,latfilt,'-t'),':','color',col);
-        eval(['plot(yt,filter_field(ZA_' regLets{reg} '.minSST,latfilt,''-t''),'':'',''color'',col);']);
+% $$$         eval(['plot(yt,filter_field(ZA_' regLets{reg} '.minSST,latfilt,''-t''),'':'',''color'',col);']);
         eval(['plot(yt,filter_field(ZA_' regLets{reg} '.maxTt,latfilt,''-t''),'':k'');']);
-
-% $$$     else
-% $$$         [tt,zz] = ndgrid(yvec,-z);
-% $$$         [c,h] = contour(tt,zz,zTxa,[0:4:34],'-k');
-% $$$         clabel(c,h);
-% $$$     end
+    end
 
 % $$$         if (i>=1)
 % $$$             eval(['VAR = ZA_' regLets{reg} '.AI/1e15;']);        
@@ -276,14 +309,18 @@ for i=1:length(fields)
 % $$$ % $$$             clabel(c,h);
 % $$$ % $$$             end
 % $$$         end
-        
-        ylim([-3 34]);
+    if (doZAremap)
+        ylim([-1000 0]);
+    else
+        ylim([-2 34]);
+    end
         caxis(fields{i}{4});
         box on; 
         grid on;
         letno = rr;%3*(i-1)+r;
         xlim([-80 80]);
-        text(-79,32.15,label);%[strrep(model,'_','\_')]);%RUNS{letlabs{letno} ' ' fields{i}{3}]);
+        xlim([-80 0]);
+        text(-79,32.15,label);%,'BackgroundColor','w');%[strrep(model,'_','\_')]);%RUNS{letlabs{letno} ' ' fields{i}{3}]);
         set(gca,'xtick',[-90:30:90]);
         if (rr>=4)
             xlabel('Latitude ($^\circ$N)');

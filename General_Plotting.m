@@ -176,27 +176,49 @@ caxis([5 28]);
 
 
 %% Plot Sea level variability:
+close all;
+clear all;
 base = '/srv/ccrc/data03/z3500785/mom/';
-gname = [base 'ocean_grid.nc'];
+gname = [base 'ocean_grid_mom025.nc'];
          
 lon = ncread(gname,'geolon_t');
 lat = ncread(gname,'geolat_t');
+area = ncread(gname,'area_t');
 [xL,yL] = size(lon);
-xvec = 1:6:xL;
-yvec = 1:6:yL;
 
-cont = ncread([base 'sea_levelsq.cont.ncra.nc'],'sea_levelsq') -
-       ncread([base 'sea_level.cont.ncra.nc'],'sea_level').^2;
-pert = ncread([base 'sea_levelsq.ncra.nc'],'sea_levelsq') -
-       ncread([base 'sea_level.ncra.nc'],'sea_level').^2;
+% $$$ xvec = 1:6:xL;
+% $$$ yvec = 1:6:yL;
+% $$$ % 1/10 sea level variability:
+% $$$ cont = ncread([base 'ncdata/sea_levelsq.cont.ncra.nc'],'sea_levelsq') - ...
+% $$$        ncread([base 'ncdata/sea_level.cont.ncra.nc'],'sea_level').^2;
+% $$$ pert = ncread([base 'ncdata/sea_levelsq.ncra.nc'],'sea_levelsq') - ...
+% $$$        ncread([base 'ncdata/sea_level.ncra.nc'],'sea_level').^2;
+% $$$ % Global integral:
+% $$$ contG = nansum(nansum(cont.*area))
+% $$$ contP = nansum(nansum(pert.*area))
+% $$$ figure;
+% $$$ subplot(2,2,1);
+% $$$ pcolPlot(lon(xvec,yvec),lat(xvec,yvec),cont(xvec,yvec));
+% $$$ caxis([0 0.1]);
+% $$$ subplot(2,2,2);
+% $$$ pcolPlot(lon(xvec,yvec),lat(xvec,yvec),pert(xvec,yvec));
+% $$$ caxis([0 0.1]);
+% $$$ subplot(2,2,3);
+% $$$ pcolPlot(lon(xvec,yvec),lat(xvec,yvec),pert(xvec,yvec)-cont(xvec,yvec));
+% $$$ caxis([-0.1 0.1]);
+
+xvec = 1:2:xL;
+yvec = 1:2:yL;
+% 1/4 EKE and temperature variability:
+u_sq = ncread([base 'ncdata/ocean_month.rediGM.ncra.nc'],'u_sq');
+u_rms = ncread([base 'ncdata/ocean_month.rediGM.ncra.nc'],'u');
 
 figure;
 subplot(2,2,1);
-pcolPlot(lon(xvec,yvec),lat(xvec,yvec),cont(xvec,yvec));
+pcolPlot(lon(xvec,yvec),lat(xvec,yvec),u_sq(xvec,yvec,1));
+caxis([0 0.5]);
 subplot(2,2,2);
-pcolPlot(lon(xvec,yvec),lat(xvec,yvec),pert(xvec,yvec));
-subplot(2,2,3);
-pcolPlot(lon(xvec,yvec),lat(xvec,yvec),pert(xvec,yvec)-cont(xvec,yvec));
-
-
+pcolPlot(lon(xvec,yvec),lat(xvec,yvec),u_rms(xvec,yvec,1).^2);
+caxis([0 0.5]);
+pcolPlot(lon(xvec,yvec),lat(xvec,yvec),u_rms(xvec,yvec,1).^2-u_sq(xvec,yvec,1));
 

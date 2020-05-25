@@ -11,13 +11,14 @@ RUNS = { ...
 % MOM01-SIS:
 % $$$     {'MOM01',[4567]}, ...
 % $$$ % MOM025-SIS:
-    {'MOM025_kb3seg',[101120]}, ...
+% $$$     {'MOM025_kb3seg',[101120]}, ...
 % $$$     {'MOM025_kb3seg',[101:110]}, ...
 % $$$     {'MOM025',[15:19]}, ...
 % $$$     {'MOM025_kb1em5',[95:99]}, ...
 % $$$     {'MOM025_kb1em6',[30]}, ...
 % $$$ % ACCESS-OM2 Gadi runs:
-% $$$          {'ACCESS-OM2_1deg_jra55_ryf',[31]}, ...
+         {'ACCESS-OM2_1deg_jra55_ryf',[31]}, ...
+         {'ACCESS-OM2_1deg_jra55_ryf_sgl',[31]}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf_gfdl50',[31]}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf_kds75',[3135]}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf_kds100',[3135]}, ...
@@ -34,7 +35,7 @@ RUNS = { ...
 rr = 1;
 figure;
 set(gcf,'Position',[158          40        1641         963]);%get(0,'ScreenSize'));
-% $$$ for rr = 1:length(RUNS);
+for rr = 1:length(RUNS);
     outputs = RUNS{rr}{2};
     model = RUNS{rr}{1};
 
@@ -434,7 +435,7 @@ set(gcf,'Position',[158          40        1641         963]);%get(0,'ScreenSize
     climn = [clim(1)-sp clim(2)];
 % $$$ % $$$ %Mean of all months:
 % $$$ % $$$     cla;
-% $$$     figure;
+    figure;
 % $$$ % $$$ set(gcf,'Position',[3          59        1916         914]);
 % $$$ % $$$ set(gcf,'Position',[88         371        1625         603]);
 % $$$ set(gcf,'Position',[3          59        1476         921]); % Production NumMix first fig.
@@ -443,6 +444,7 @@ set(gcf,'Position',[158          40        1641         963]);%get(0,'ScreenSize
 % $$$ % $$$ set(gcf,'Position',[3    40   956   963]);
     set(gcf,'defaulttextfontsize',15);
     set(gcf,'defaultaxesfontsize',15);
+
 % $$$ % $$$ 
 % 2x1:
     poss = [0.1300    0.54    0.7403    0.4149; ...
@@ -460,7 +462,7 @@ set(gcf,'Position',[158          40        1641         963]);%get(0,'ScreenSize
 % $$$     end
     i = 1;
 % $$$     subplot(2,1,1);
-    subplot(3,2,2*(rr-1)+iii);
+% $$$     subplot(3,2,2*(rr-1)+iii);
     X = lon(xvec,yvec);
     Y = lat(xvec,yvec);
     if (length(months{i})>1)
@@ -529,7 +531,7 @@ set(gcf,'Position',[158          40        1641         963]);%get(0,'ScreenSize
             0.0886    0.08    0.345    0.27; ...
             0.4503    0.08    0.345    0.27];
 
-    set(gca,'Position',[poss(2*(rr-1)+iii,:)]);
+% $$$     set(gca,'Position',[poss(2*(rr-1)+iii,:)]);
 % $$$     ylim([-65 75]);
 % $$$     text(-277,70,labels{2*(rr-1)+iii},'BackgroundColor','w','Margin',0.5,'FontSize',20);
 % $$$     text(-277,72,labels{2*(rr-1)+iii},'BackgroundColor','w','Margin',0.5,'FontSize',12);
