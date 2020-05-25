@@ -1,7 +1,7 @@
 % This script processes the heat budget and associated variables in
 % MOM025 or MOM01 simulations and save's into .mat files
 
-% $$$ baseL = '/g/data/e14/mv7494/access-om2/archive/';
+% $$$ baseL = '/scratch/e14/mv7494/access-om2/archive/';
 % $$$ baseL = '/short/e14/rmh561/mom/archive/';
 % $$$ baseL = '/g/data/e14/rmh561/access-om2/archive/';
 % $$$ baseL = '/g/data/e14/rmh561/mom/archive/';
@@ -10,9 +10,9 @@
 baseL = '/scratch/e14/rmh561/access-om2/archive/';
 
 % MOM-SIS025:
-model = 'ACCESS-OM2_01deg_jra55_ryf';
-baseD = [baseL '01deg_jra55_ryf/']; %Data Directory.
-ICdir = [baseL '01deg_jra55_ryf/'];
+model = 'ACCESS-OM2_1deg_jra55_rdf';
+baseD = [baseL '1deg_jra55_rdf/']; %Data Directory.
+ICdir = [baseL '1deg_jra55_rdf/'];
 % $$$ % MOM-SIS01:
 % $$$ model = 'MOM01';
 % $$$ baseD = [baseL 'MOM01_HeatDiag/']; %Data Directory.
@@ -25,11 +25,11 @@ post = 'ocean/'; % For ACCESS-OM2 output coulpled;
 % $$$ post = ''; % For MOM-SIS.
 
 % term options:
-haveRedi = 0; % 1 = Redi diffusion is on, 0 = off
-haveGM = 0; % 1 = GM is on, 0 = off;
+haveRedi = 1; % 1 = Redi diffusion is on, 0 = off
+haveGM = 1; % 1 = GM is on, 0 = off;
 haveSUB = 1; % 1 = submeso is on, 0 = off;
-haveMDS = 0; % 1 = MDS is on, 0 = off;
-haveSIG = 0; % 1 = SIG is on, 0 = off;
+haveMDS = 1; % 1 = MDS is on, 0 = off;
+haveSIG = 1; % 1 = SIG is on, 0 = off;
 haveMIX = 0; % 1 = Do mixing components (vdiffuse_diff_cbt_*), 0 = don't. 
 
 % Processing options:
@@ -45,11 +45,11 @@ doSGMviac  = 0; % 1 = calculate SUB/GM influence via binned
                 % includes the numerical mixing associated with the GM
                 % and SUB schemes).
 
-doGWB      = 0; % 1 = calculate global online budget terms
-doXY       = 0; % 1 = calculate spatial fluxes-on-an-isotherm
+doGWB      = 1; % 1 = calculate global online budget terms
+doXY       = 1; % 1 = calculate spatial fluxes-on-an-isotherm
 doWMT      = 0; % 1 = calculate WMT volume fluxes spatial structure
-doSURF     = 0; % 1 = calculate surface flux field and SST
-doZA       = 0; % 1 = calculate zonal average budget
+doSURF     = 1; % 1 = calculate surface flux field and SST
+doZA       = 1; % 1 = calculate zonal average budget
 
 doHND      = 0; % 1 = calculate global online numdif
 doTENMON   = 0; % 1 = do monthly eulerian tendency binning
@@ -57,7 +57,7 @@ doMONANN   = 0; % 1 = calculate monthly and annually binned eulerian global budg
 doXYall    = 0; % 1 = do all XY calcs (most not used)
 doXYtran   = 0; % 1 = calculate vertically-integrated heat
                 % transports below given isotherm/s.
-doEQPM2    = 1; % 1 = calculate equatorial PM2-degree slice 
+doEQPM2    = 0; % 1 = calculate equatorial PM2-degree slice 
 
 % scaling constant on the transports:
 if (strcmp(model(1),'A')) %ACCESS-OM2, transport in kg/s
@@ -82,6 +82,7 @@ end
 hname = [base 'ocean_heat.nc'];
 fname_month = [base 'ocean_month.nc'];
 fname = [base 'ocean.nc'];
+fname_3month = [base 'ocean.nc'];
 if (strfind(baseD,'01'))
     fname_3month = fname;
     fname = fname_month;
@@ -144,10 +145,9 @@ end
 time = ncread(wname,'time');
 ndays = ncread(wname,'average_DT');
 tL = length(time);
+tLoc = length(ncread(fname,'time'));
 if (strfind(baseD,'01'))
     tLoc = length(ncread(fname_3month,'time'));
-else
-    tLoc = length(ncread(fname,'time'));
 end
 if (exist(baser))
     found_rst = 1;rstti = 1;
@@ -304,11 +304,11 @@ end
 
 if (doVHza)
     % Calculate non-snap zonal-average annual-average volumes:
-    V = zeros(yL,TL,tL);
-    H = zeros(yL,TL,tL);
-    for ti=1:tL
+    V = zeros(yL,TL,tLoc);
+    H = zeros(yL,TL,tLoc);
+    for ti=1:tLoc
         for zi=1:zL
-            sprintf('Calculating V and H time %03d of %03d, depth %02d of %02d',ti,tL,zi,zL)
+            sprintf('Calculating V and H time %03d of %03d, depth %02d of %02d',ti,tLoc,zi,zL)
 
             try
                 temp = ncread(fname,'temp',[1 1 zi ti],[xL yL 1 1]);
@@ -1297,4 +1297,4 @@ end % end doEQPM2
 
 
 
-end
+% $$$ end
