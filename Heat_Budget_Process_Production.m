@@ -37,6 +37,7 @@ doBASE     = 0; % 1 = save BaseVars.mat file
 dodVdtdHdt = 0; % 1 = calculate dVdt/dHdt and save into .nc file
 doVHza     = 1; % 1 = save zonally-integrated V and H fields from
                 % average time slots in a .mat file.
+doVHzsp    = 1; % 1 = calculate globally-averaged V(z,t) and H(z,t)
 doVHzaSNAP = 1; % 1 = save zonally-integrated V and H fields from snaps.
 doNUMDIF   = 0; % 1 = calculate tempdiff x,y,T,t and save into .nc file
 doSGMviac  = 0; % 1 = calculate SUB/GM influence via binned
@@ -54,8 +55,6 @@ doZA       = 0; % 1 = calculate zonal average budget
 doSURF     = 0; % 1 = calculate surface flux field and SST
 doZA       = 0; % 1 = calculate zonal average budget
 dotempZA   = 0; % 1 = calculate zonal average temp and isotherm depths.
-doVHzsp    = 1; % 1 = calculate globally-averaged V(z,t) and H(z,t)
-
 doHND      = 0; % 1 = calculate global online numdif
 doTENMON   = 0; % 1 = do monthly eulerian tendency binning
 doMONANN   = 0; % 1 = calculate monthly and annually binned eulerian global budget
@@ -311,6 +310,7 @@ if (doVHza | doVHzsp)
     try
         Tname = fname_month;
         temp = ncread(Tname,'temp',[1 1 1 1],[xL yL 1 1]);
+        tLVH = tL;
     catch
         try
             Tname = fname_3month;
@@ -319,34 +319,50 @@ if (doVHza | doVHzsp)
             Tname = fname;
             temp = ncread(Tname,'temp',[1 1 1 1],[xL yL 1 1]);
         end
+        tLVH = tLoc;
     end
-end
 
-if (doVHza)
     % Calculate non-snap zonal-average annual-average volumes:
-    V = zeros(yL,TL,tLoc);
-    H = zeros(yL,TL,tLoc);
-    for ti=1:tLoc
+    if (doVHza)
+        V = zeros(yL,TL,tLVH);
+        H = zeros(yL,TL,tLVH);
+    end
+    if (doVHzsp)
+        Vz = zeros(zL,tLVH);
+        Hz = zeros(zL,tLVH);
+    end
+    for ti=1:tLVH
         for zi=1:zL
-            sprintf('Calculating V and H time %03d of %03d, depth %02d of %02d',ti,tLoc,zi,zL)
+            sprintf('Calculating V and H time %03d of %03d, depth %02d of %02d',ti,tLVH,zi,zL)
 
             temp = ncread(Tname,'temp',[1 1 zi ti],[xL yL 1 1]);
             temp(~mask(:,:,zi)) = NaN;
             if (max(max(temp))>120);temp = temp-273.15;end;
             Vol = ncread(Tname,'dzt',[1 1 zi ti],[xL yL 1 1]).*area;
             Vol(isnan(Vol)) = 0;
-        
-            for Ti=1:TL
-                %Accumulate sums:
-                inds = temp>=Te(Ti) & temp<Te(Ti+1);
-                V(:,Ti,ti) = V(:,Ti,ti) + nansum(Vol.*inds,1)';
-                Hlay = Vol.*temp.*inds*rho0*Cp;
-                Hlay(isnan(Hlay)) = 0;
-                H(:,Ti,ti) = H(:,Ti,ti) + nansum(Hlay,1)';
+            
+            if (doVHza)
+                for Ti=1:TL
+                    %Accumulate sums:
+                    inds = temp>=Te(Ti) & temp<Te(Ti+1);
+                    V(:,Ti,ti) = V(:,Ti,ti) + nansum(Vol.*inds,1)';
+                    Hlay = Vol.*temp.*inds*rho0*Cp;
+                    Hlay(isnan(Hlay)) = 0;
+                    H(:,Ti,ti) = H(:,Ti,ti) + nansum(Hlay,1)';
+                end
+            end
+            if (doVHzsp)
+                Vz(zi,ti) = nansum(nansum(Vol));
+                Hz(zi,ti) = rho0*Cp*nansum(nansum(temp.*Vol));
             end
         end
     end
-    save([outD model sprintf('_output%03d',output) '_VHza.mat'],'V','H','-v7.3');
+    if (doVHza)
+        save([outD model sprintf('_output%03d',output) '_VHza.mat'],'V','H','-v7.3');
+    end
+    if (doVHzsp)
+        save([outD model sprintf('_output%03d',output) '_VHofz.mat'],'Vz','Hz','z','-v7.3');
+    end
 end
 
 if (doVHzaSNAP)
@@ -355,7 +371,7 @@ if (doVHzaSNAP)
     H = zeros(yL,TL,tL);
     for ti=1:tL
         for zi=1:zL
-            sprintf('Calculating V and H time %03d of %03d, depth %02d of %02d',ti,tLoc,zi,zL)
+            sprintf('Calculating V and H time %03d of %03d, depth %02d of %02d',ti,tLVH,zi,zL)
 
             temp = ncread(sname,'temp',[1 1 zi ti],[xL yL 1 1]);
             temp(~mask(:,:,zi)) = NaN;
@@ -374,27 +390,6 @@ if (doVHzaSNAP)
         end
     end
     save([outD model sprintf('_output%03d',output) '_VHzaSNAP.mat'],'V','H','-v7.3');
-end
-
-if (doVHzsp)
-    V = zeros(zL,tLoc);
-    H = zeros(zL,tLoc);
-
-    for ti=1:tLoc
-        for zi=1:zL
-            sprintf('Calculating V and H months time %03d of %03d, depth %02d of %02d',ti,tLoc,zi,zL)
-            
-            temp = ncread(Tname,'temp',[1 1 zi ti],[xL yL 1 1]);
-            temp(~mask(:,:,zi)) = NaN;
-            if (max(max(temp))>120);temp = temp-273.15;end;
-            Vol = ncread(Tname,'dzt',[1 1 zi ti],[xL yL 1 1]).*area;
-            Vol(isnan(Vol)) = 0;
-
-            V(zi,ti) = nansum(nansum(Vol));
-            H(zi,ti) = rho0*Cp*nansum(nansum(temp.*Vol));
-        end
-    end
-    save([outD model sprintf('_output%03d',output) '_VHofz.mat'],'V','H','z','-v7.3');
 end
 
 %% Calculate numerical mixing by residual from heat budget and save
