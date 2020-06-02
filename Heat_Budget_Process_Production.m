@@ -33,11 +33,11 @@ haveSIG = 1; % 1 = SIG is on, 0 = off;
 haveMIX = 0; % 1 = Do mixing components (vdiffuse_diff_cbt_*), 0 = don't. 
 
 % Processing options:
-doBASE     = 0; % 1 = save BaseVars.mat file
+doBASE     = 1; % 1 = save BaseVars.mat file
 dodVdtdHdt = 0; % 1 = calculate dVdt/dHdt and save into .nc file
-doVHza     = 1; % 1 = save zonally-integrated V and H fields from
+doVHza     = 0; % 1 = save zonally-integrated V and H fields from
                 % average time slots in a .mat file.
-doVHzsp    = 1; % 1 = calculate globally-averaged V(z,t) and H(z,t)
+doVHzsp    = 0; % 1 = calculate globally-averaged V(z,t) and H(z,t)
 doVHzaSNAP = 1; % 1 = save zonally-integrated V and H fields from snaps.
 doNUMDIF   = 0; % 1 = calculate tempdiff x,y,T,t and save into .nc file
 doSGMviac  = 0; % 1 = calculate SUB/GM influence via binned
@@ -147,6 +147,7 @@ end
 
 % Time  -----------------------------------------
 time = ncread(wname,'time');
+time_snap = ncread(wname,'time_snap');
 ndays = ncread(wname,'average_DT');
 tL = length(time);
 tLoc = length(ncread(fname,'time'));
@@ -172,7 +173,7 @@ TL = length(T);dT = T(2)-T(1);
 
 if (doBASE)
 save([outD model sprintf('_output%03d',output) '_BaseVars.mat'], ...
-     'T','Te','TL','dT','Cp','rho0','time','ndays','tL', ...
+     'T','Te','TL','dT','Cp','rho0','time','time_snap','ndays','tL', ...
      'z','zL','lon','lat','area','xL','yL','yt','yu', 'xt','xu','lonu','latu','-v7.3');
 end
 
@@ -366,17 +367,47 @@ if (doVHza | doVHzsp)
 end
 
 if (doVHzaSNAP)
+    V = zeros(yL,TL,tL+1);
+    H = zeros(yL,TL,tL+1);
+
+    %Do IC for Vsnap and Hsnap:
+    for zi = 1:zL
+        sprintf('Calculating Vsnap and Hsnap IC, depth %02d of %02d',zi,zL)
+        %Temperature snapshot:
+        tempsnap = ncread(rnameT,'temp',[1 1 zi rstti],[xL yL 1 1]);
+        tempsnap(~mask(:,:,zi)) = NaN;
+        if (max(max(tempsnap))>120);tempsnap = tempsnap-273.15;end;
+        
+        if (found_rst)
+            if (output == 0) % Initial dzt:
+                Volsnap = dztI(:,:,zi).*area;
+            else
+                Volsnap = ncread(rnameZ,'rho_dzt',[1 1 zi rstti],[xL yL 1 1]).*area/rho0;
+            end
+        else
+            Volsnap = ncread(rnameT,'dzt',[1 1 zi rstti],[xL yL 1 1]).*area;
+        end
+        Volsnap(isnan(Volsnap)) = 0;
+    
+        for Ti=1:TL
+            %Accumulate sums:
+            inds = tempsnap>=Te(Ti) & tempsnap<Te(Ti+1);
+            V(:,Ti,1) = V(:,Ti,1) + nansum(Volsnap.*inds,1)';
+            Hlay = Volsnap.*tempsnap.*inds*rho0*Cp;
+            Hlay(isnan(Hlay)) = 0;
+            H(:,Ti,1) = H(:,Ti,1) + nansum(Hlay,1)';
+        end
+    end
+
     % Calculate non-snap zonal-average annual-average volumes:
-    V = zeros(yL,TL,tL);
-    H = zeros(yL,TL,tL);
-    for ti=1:tL
+    for ti=2:(tL+1)
         for zi=1:zL
             sprintf('Calculating V and H time %03d of %03d, depth %02d of %02d',ti,tLVH,zi,zL)
 
-            temp = ncread(sname,'temp',[1 1 zi ti],[xL yL 1 1]);
+            temp = ncread(sname,'temp',[1 1 zi ti-1],[xL yL 1 1]);
             temp(~mask(:,:,zi)) = NaN;
             if (max(max(temp))>120);temp = temp-273.15;end;
-            Vol = ncread(sname,'dzt',[1 1 zi ti],[xL yL 1 1]).*area;
+            Vol = ncread(sname,'dzt',[1 1 zi ti-1],[xL yL 1 1]).*area;
             Vol(isnan(Vol)) = 0;
         
             for Ti=1:TL
