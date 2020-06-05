@@ -33,12 +33,12 @@ haveSIG = 1; % 1 = SIG is on, 0 = off;
 haveMIX = 0; % 1 = Do mixing components (vdiffuse_diff_cbt_*), 0 = don't. 
 
 % Processing options:
-doBASE     = 1; % 1 = save BaseVars.mat file
+doBASE     = 0; % 1 = save BaseVars.mat file
 dodVdtdHdt = 0; % 1 = calculate dVdt/dHdt and save into .nc file
 doVHza     = 0; % 1 = save zonally-integrated V and H fields from
                 % average time slots in a .mat file.
 doVHzsp    = 0; % 1 = calculate globally-averaged V(z,t) and H(z,t)
-doVHzaSNAP = 1; % 1 = save zonally-integrated V and H fields from snaps.
+doVHzaSNAP = 0; % 1 = save zonally-integrated V and H fields from snaps.
 doNUMDIF   = 0; % 1 = calculate tempdiff x,y,T,t and save into .nc file
 doSGMviac  = 0; % 1 = calculate SUB/GM influence via binned
                 % convergence (otherwise uses lateral flux). The
@@ -57,7 +57,8 @@ doZA       = 0; % 1 = calculate zonal average budget
 dotempZA   = 0; % 1 = calculate zonal average temp and isotherm depths.
 doHND      = 0; % 1 = calculate global online numdif
 doTENMON   = 0; % 1 = do monthly eulerian tendency binning
-doMONANN   = 0; % 1 = calculate monthly and annually binned eulerian global budget
+doMON      = 1; % 1 = calculate monthly binned Eulerian global budget
+doANN      = 0; % 1 = calculate annual binned Eulerian global budget
 doXYall    = 0; % 1 = do all XY calcs (most not used)
 doXYtran   = 0; % 1 = calculate vertically-integrated heat
                 % transports below given isotherm/s.
@@ -147,7 +148,7 @@ end
 
 % Time  -----------------------------------------
 time = ncread(wname,'time');
-time_snap = ncread(wname,'time_snap');
+time_snap = ncread(sname,'time');
 ndays = ncread(wname,'average_DT');
 tL = length(time);
 tLoc = length(ncread(fname,'time'));
@@ -402,7 +403,7 @@ if (doVHzaSNAP)
     % Calculate non-snap zonal-average annual-average volumes:
     for ti=2:(tL+1)
         for zi=1:zL
-            sprintf('Calculating V and H time %03d of %03d, depth %02d of %02d',ti,tLVH,zi,zL)
+            sprintf('Calculating V and H time %03d of %03d, depth %02d of %02d',ti,tL,zi,zL)
 
             temp = ncread(sname,'temp',[1 1 zi ti-1],[xL yL 1 1]);
             temp(~mask(:,:,zi)) = NaN;
@@ -533,40 +534,78 @@ end
 
 %% Calculate Monthly and Annual binned volume integrated budget:
 
-if (doMONANN)
+if (doMON | doANN)
 GWBmon.SWH    = zeros(TL+1,tL);GWBmon.VDS    = zeros(TL+1,tL);
 GWBmon.RMX    = zeros(TL+1,tL);GWBmon.PME    = zeros(TL+1,tL);
 GWBmon.FRZ    = zeros(TL+1,tL);GWBmon.ETS    = zeros(TL+1,tL);
-GWBmon.SUB    = zeros(TL+1,tL);GWBmon.VDF    = zeros(TL+1,tL);
-GWBmon.KNL    = zeros(TL+1,tL);GWBmon.ADV    = zeros(TL+1,tL);
-GWBmon.TEN    = zeros(TL+1,tL);GWBmon.SFW    = zeros(TL+1,tL);
+GWBmon.VDF    = zeros(TL+1,tL);GWBmon.KNL    = zeros(TL+1,tL);
+GWBmon.ADV    = zeros(TL+1,tL);GWBmon.TEN    = zeros(TL+1,tL);
+GWBmon.SFW    = zeros(TL+1,tL);
+if (haveSUB)
+GWBmon.SUB    = zeros(TL+1,tL);
+end
+if (haveRedi)
+GWBmon.K33    = zeros(TL+1,tL);
+GWBmon.RED    = zeros(TL+1,tL);
+end
+if (haveGM)
+GWBmon.NGM   = zeros(TL+1,tL);
+end
+if (haveMDS)
+GWBmon.MDS   = zeros(TL+1,tL);
+end
+if (haveSIG)
+GWBmon.SIG   = zeros(TL+1,tL);
+end
 
-GWBann = GWBmon;
+if (doANN)
+    GWBann = GWBmon;
+end
 
 for zi=1:zL
-    tempAN = zeros(xL,yL);
-    SWHAN = zeros(xL,yL);VDSAN = zeros(xL,yL);RMXAN = zeros(xL,yL);
-    SUBAN = zeros(xL,yL);VDFAN = zeros(xL,yL);KNLAN = zeros(xL,yL);
-    ADVAN = zeros(xL,yL);TENAN = zeros(xL,yL);SFWAN = zeros(xL,yL);
-    PMEAN = zeros(xL,yL);FRZAN = zeros(xL,yL);ETSAN = zeros(xL,yL);
-
+    if (doANN)  % NOTE - currently this does not work as doesn't
+                % take into account varying days in month (easy to
+                % fix...). 
+        tempAN = zeros(xL,yL);
+        SWHAN = zeros(xL,yL);VDSAN = zeros(xL,yL);RMXAN = zeros(xL,yL);
+        SUBAN = zeros(xL,yL);VDFAN = zeros(xL,yL);KNLAN = zeros(xL,yL);
+        ADVAN = zeros(xL,yL);TENAN = zeros(xL,yL);SFWAN = zeros(xL,yL);
+        PMEAN = zeros(xL,yL);FRZAN = zeros(xL,yL);ETSAN = zeros(xL,yL);
+    end
     for ti=1:tL
         sprintf('Calculating MON/AN binned time %03d of %03d, depth %02d of %02d',ti,tL,zi,zL)
 
         temp = ncread(fname,'temp',[1 1 zi ti],[xL yL 1 1]);
         temp(~mask(:,:,zi)) = NaN;
         if (max(max(temp))>120);temp = temp-273.15;end;
-
-        tempAN = tempAN + temp;
+        
+        if (doANN)
+            tempAN = tempAN + temp;
+        end
         
         TEN = area.*ncread(hname,'temp_tendency',[1 1 zi ti],[xL yL 1 1]);
         ADV = area.*ncread(hname,'temp_advection',[1 1 zi ti],[xL yL 1 1]);
-        SUB = area.*ncread(hname,'temp_submeso',[1 1 zi ti],[xL yL 1 1]);
         RMX = area.*ncread(hname,'temp_rivermix',[1 1 zi ti],[xL yL 1 1]);
         VDS = area.*ncread(hname,'temp_vdiffuse_sbc',[1 1 zi ti],[xL yL 1 1]);
         SWH = area.*ncread(hname,'sw_heat',[1 1 zi ti],[xL yL 1 1]);
         VDF = area.*ncread(hname,'temp_vdiffuse_diff_cbt',[1 1 zi ti],[xL yL 1 1]);
         KNL = area.*ncread(hname,'temp_nonlocal_KPP',[1 1 zi ti],[xL yL 1 1]);
+        if (haveSUB)
+            SUB = area.*ncread(hname,'temp_submeso',[1 1 zi ti],[xL yL 1 1]);
+        end
+        if (haveRedi)
+            K33 = area.*ncread(hname,'temp_vdiffuse_k33',[1 1 zi ti],[xL yL 1 1]);
+            RED = area.*ncread(hname,'neutral_diffusion_temp',[1 1 zi ti],[xL yL 1 1]);
+        end
+        if (haveGM)
+            GM = area.*ncread(hname,'neutral_gm_on_nrho_temp',[1 1 zi ti],[xL yL 1 1]);
+        end
+        if (haveMDS)
+            MDS = area.*ncread(hname,'mixdownslope_temp_on_nrho',[1 1 zi ti],[xL yL 1 1]);
+        end
+        if (haveSIG)
+            SIG = area.*ncread(hname,'temp_sigma_diff',[1 1 zi ti],[xL yL 1 1]);
+        end
 
         if (zi == 1)
             FRZ = area.*ncread(hname,'frazil_2d',[1 1 ti],[xL yL 1]);
@@ -574,6 +613,7 @@ for zi=1:zL
             PME = area.*ncread(hname,'sfc_hflux_pme',[1 1 ti],[xL yL 1]);
         end
         
+        if (doANN)
         TENAN = TENAN + TEN;
         ADVAN = ADVAN + ADV;
         SUBAN = SUBAN + SUB;
@@ -582,11 +622,11 @@ for zi=1:zL
         SWHAN = SWHAN + SWH;
         VDFAN = VDFAN + VDF;
         KNLAN = KNLAN + KNL;
-        
         if (zi == 1)
             PMEAN = PMEAN + PME;
             FRZAN = FRZAN + FRZ;
             ETSAN = ETSAN + ETS;
+        end
         end
         
         for Ti=1:TL
@@ -594,12 +634,27 @@ for zi=1:zL
             inds = find(temp>=Te(Ti) & temp<Te(Ti+1));
             GWBmon.TEN(Ti,ti) = GWBmon.TEN(Ti,ti)+nansum(TEN(inds));
             GWBmon.ADV(Ti,ti) = GWBmon.ADV(Ti,ti)+nansum(ADV(inds));
-            GWBmon.SUB(Ti,ti) = GWBmon.SUB(Ti,ti)+nansum(SUB(inds));
             GWBmon.RMX(Ti,ti) = GWBmon.RMX(Ti,ti)+nansum(RMX(inds));
             GWBmon.VDS(Ti,ti) = GWBmon.VDS(Ti,ti)+nansum(VDS(inds));
             GWBmon.SWH(Ti,ti) = GWBmon.SWH(Ti,ti)+nansum(SWH(inds));
             GWBmon.VDF(Ti,ti) = GWBmon.VDF(Ti,ti)+nansum(VDF(inds));
             GWBmon.KNL(Ti,ti) = GWBmon.KNL(Ti,ti)+nansum(KNL(inds));
+            if (haveSUB)
+                GWBmon.SUB(Ti,ti) = GWBmon.SUB(Ti,ti)+nansum(SUB(inds));
+            end
+            if (haveRedi)
+                GWBmon.K33(Ti,ti) = GWBmon.K33(Ti,ti)+nansum(K33(inds));
+                GWBmon.RED(Ti,ti) = GWBmon.RED(Ti,ti)+nansum(RED(inds));
+            end
+            if (haveGM)
+                GWBmon.GM(Ti,ti) = GWBmon.GM(Ti,ti)+nansum(GM(inds));
+            end
+            if (haveMDS)
+                GWBmon.MDS(Ti,ti) = GWBmon.MDS(Ti,ti)+nansum(MDS(inds));
+            end
+            if (haveSIG)
+                GWBmon.SIG(Ti,ti) = GWBmon.SIG(Ti,ti)+nansum(SIG(inds));
+            end
             
             if (zi == 1)
                 GWBmon.FRZ(Ti,ti) = GWBmon.FRZ(Ti,ti)+nansum(FRZ(inds));
@@ -610,12 +665,27 @@ for zi=1:zL
         inds = find(temp>=Te(TL+1));
         GWBmon.TEN(TL+1,ti) = GWBmon.TEN(TL+1,ti)+nansum(TEN(inds));
         GWBmon.ADV(TL+1,ti) = GWBmon.ADV(TL+1,ti)+nansum(ADV(inds));
-        GWBmon.SUB(TL+1,ti) = GWBmon.SUB(TL+1,ti)+nansum(SUB(inds));
         GWBmon.RMX(TL+1,ti) = GWBmon.RMX(TL+1,ti)+nansum(RMX(inds));
         GWBmon.VDS(TL+1,ti) = GWBmon.VDS(TL+1,ti)+nansum(VDS(inds));
         GWBmon.SWH(TL+1,ti) = GWBmon.SWH(TL+1,ti)+nansum(SWH(inds));
         GWBmon.VDF(TL+1,ti) = GWBmon.VDF(TL+1,ti)+nansum(VDF(inds));
         GWBmon.KNL(TL+1,ti) = GWBmon.KNL(TL+1,ti)+nansum(KNL(inds));
+        if (haveSUB)
+            GWBmon.SUB(TL+1,ti) = GWBmon.SUB(TL+1,ti)+nansum(SUB(inds));
+        end
+        if (haveRedi)
+            GWBmon.K33(TL+1,ti) = GWBmon.K33(TL+1,ti)+nansum(K33(inds));
+            GWBmon.RED(TL+1,ti) = GWBmon.RED(TL+1,ti)+nansum(RED(inds));
+        end
+        if (haveGM)
+            GWBmon.GM(TL+1,ti) = GWBmon.GM(TL+1,ti)+nansum(GM(inds));
+        end
+        if (haveMDS)
+            GWBmon.MDS(TL+1,ti) = GWBmon.MDS(TL+1,ti)+nansum(MDS(inds));
+        end
+        if (haveSIG)
+            GWBmon.SIG(TL+1,ti) = GWBmon.SIG(TL+1,ti)+nansum(SIG(inds));
+        end
 
         if (zi == 1)
             GWBmon.FRZ(TL+1,ti) = GWBmon.FRZ(TL+1,ti)+nansum(FRZ(inds));
@@ -624,6 +694,7 @@ for zi=1:zL
         end
     end
     
+    if (doANN)
     ti = 1;
     for Ti=1:TL
         %Accumulate sums:
@@ -658,6 +729,7 @@ for zi=1:zL
         GWBann.ETS(TL+1,ti) = GWBann.ETS(TL+1,ti)+nansum(ETSAN(inds)/tL);
         GWBann.PME(TL+1,ti) = GWBann.PME(TL+1,ti)+nansum(PMEAN(inds)/tL);
     end
+    end
 end
 
 % Integrate to get to T'>T:
@@ -672,8 +744,11 @@ for i=1:length(names)
           names{i} '(:,ti))));']);
 end
 
-save([outD model sprintf('_output%03d',output) '_' region '_HBud_MonAnBin.mat'],'GWBmon','GWBann','-v7.3');
-
+if (doANN)
+    save([outD model sprintf('_output%03d',output) '_' region '_HBud_MonAnBin.mat'],'GWBmon','GWBann','-v7.3');
+else
+    save([outD model sprintf('_output%03d',output) '_' region '_HBud_MonAnBin.mat'],'GWBmon','-v7.3');
+end
 end
 
 
