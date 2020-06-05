@@ -575,7 +575,7 @@ for zi=1:zL
     for ti=1:tL
         sprintf('Calculating MON/AN binned time %03d of %03d, depth %02d of %02d',ti,tL,zi,zL)
 
-        temp = ncread(fname,'temp',[1 1 zi ti],[xL yL 1 1]);
+        temp = ncread(fname_month,'temp',[1 1 zi ti],[xL yL 1 1]);
         temp(~mask(:,:,zi)) = NaN;
         if (max(max(temp))>120);temp = temp-273.15;end;
         
@@ -590,6 +590,7 @@ for zi=1:zL
         SWH = area.*ncread(hname,'sw_heat',[1 1 zi ti],[xL yL 1 1]);
         VDF = area.*ncread(hname,'temp_vdiffuse_diff_cbt',[1 1 zi ti],[xL yL 1 1]);
         KNL = area.*ncread(hname,'temp_nonlocal_KPP',[1 1 zi ti],[xL yL 1 1]);
+        FRZ = area.*ncread(hname,'frazil_3d',[1 1 zi ti],[xL yL 1 1]);
         if (haveSUB)
             SUB = area.*ncread(hname,'temp_submeso',[1 1 zi ti],[xL yL 1 1]);
         end
@@ -598,17 +599,16 @@ for zi=1:zL
             RED = area.*ncread(hname,'neutral_diffusion_temp',[1 1 zi ti],[xL yL 1 1]);
         end
         if (haveGM)
-            GM = area.*ncread(hname,'neutral_gm_on_nrho_temp',[1 1 zi ti],[xL yL 1 1]);
+            NGM = area.*ncread(hname,'neutral_gm_temp',[1 1 zi ti],[xL yL 1 1]);
         end
         if (haveMDS)
-            MDS = area.*ncread(hname,'mixdownslope_temp_on_nrho',[1 1 zi ti],[xL yL 1 1]);
+            MDS = area.*ncread(hname,'mixdownslope_temp',[1 1 zi ti],[xL yL 1 1]);
         end
         if (haveSIG)
             SIG = area.*ncread(hname,'temp_sigma_diff',[1 1 zi ti],[xL yL 1 1]);
         end
 
         if (zi == 1)
-            FRZ = area.*ncread(hname,'frazil_2d',[1 1 ti],[xL yL 1]);
             ETS = area.*ncread(hname,'temp_eta_smooth',[1 1 ti],[xL yL 1]);
             PME = area.*ncread(hname,'sfc_hflux_pme',[1 1 ti],[xL yL 1]);
         end
@@ -639,6 +639,7 @@ for zi=1:zL
             GWBmon.SWH(Ti,ti) = GWBmon.SWH(Ti,ti)+nansum(SWH(inds));
             GWBmon.VDF(Ti,ti) = GWBmon.VDF(Ti,ti)+nansum(VDF(inds));
             GWBmon.KNL(Ti,ti) = GWBmon.KNL(Ti,ti)+nansum(KNL(inds));
+            GWBmon.FRZ(Ti,ti) = GWBmon.FRZ(Ti,ti)+nansum(FRZ(inds));
             if (haveSUB)
                 GWBmon.SUB(Ti,ti) = GWBmon.SUB(Ti,ti)+nansum(SUB(inds));
             end
@@ -647,7 +648,7 @@ for zi=1:zL
                 GWBmon.RED(Ti,ti) = GWBmon.RED(Ti,ti)+nansum(RED(inds));
             end
             if (haveGM)
-                GWBmon.GM(Ti,ti) = GWBmon.GM(Ti,ti)+nansum(GM(inds));
+                GWBmon.NGM(Ti,ti) = GWBmon.NGM(Ti,ti)+nansum(NGM(inds));
             end
             if (haveMDS)
                 GWBmon.MDS(Ti,ti) = GWBmon.MDS(Ti,ti)+nansum(MDS(inds));
@@ -657,7 +658,6 @@ for zi=1:zL
             end
             
             if (zi == 1)
-                GWBmon.FRZ(Ti,ti) = GWBmon.FRZ(Ti,ti)+nansum(FRZ(inds));
                 GWBmon.ETS(Ti,ti) = GWBmon.ETS(Ti,ti)+nansum(ETS(inds));
                 GWBmon.PME(Ti,ti) = GWBmon.PME(Ti,ti)+nansum(PME(inds));
             end
@@ -670,6 +670,7 @@ for zi=1:zL
         GWBmon.SWH(TL+1,ti) = GWBmon.SWH(TL+1,ti)+nansum(SWH(inds));
         GWBmon.VDF(TL+1,ti) = GWBmon.VDF(TL+1,ti)+nansum(VDF(inds));
         GWBmon.KNL(TL+1,ti) = GWBmon.KNL(TL+1,ti)+nansum(KNL(inds));
+        GWBmon.FRZ(TL+1,ti) = GWBmon.FRZ(TL+1,ti)+nansum(FRZ(inds));
         if (haveSUB)
             GWBmon.SUB(TL+1,ti) = GWBmon.SUB(TL+1,ti)+nansum(SUB(inds));
         end
@@ -678,7 +679,7 @@ for zi=1:zL
             GWBmon.RED(TL+1,ti) = GWBmon.RED(TL+1,ti)+nansum(RED(inds));
         end
         if (haveGM)
-            GWBmon.GM(TL+1,ti) = GWBmon.GM(TL+1,ti)+nansum(GM(inds));
+            GWBmon.NGM(TL+1,ti) = GWBmon.NGM(TL+1,ti)+nansum(NGM(inds));
         end
         if (haveMDS)
             GWBmon.MDS(TL+1,ti) = GWBmon.MDS(TL+1,ti)+nansum(MDS(inds));
@@ -688,7 +689,6 @@ for zi=1:zL
         end
 
         if (zi == 1)
-            GWBmon.FRZ(TL+1,ti) = GWBmon.FRZ(TL+1,ti)+nansum(FRZ(inds));
             GWBmon.ETS(TL+1,ti) = GWBmon.ETS(TL+1,ti)+nansum(ETS(inds));
             GWBmon.PME(TL+1,ti) = GWBmon.PME(TL+1,ti)+nansum(PME(inds));
         end
@@ -739,9 +739,11 @@ for i=1:length(names)
         eval(['GWBmon.' names{i} '(:,ti) = flipud(cumsum(flipud(GWBmon.' ...
               names{i} '(:,ti))));']);
     end
-    ti = 1;
-    eval(['GWBann.' names{i} '(:,ti) = flipud(cumsum(flipud(GWBann.' ...
-          names{i} '(:,ti))));']);
+    if (doANN)
+        ti = 1;
+        eval(['GWBann.' names{i} '(:,ti) = flipud(cumsum(flipud(GWBann.' ...
+              names{i} '(:,ti))));']);
+    end
 end
 
 if (doANN)
