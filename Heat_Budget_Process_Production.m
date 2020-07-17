@@ -1297,6 +1297,7 @@ if (strfind(baseD,'01'))
         uvsq = 0;
     end
 else
+    temp = squeeze(mean(ncread(fname,'temp',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL tL]),2));
     w = squeeze(mean(ncread(fname,'wt',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL tL]),2));
     kappa = squeeze(mean(ncread(fname,'diff_cbt_t',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL tL]),2));
     u = squeeze(mean(ncread(fname,'u',[ln1 lt1 1 1],[ln2-ln1+1 lt2-lt1+1 zL tL]),2));
