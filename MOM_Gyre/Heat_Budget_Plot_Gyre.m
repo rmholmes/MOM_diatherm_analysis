@@ -6,26 +6,28 @@ clear all;
 
 base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
 
-outs = [1:4];
+outs = [1:5];
 RUNS = { ...
 % $$$          {'MOM_Gyre',outs}, ...
 % $$$          {'MOM_Gyre_Run002',outs}, ...
 % $$$          {'MOM_Gyre_Run003',[1:0]}, ...
-% $$$          {'MOM_Gyre_Run006',outs,'$k_{smag}=2$, $\kappa_B=5\times10^{-5}$, $\kappa_L=0$'}, ...
-% $$$          {'MOM_Gyre_Run004',outs,'$k_{smag}=2$, $\kappa_B=1\times10^{-6}$, $\kappa_L=0$'}, ...
+         {'MOM_Gyre_Run004',outs,'$k_{smag}=2$, $\kappa_B=1\times10^{-6}$'}, ... %, $\kappa_L=0$'}, ...
+         {'MOM_Gyre_Run006',outs,'$k_{smag}=2$, $\kappa_B=5\times10^{-5}$'}, ... %$\kappa_L=0$'}, ...
 % $$$          {'MOM_Gyre_Run007',outs}, ...
-% $$$          {'MOM_Gyre_Run009',outs,'$k_{smag}=20$, $\kappa_B=5\times10^{-5}$, $\kappa_L=0$'}, ...
+         {'MOM_Gyre_Run009',outs,'$k_{smag}=20$, $\kappa_B=5\times10^{-5}$'}, ... %, $\kappa_L=0$'}, ...
 % $$$          {'MOM_Gyre_Run009a',outs}, ...
 % $$$          {'MOM_Gyre_Run010',outs}, ...
 % $$$          {'MOM_Gyre_Run011',outs,'$k_{smag}=20$, $\kappa_B=5\times10^{-5}$, $\kappa_L=500$m$^2$s$^{-1}$'}, ...
 % $$$          {'MOM_Gyre_Run012',outs,'$k_{smag}=2$, $\kappa_B=5\times10^{-5}$, $\kappa_L=500$m$^2$s$^{-1}$'}, ...
 % $$$          {'MOM_Gyre_Run013',[0],'$k_{smag}=2$, $\kappa_B=5\times10^{-5}$, $\kappa_L=500$m$^2$s$^{-1}$, SRSTR'}, ...
-         {'MOM_Gyre_Run014',outs,'Control'}, ...
-% $$$          {'MOM_Gyre_Run015',outs,'dt=1800s'}, ...
+% $$$          {'MOM_Gyre_Run014',outs,'Control'}, ...
+% $$$ % $$$          {'MOM_Gyre_Run015',outs,'dt=1800s'}, ...
 % $$$          {'MOM_Gyre_Run016',outs,'$\kappa_R=300$m$^2$s$^{-1}$'}, ...
 % $$$          {'MOM_Gyre_Run017',outs,'$\kappa_R=300$m$^2$s$^{-1}$, $\kappa_v = 10^{-4}$m$^2$s$^{-1}$'}, ...
 % $$$          {'MOM_Gyre_Run019',outs,'$\kappa_v = 10^{-6}$m$^2$s$^{-1}$'}, ...
-         {'MOM_Gyre_Run018',[5:24],'Double Res.'}, ...
+% $$$          {'MOM_Gyre_Run020',outs,'Salt H IC'}, ...
+% $$$          {'MOM_Gyre_Run018',[1:12],'Double Res.'}, ...
+% $$$          {'MOM_Gyre_Run021',[1:12],'Double Res. SSH smooth'}, ...
 % $$$          {'MOM_Gyre_Run013',[2],'$k_{smag}=2$, $\kappa_B=5\times10^{-5}$, $\kappa_L=500$m$^2$s$^{-1}$, SRSTR'}, ...
 % $$$          {'MOM_Gyre_Run013',[3],'$k_{smag}=2$, $\kappa_B=5\times10^{-5}$, $\kappa_L=500$m$^2$s$^{-1}$, SRSTR'}, ...
 % $$$          {'MOM_Gyre_Run013',[4],'$k_{smag}=2$, $\kappa_B=5\times10^{-5}$, $\kappa_L=500$m$^2$s$^{-1}$, SRSTR'}, ...
@@ -119,12 +121,12 @@ months = 1:length(M(1,:,1));
 % Production fields:
 fields = { ...
           {N(:,months,:), 'Internal HC Tendency $\mathcal{N}$','m',lthic(rr),ltype{rr}}, ...
-          {F(:,months,:), 'Forcing $\mathcal{F}$','k',lthic(rr),ltype{rr}}, ...
+% $$$           {F(:,months,:), 'Forcing $\mathcal{F}$','k',lthic(rr),ltype{rr}}, ...
           {M(:,months,:), 'Vertical Mixing $\mathcal{M}$','r',lthic(rr),ltype{rr}}, ...
           {I(:,months,:), 'Numerical Mixing $\mathcal{I}$','b',lthic(rr),ltype{rr}}, ...
 % $$$           {L(:,months,:), 'Lateral Mixing $\mathcal{L}$',[0 0.5 0],lthic(rr),ltype{rr}}, ...
 % $$$           {NUM(:,months,:), 'Numerical Mixing Direct $\mathcal{I}$','c',lthic(rr),ltype{rr}}, ...
-          {R(:,months,:), 'Redi Mixing $\mathcal{R}$',[0 0.5 0],lthic(rr),ltype{rr}}, ...
+% $$$           {R(:,months,:), 'Redi Mixing $\mathcal{R}$',[0 0.5 0],lthic(rr),ltype{rr}}, ...
 % $$$           {dHdt(:,months,:), 'HC Tendency $\frac{\partial\mathcal{H}}{\partial t}$','m',lthic(rr),'--'}, ...
           };
 
@@ -153,7 +155,7 @@ ylim([-15 2]);
 xlim([0 24]);
 box on; 
 grid on;
-ylabel('Heat flux into fluid warmer than $\Theta$ (TW)');
+ylabel('Diathermal heat flux (TW, $0.45$Wm$^{-2}$)');
 xlabel('Temperature $\Theta$ ($^\circ$C)');
 if (rr == 1)
     lg = legend(legh,leg);
@@ -201,15 +203,15 @@ end
 % $$$ end
 
 %%% Spatial Structure:
-rr = 1;
+rr = 3;
 model = RUNS{rr}{1};%'MOM_Gyre_Run011';
 outputs = RUNS{rr}{2};
 label = RUNS{rr}{3};
 load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
 region = '';
-VARS = {'FlM','FlI'};
+VARS = {'FlI'};
 TYPE = 'VertInt';
-Tls = [20 18 12];
+Tls = [20 14];
 months = 1:tL;%length(M(1,:,1));
 % $$$ months = 80:tL;%length(M(1,:,1));
 
@@ -254,8 +256,8 @@ cmap = flipud(lbmap(npts-3,'RedBlue'));
 cmap = redblue(npts-3);
 climn = clim;
     
-
-subplot(length(Tls),2,2*(Ti-1)+vi);
+% $$$ subplot(length(Tls),2,2*(Ti-1)+vi);
+subplot(1,4,Ti+2);
 X = lon(xvec,yvec);
 Y = lat(xvec,yvec);
 tmp = FlM;
@@ -269,22 +271,27 @@ contourf(X,Y,Z,cpts,'linestyle','none');
 hold on;    
 % $$$ plot(X(:),Y(:),'.k','MarkerSize',5);
 caxis(climn);
-cb = colorbar;
-ylabel(cb,'Wm$^{-2}$');
+cb = colorbar('Location','NorthOutside');
+ylabel(cb,'$\mathcal{I}$ (Wm$^{-2}$)');
 colormap(cmap);
 xlabel('Longitude ($^\circ$E)');
-ylabel('Latitude ($^\circ$N)');
 if (Ti==1)
-    if (vi == 1)
-        title('Vertical Mixing');
-    else
+    ylabel('Latitude ($^\circ$N)');
+else
+    set(gca,'yticklabel',[]);
+end
+% $$$ if (Ti==1)
+% $$$     if (vi == 1)
+% $$$         title('Vertical Mixing');
+% $$$     else
         title('Numerical Mixing');
-    end
-end
-text(0.25,min(min(lat))+1,[sprintf('%02d',Tl)  '$^\circ$C']);
-if (Ti==1)
-    text(0.25,max(max(lat))-2,label);
-end
+% $$$     end
+% $$$ end
+text(0.25,min(min(lat))+0.2,[sprintf('%02d',Tl)  '$^\circ$C'],'BackgroundColor','w');
+% $$$ if (Ti==1)
+% $$$     text(0.25,max(max(lat))-0.25,label);
+% $$$ end
+title(label);
 end
 end
 
@@ -295,12 +302,13 @@ base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
 basenc = '/srv/ccrc/data03/z3500785/mom/MOM_Gyre/Run009/';
 model = 'MOM_Gyre_Run009';
 label = '$k_{smag}=2$, $\kappa_B=1\times10^{-6}$, $\kappa_L=0$';
-outputs = [1:5];
+outputs = [1:4];
 load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
 Tl = 12;
 [tmp ind] = min(abs(Te-Tl));
 tsc = 1e9;
 
+taux = squeeze(ncread([basenc 'tau.nc'],'taux',[1 1 1],[1 yL 1]));
 txtrans = zeros(xL,yL);
 u = txtrans;
 u_rms = txtrans;
@@ -334,45 +342,64 @@ u = ncread(fname,'u',[1 1 1 24],[xL yL 1 1]);
 
 
 figure;
+set(gcf,'Position',get(0,'ScreenSize'));
 set(gcf,'defaulttextfontsize',15);
 set(gcf,'defaultaxesfontsize',15);
-subplot(2,3,[1 4]);
-pcolPlot(lon,lat,EKE);
+subplot(2,6,[1 7]);
+plot(taux,lat(1,:),'-k');
+ylim([min(lat(1,:)) max(lat(1,:))]);
+ylabel('y ($^\circ$)');
+xlabel('x ($^\circ$)');
+title('Wind Stress (Nm$^{-2}$)');
+subplot(2,6,[2 3 8 9]);
+contourf(lon,lat,EKE,[0:0.002:0.12],'linestyle','none');
 hold on;
 [c,h] = contour(lon,lat,BT,[2:2:30],'-k');
 clabel(c,h);
 [c,h] = contour(lon,lat,BT,[-30:2:-2],'--k');
 clabel(c,h);
-caxis([0 0.15]);
-colormap(gca,'parula');
-title('EKE (m$^2$s$^{-2}$) and BT streamfunction (Sv) Average');
+caxis([0 0.12]);
+cmap = redblue(100);
+cmap = cmap(1:50,:)
+colormap(gca,flipud(cmap));
 xlabel('x ($^\circ$)');
-ylabel('y ($^\circ$)');
-subplot(2,3,[2 5]);
-pcolPlot(lon,lat,u);
-hold on;
-[c,h] = contour(lon,lat,SSTsl,[15:0.1:25],'-k');
-clabel(c,h);
-caxis([-1 1]);
-colormap(gca,'redblue');
-title('Zonal velocity (ms$^{-1}$) and SST ($^\circ$C) Single Month');
-xlabel('x ($^\circ$)');
-ylabel('y ($^\circ$)');
+cb = colorbar('Location','NorthOutside');
+ylabel(cb,'EKE (m$^2$s$^{-2}$) and BT $\Psi$ (Sv)','FontSize',15);
+set(gca,'yticklabel',[]);
+plot(lon(:),lat(:),'.k');
+ylim([min(lat(1,:)) max(lat(1,:))]);
+% $$$ subplot(2,3,[2 5]);
+% $$$ pcolPlot(lon,lat,u);
+% $$$ hold on;
+% $$$ plot(lon(:),lat(:),'.k');
+% $$$ [c,h] = contour(lon,lat,SSTsl,[15:0.1:25],'-k');
+% $$$ clabel(c,h);
+% $$$ caxis([-1 1]);
+% $$$ colormap(gca,'redblue');
+% $$$ title('Zonal velocity (ms$^{-1}$) and SST ($^\circ$C) Single Month');
+% $$$ xlabel('x ($^\circ$)');
+% $$$ ylabel('y ($^\circ$)');
 
 Tvar = tempSLrms.^2-tempSL.^2;
-subplot(2,3,3);
+subplot(2,6,[4 5 6]);
 [X,Y] = ndgrid(yt,z);
-pcolPlot(X,Y,Tvar);
+contourf(X,Y,Tvar,[0:0.001:0.05],'linestyle','none');
 hold on;
 [c,h] = contour(X,Y,tempSL,[5:1:25],'-k');
 clabel(c,h);
-colormap(gca,'parula');
-ylim([0 1000]);
+plot(X(:),Y(:),'.k');
+colormap(gca,flipud(cmap));%'parula');
+caxis([0 0.05]);
+ylim([0 600]);
 set(gca,'ydir','reverse');
 ylabel('Depth (m)');
 xlabel('y ($^\circ$)');
-title('Temperature Variance ($^\circ$C$^2$) and temperature ($^\circ$C) x=L/2');
+cb = colorbar('Location','NorthOutside');
+ylabel(cb,'$\Theta$ Variance ($^\circ$C$^2$) and $\Theta$ ($^\circ$C), x=$5^\circ$');
 caxis([0 0.05]);
+
+%% Plot vertical structure:
+
 
 %%%% Check the spatial calculation:
 clear all;
@@ -380,114 +407,210 @@ close all;
 base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
 basenc = '/srv/ccrc/data03/z3500785/mom/MOM_Gyre/Run004/';
 model = 'MOM_Gyre_Run004';
+haveKPP = 0;
 outputs = [1:5];
+months = [1:24];
 load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
-Tl = 12;
-[tmp ind] = min(abs(Te-Tl));
 tsc = 1e9;
 
-JIs = zeros(xL,yL);
-QIs = zeros(xL,yL);
-dVdts = zeros(xL,yL);
-dHdts = zeros(xL,yL);
-difts = zeros(xL,yL);
-ndifs = zeros(xL,yL);
+JIs = zeros(xL,yL,TL+1);
+QIs = zeros(xL,yL,TL+1);
+dVdts = zeros(xL,yL,TL+1);
+dHdts = zeros(xL,yL,TL+1);
+difts = zeros(xL,yL,TL+1);
+ndifs = zeros(xL,yL,TL+1);
+
+% $$$ TENs = zeros(xL,yL,TL+1);
+% $$$ ADVs = zeros(xL,yL,TL+1);
+% $$$ DIFs = zeros(xL,yL,TL+1);
 
 for ii = 1:length(outputs)
     output = outputs(ii);
     base = [basenc sprintf('output%03d/',output)];
     wname = [base 'ocean_wmass.nc'];
+    hname = [base 'ocean_heat.nc'];
     
-    for ti=1:tL
+    for ti=months
     
-    JI = zeros(xL,yL);
-    QI = zeros(xL,yL);
-    dVdt = zeros(xL,yL);
-    dHdt = zeros(xL,yL);
-    dift = zeros(xL,yL);
+    JI = zeros(xL,yL,TL+1);
+    QI = zeros(xL,yL,TL+1);
+    dVdt = zeros(xL,yL,TL+1);
+    dHdt = zeros(xL,yL,TL+1);
+    dift = zeros(xL,yL,TL+1);
+    ndif = zeros(xL,yL,TL+1);
 
-% $$$     for Ti=TL:-1:ind
-    for Ti=1:ind
-        sprintf('Calculating numdif time %03d of %03d, Temp %03d of %03d',ti,tL,Ti,TL)
-        dVdt = dVdt + double(ncread(wname,'dVdt',[1 1 Ti ti],[xL yL 1 1]))*1e9/rho0./area;
-        dHdt = dHdt + double(ncread(wname,'dHdt',[1 1 Ti ti],[xL yL 1 1]))./area;
-        dift = dift + ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
-        txtrans = ncread(wname,'tx_trans_nrho',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0;
-        tytrans = ncread(wname,'ty_trans_nrho',[1 1 Ti ti],[xL yL 1 1])*tsc/rho0;
-        qxtrans = ncread(wname,'temp_xflux_adv_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
-        qytrans = ncread(wname,'temp_yflux_adv_on_nrho',[1 1 Ti ti],[xL yL 1 1]);
-
-        JI(2:end,2:end) = JI(2:end,2:end) + (txtrans(1:(end-1),2:end) - txtrans(2:end,2:end) ...
-                                             +tytrans(2:end,1:(end-1)) - tytrans(2:end,2:end))./area(2:end,2:end);
-        JI(1,2:end) = JI(1,2:end) + (- txtrans(1,2:end) ...
-                                     +tytrans(1,1:(end-1)) - tytrans(1,2:end))./area(1,2:end);        
-        JI(2:end,1) = JI(2:end,1) + (txtrans(1:(end-1),1) - txtrans(2:end,1) ...
-                       - tytrans(2:end,1))./area(2:end,1);        
-        JI(1,1) = JI(1,1) + (-txtrans(1,1)-tytrans(1,1))./area(1,1);
+    % warm-to-cold:
+    for Ti=TL:-1:1
+        Tm = Ti+1;
+        Tf = Ti;
+% $$$     % cold-to-warm:
+% $$$     for Ti = 2:(TL+1)
+% $$$         Tm = Ti-1;
+% $$$         Tf = Ti-1;
+        sprintf('Calculating numdif time %03d of %03d, Temp %03d of %03d, out %03d of %03d',ti-months(1)+1,length(months),Ti,TL,output,length(outputs))
+        dVdt(:,:,Ti) = dVdt(:,:,Tm) + double(ncread(wname,'dVdt',[1 1 Tf ti],[xL yL 1 1]))*1e9/rho0./area;
+        dHdt(:,:,Ti) = dHdt(:,:,Tm) + double(ncread(wname,'dHdt',[1 1 Tf ti],[xL yL 1 1]))./area;
+        dift(:,:,Ti) = dift(:,:,Tm) + ncread(wname,'temp_vdiffuse_diff_cbt_on_nrho',[1 1 Tf ti],[xL yL 1 1]) + ...
+                      ncread(wname,'temp_vdiffuse_sbc_on_nrho',[1 1 Tf ti],[xL yL 1 1]);
+        if (haveKPP)
+            dift(:,:,Ti) = dift(:,:,Ti) + ncread(wname,'temp_nonlocal_KPP_on_nrho',[1 1 Tf ti],[xL yL 1 1]);
+        end
         
-        QI(2:end,2:end) = QI(2:end,2:end) + (qxtrans(1:(end-1),2:end) - qxtrans(2:end,2:end) ...
+        txtrans = ncread(wname,'tx_trans_nrho',[1 1 Tf ti],[xL yL 1 1])*tsc/rho0;
+        tytrans = ncread(wname,'ty_trans_nrho',[1 1 Tf ti],[xL yL 1 1])*tsc/rho0;
+        qxtrans = ncread(wname,'temp_xflux_adv_on_nrho',[1 1 Tf ti],[xL yL 1 1]);
+        qytrans = ncread(wname,'temp_yflux_adv_on_nrho',[1 1 Tf ti],[xL yL 1 1]);
+
+        JI(2:end,2:end,Ti) = JI(2:end,2:end,Tm) + (txtrans(1:(end-1),2:end) - txtrans(2:end,2:end) ...
+                                             +tytrans(2:end,1:(end-1)) - tytrans(2:end,2:end))./area(2:end,2:end);
+        JI(1,2:end,Ti) = JI(1,2:end,Tm) + (- txtrans(1,2:end) ...
+                                     +tytrans(1,1:(end-1)) - tytrans(1,2:end))./area(1,2:end);        
+        JI(2:end,1,Ti) = JI(2:end,1,Tm) + (txtrans(1:(end-1),1) - txtrans(2:end,1) ...
+                       - tytrans(2:end,1))./area(2:end,1);        
+        JI(1,1,Ti) = JI(1,1,Tm) + (-txtrans(1,1)-tytrans(1,1))./area(1,1);
+        
+        QI(2:end,2:end,Ti) = QI(2:end,2:end,Tm) + (qxtrans(1:(end-1),2:end) - qxtrans(2:end,2:end) ...
                                              +qytrans(2:end,1:(end-1)) - qytrans(2:end,2:end))./area(2:end,2:end);
-        QI(1,2:end) = QI(1,2:end) + (- qxtrans(1,2:end) ...
+        QI(1,2:end,Ti) = QI(1,2:end,Tm) + (- qxtrans(1,2:end) ...
                                      +qytrans(1,1:(end-1)) - qytrans(1,2:end))./area(1,2:end);        
-        QI(2:end,1) = QI(2:end,1) + (qxtrans(1:(end-1),1) - qxtrans(2:end,1) ...
+        QI(2:end,1,Ti) = QI(2:end,1,Tm) + (qxtrans(1:(end-1),1) - qxtrans(2:end,1) ...
                        - qytrans(2:end,1))./area(2:end,1);        
-        QI(1,1) = QI(1,1) + (-qxtrans(1,1)-qytrans(1,1))./area(1,1);
+        QI(1,1,Ti) = QI(1,1,Tm) + (-qxtrans(1,1)-qytrans(1,1))./area(1,1);
 
+        ndif(:,:,Ti) = dHdt(:,:,Ti) - (dVdt(:,:,Ti) - JI(:,:,Ti))*rho0*Cp*Te(Ti) - dift(:,:,Ti) - QI(:,:,Ti);
     end
-    ndif = dHdt - (dVdt - JI)*rho0*Cp*Te(Ti) - dift - QI;
     
-    JIs = JIs+JI*ndays(ti)/sum(ndays);
-    QIs = QIs+QI*ndays(ti)/sum(ndays);
-    dVdts = dVdts+dVdt*ndays(ti)/sum(ndays);
-    dHdts = dHdts+dHdt*ndays(ti)/sum(ndays);
-    difts = difts+dift*ndays(ti)/sum(ndays);
-    ndifs = ndifs+ndif*ndays(ti)/sum(ndays);
+    JIs = JIs+JI*ndays(ti)/sum(ndays(months));
+    QIs = QIs+QI*ndays(ti)/sum(ndays(months));
+    dVdts = dVdts+dVdt*ndays(ti)/sum(ndays(months));
+    dHdts = dHdts+dHdt*ndays(ti)/sum(ndays(months));
+    difts = difts+dift*ndays(ti)/sum(ndays(months));
+    ndifs = ndifs+ndif*ndays(ti)/sum(ndays(months));
+    
+% $$$     % Eulerian terms:
+% $$$     TENs = TENs + sum(ncread(hname,'temp_tendency',[1 1 1 ti],[xL yL 50 1]),3)*ndays(ti)/sum(ndays(months));
+% $$$     ADVs = ADVs + sum(ncread(hname,'temp_advection',[1 1 1 ti],[xL yL 50 1]),3)*ndays(ti)/sum(ndays(months));
+% $$$     DIFs = DIFs + sum(ncread(hname,'temp_vdiffuse_diff_cbt',[1 1 1 ti],[xL yL 50 1]),3)*ndays(ti)/sum(ndays(months));
+    end
 end
-end
-JIs = JIs/length(outputs);
-QIs = QIs/length(outputs);%+QI*ndays(ti)/sum(ndays);
-dVdts = dVdts/length(outputs);%+dVdt*ndays(ti)/sum(ndays);
-dHdts = dHdts/length(outputs);%+dHdt*ndays(ti)/sum(ndays);
-difts = difts/length(outputs);%+dift*ndays(ti)/sum(ndays);
-ndifs = ndifs/length(outputs);%+ndif*ndays(ti)/sum(ndays);
+JI = JIs/length(outputs);
+QI = QIs/length(outputs);%+QI*ndays(ti)/sum(ndays);
+dVdt = dVdts/length(outputs);%+dVdt*ndays(ti)/sum(ndays);
+dHdt = dHdts/length(outputs);%+dHdt*ndays(ti)/sum(ndays);
+dift = difts/length(outputs);%+dift*ndays(ti)/sum(ndays);
+ndif = ndifs/length(outputs);%+ndif*ndays(ti)/sum(ndays);
 
+% $$$ TENs = TENs/length(outputs);%+ndif*ndays(ti)/sum(ndays);
+% $$$ ADVs = ADVs/length(outputs);%+ndif*ndays(ti)/sum(ndays);
+% $$$ DIFs = DIFs/length(outputs);%+ndif*ndays(ti)/sum(ndays);
+
+Tl = 14.5;
+[tmp ind1] = min(abs(Te-Tl));
+Tl = 14.5;
+[tmp ind2] = min(abs(Te-Tl));
+% $$$ ctow = 
+% $$$ if 
+JIs = mean(JI(:,:,ind1:ind2)*rho0*Cp.*repmat(permute(Te(ind1:ind2),[3 2 1]),[xL yL 1]),3);
+QIs = mean(QI(:,:,ind1:ind2),3);
+dVdts = mean(-dVdt(:,:,ind1:ind2)*rho0*Cp.*repmat(permute(Te(ind1:ind2),[3 2 1]),[xL yL 1]),3);
+dHdts = mean(dHdt(:,:,ind1:ind2),3);
+difts = mean(dift(:,:,ind1:ind2),3);
+ndifs = mean(ndif(:,:,ind1:ind2),3);
 
 figure;
-subplot(3,3,1);
+subplot(3,4,1);
 pcolPlot(lon,lat,dHdts);
-caxis([-200 200]);
+caxis([-100 100]);
 title('dHdt');
-subplot(3,3,2);
-pcolPlot(lon,lat,-dVdts*rho0*Cp*Te(ind));
-caxis([-200 200]);
-title('-dVdt*rho0*Cp*T');
-subplot(3,3,3);
-pcolPlot(lon,lat,dHdts-dVdts*rho0*Cp*Te(ind));
-caxis([-20 20]);
-title('dHdt-dVdt*rho0*Cp*T');
-subplot(3,3,4);
-pcolPlot(lon,lat,JIs*rho0*Cp*Te(ind));
-caxis([-2 2]*1e3);
-title('JI*rho0*Cp*T');
-subplot(3,3,5);
+subplot(3,4,2);
 pcolPlot(lon,lat,-QIs);
 caxis([-2 2]*1e3);
 title('-QI');
-subplot(3,3,6);
-pcolPlot(lon,lat,-QIs+JIs*rho0*Cp*Te(ind));
+subplot(3,4,3);
+pcolPlot(lon,lat,dHdts-QIs);
+caxis([-2 2]*1e3);
+title('dHdt-QI');
+subplot(3,4,5);
+pcolPlot(lon,lat,dVdts);
+caxis([-20 20]);
+title('-dVdt*rho0*Cp*T');
+subplot(3,4,6);
+pcolPlot(lon,lat,JIs);
+caxis([-2 2]*1e3);
+title('JI*rho0*Cp*T');
+subplot(3,4,7);
+pcolPlot(lon,lat,JIs+dVdts);
+caxis([-2 2]*1e3);
+title('(JI-dVdts)*rho0*Cp*T');
+subplot(3,4,4);
+pcolPlot(lon,lat,dHdts+dVdts);
+caxis([-20 20]);
+title('dHdt-dVdt*rho0*Cp*T');
+subplot(3,4,8);
+pcolPlot(lon,lat,-QIs+JIs);
 caxis([-20 20]);
 title('-QI+JI*rho0*Cp*T');
-subplot(3,3,7);
+subplot(3,4,9);
 pcolPlot(lon,lat,-difts);
-caxis([-20 20]);
-title('-M');
-subplot(3,3,8);
-pcolPlot(lon,lat,dHdts - (dVdts - JIs)*rho0*Cp*Te(ind) - difts - QIs);
-caxis([-20 20]);
-title('I resid mean');
-subplot(3,3,9);
+caxis([-2 2]);
+title('-F-M');
+subplot(3,4,11);
 pcolPlot(lon,lat,ndifs);
 caxis([-20 20]);
 title('I mean resid');
 colormap(redblue);
 
+% $$$ % Vertically integrated heat budget:
+% $$$ subplot(3,4,1);
+% $$$ pcolPlot(lon,lat,dHdts);
+% $$$ %caxis([-200 200]);
+% $$$ title('dHdt');
+% $$$ subplot(3,4,2);
+% $$$ pcolPlot(lon,lat,-QIs);
+% $$$ %caxis([-2 2]*1e3);
+% $$$ title('-QI');
+% $$$ subplot(3,4,3);
+% $$$ pcolPlot(lon,lat,dHdts-QIs);
+% $$$ %caxis([-2 2]*1e3);
+% $$$ title('dHdt-QI');
+% $$$ subplot(3,4,4);
+% $$$ pcolPlot(lon,lat,-difts);
+% $$$ % $$$ caxis([-20 20]);
+% $$$ title('-F-M');
+% $$$ subplot(3,4,8);
+% $$$ pcolPlot(lon,lat,-DIFs);
+% $$$ % $$$ caxis([-20 20]);
+% $$$ title('DIF');
+% $$$ subplot(3,4,5);
+% $$$ pcolPlot(lon,lat,TENs);
+% $$$ % $$$ caxis([-20 20]);
+% $$$ title('TEN');
+% $$$ subplot(3,4,6);
+% $$$ pcolPlot(lon,lat,-ADVs);
+% $$$ % $$$ caxis([-20 20]);
+% $$$ title('-ADV');
+% $$$ subplot(3,4,7);
+% $$$ pcolPlot(lon,lat,TENs-ADVs);
+% $$$ % $$$ caxis([-20 20]);
+% $$$ title('TEN-ADV');
+% $$$ subplot(3,4,9);
+% $$$ pcolPlot(lon,lat,TENs-dHdts);
+% $$$ % $$$ caxis([-20 20]);
+% $$$ title('TEN-dHdt');
+% $$$ subplot(3,4,10);
+% $$$ pcolPlot(lon,lat,-ADVs+QIs);
+% $$$ % $$$ caxis([-20 20]);
+% $$$ title('-ADV+QI');
+% $$$ 
+% $$$ subplot(3,4,10);
+% $$$ pcolPlot(lon,lat,dHdts - (dVdts - JIs)*rho0*Cp*Te(ind) - difts - QIs);
+% $$$ % $$$ caxis([-20 20]);
+% $$$ title('I resid mean');
+% $$$ subplot(3,4,11);
+% $$$ pcolPlot(lon,lat,ndifs);
+% $$$ % $$$ caxis([-20 20]);
+% $$$ title('I mean resid');
+% $$$ colormap(redblue);
+% $$$ 
+
+% $$$ 

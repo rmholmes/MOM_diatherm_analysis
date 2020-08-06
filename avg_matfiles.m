@@ -12,15 +12,15 @@ base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
 % $$$ model = 'MOM025_kb3seg';
 % $$$ fileavg = [ones(10,1); zeros(10,1)];
 
-model = 'ACCESS-OM2_025deg_jra55_ryf';
-outputs = [76:80];%101:120];
-onum = 7680;
+model = 'ACCESS-OM2_025deg_jra55_ryf_rediGM_kbvar';
+outputs = [77:81];%101:120];
+onum = 7781;
 fileavg = [ones(5,1)];
 
-model = 'ACCESS-OM2_01deg_jra55_ryf';
-outputs = [636:643];%101:120];
-onum = 636643;
-fileavg = [zeros(8,1)];
+% $$$ model = 'ACCESS-OM2_01deg_jra55_ryf';
+% $$$ outputs = [636:643];%101:120];
+% $$$ onum = 636643;
+% $$$ fileavg = [zeros(8,1)];
 % $$$ 
 % $$$ model = 'ACCESS-OM2_1deg_jra55_ryf_kds135';
 % $$$ outputs = [31:35];%101:120];

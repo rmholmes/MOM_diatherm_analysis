@@ -16,22 +16,22 @@ RUNS = { ...
 % $$$     {'MOM025_kb1em6',[30]}, ...
 % $$$ % ACCESS-OM2 Gadi runs:
 % $$$          {'ACCESS-OM2_025deg_jra55_ryf',[7680]}, ...
-% $$$          {'ACCESS-OM2_025deg_jra55_ryf',[7680],'(a) ACCESS-OM2-025-NG'}, ...
-% $$$          {'ACCESS-OM2_025deg_jra55_ryf_rediGM_kbvar',[7781],'(b) ACCESS-OM2-025-NG-kbv'}, ...
-% $$$          {'ACCESS-OM2_025deg_jra55_ryf_rediGM_kb1em5',[7781],'(c) ACCESS-OM2-025-NG-kb5'}, ...
-         {'ACCESS-OM2_025deg_jra55_ryf_norediGM',[7680]}, ...
+         {'ACCESS-OM2_025deg_jra55_ryf',[7680],'(a) ACCESS-OM2-025-NG'}, ...
+         {'ACCESS-OM2_025deg_jra55_ryf_rediGM_kbvar',[7781],'(b) ACCESS-OM2-025-NG-kbv'}, ...
+         {'ACCESS-OM2_025deg_jra55_ryf_rediGM_kb1em5',[7781],'(c) ACCESS-OM2-025-NG-kb5'}, ...
+% $$$          {'ACCESS-OM2_025deg_jra55_ryf_norediGM',[76]}, ...
 % $$$          {'ACCESS-OM2_025deg_jra55_ryf_noGM',[7680]}, ...
 % $$$          {'ACCESS-OM2_025deg_jra55_ryf_kds75',[7680]}, ...
 % $$$ % $$$          {'ACCESS-OM2_025deg_jra55_ryf',[80]}, ...
 % $$$ % $$$          {'ACCESS-OM2_025deg_jra55_ryf',[300]}, ...
 % $$$          {'ACCESS-OM2_025deg_jra55_ryf_norediGM',[7680]}, ...
 % $$$          {'ACCESS-OM2_01deg_jra55_ryf',[636639]}, ...
-% $$$          {'ACCESS-OM2_1deg_jra55_ryf',[31],'(d) ACCESS-OM2-1-KDS50'}, ...
+         {'ACCESS-OM2_1deg_jra55_ryf',[31],'(d) ACCESS-OM2-1-KDS50'}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf_sgl',[31]}, ...
-% $$$          {'ACCESS-OM2_1deg_jra55_ryf_gfdl50',[31],'(e) ACCESS-OM2-1-GFDL50'}, ...
+         {'ACCESS-OM2_1deg_jra55_ryf_gfdl50',[31],'(e) ACCESS-OM2-1-GFDL50'}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf_kds75',[3135],'ACCESS-OM2-1-KDS75'}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf_kds100',[3135],'ACCESS-OM2-1-KDS100'}, ...
-% $$$          {'ACCESS-OM2_1deg_jra55_ryf_kds135',[3135],'(f) ACCESS-OM2-1-KDS135'}, ...
+         {'ACCESS-OM2_1deg_jra55_ryf_kds135',[3135],'(f) ACCESS-OM2-1-KDS135'}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf',[51]}, ...
        };
 cols = {'b',[0.3020    0.7451    0.9333],'b','b','b'};
@@ -107,90 +107,90 @@ if (max(max(max(temp)))>100)
     temp = temp-273.15;
 end
 
-% $$$ %% Plot Temp bias against WOA13:
-% $$$ % $$$ months = [1:12];
-% $$$ % $$$ temp = monmean(temp(:,:,months),3,ndays(months));
-% $$$ months = 1:10;
-% $$$ temp = mean(temp,3);
+%% Plot Temp bias against WOA13:
+% $$$ months = [1:12];
+% $$$ temp = monmean(temp(:,:,months),3,ndays(months));
+months = 1:10;
+temp = mean(temp,3);
+
+% WOA13:
+WOAname = '/srv/ccrc/data03/z3500785/Data_Products/WOA13/woa13_decav_t00_04.nc';
+WOAlat = ncread(WOAname,'lat');
+WOAlon = ncread(WOAname,'lon');
+WOAdep = ncread(WOAname,'depth');
+[tmp Eqind] = min(abs(WOAlat));
+% $$$ [tmp ln140ind] = min(abs(WOAlon+110));
+
+WOAT = squeeze(ncread(WOAname,'t_an',[1 Eqind 1 1],[1440 1 102 1]));
+% $$$ WOAT = squeeze(ncread(WOAname,'t_an',[ln140ind 1 1 1],[1 720 102 1]));
 % $$$ 
-% $$$ % WOA13:
-% $$$ WOAname = '/srv/ccrc/data03/z3500785/Data_Products/WOA13/woa13_decav_t00_04.nc';
-% $$$ WOAlat = ncread(WOAname,'lat');
-% $$$ WOAlon = ncread(WOAname,'lon');
-% $$$ WOAdep = ncread(WOAname,'depth');
-% $$$ [tmp Eqind] = min(abs(WOAlat));
-% $$$ % $$$ [tmp ln140ind] = min(abs(WOAlon+110));
+%Shift longitudes:
+[tmp ind] = min(abs(WOAlon-80));
+WOAT = cat(1,WOAT(ind+1:end,:),WOAT(1:ind,:));
+WOAlon = cat(1,WOAlon(ind+1:end)-360,WOAlon(1:ind));
+[WOAlon,WOAdep] = ndgrid(WOAlon,WOAdep);
+% $$$ [WOAlat,WOAdep] = ndgrid(WOAlat,WOAdep);
 % $$$ 
-% $$$ WOAT = squeeze(ncread(WOAname,'t_an',[1 Eqind 1 1],[1440 1 102 1]));
-% $$$ % $$$ WOAT = squeeze(ncread(WOAname,'t_an',[ln140ind 1 1 1],[1 720 102 1]));
-% $$$ % $$$ 
-% $$$ %Shift longitudes:
-% $$$ [tmp ind] = min(abs(WOAlon-80));
-% $$$ WOAT = cat(1,WOAT(ind+1:end,:),WOAT(1:ind,:));
-% $$$ WOAlon = cat(1,WOAlon(ind+1:end)-360,WOAlon(1:ind));
-% $$$ [WOAlon,WOAdep] = ndgrid(WOAlon,WOAdep);
-% $$$ % $$$ [WOAlat,WOAdep] = ndgrid(WOAlat,WOAdep);
-% $$$ % $$$ 
-% $$$ % Calculate bias from WOA:
-% $$$ Tbias = temp-interp2(WOAlon',-WOAdep',WOAT',Xt,-Zt,'linear');
-% $$$ % $$$ Tbias = temp-interp2(WOAlat',-WOAdep',WOAT',Yt,-Zt,'linear');
-% $$$ 
-% $$$ %Colormap:
-% $$$ clim = [-3 3];
-% $$$ sp = 0.25;
-% $$$ cpts = [-1e10 clim(1):sp:clim(2) 1e10];
-% $$$ npts = length(cpts)
-% $$$ cmap = redblue(npts-3);
-% $$$     
-% $$$ % $$$ figure;
-% $$$ % $$$ set(gcf,'Position',[1          36        1920         970]);
-% $$$ subplot(2,3,rr);
-% $$$ contourf(Xt,-Zt,Tbias,cpts,'linestyle','none');
-% $$$ % $$$ contourf(Yt,-Zt,Tbias,cpts,'linestyle','none');
-% $$$ hold on;
-% $$$ [c,h] = contour(WOAlon,-WOAdep,WOAT,[0:2:35],'-k');
-% $$$ % $$$ [c,h] = contour(WOAlat,-WOAdep,WOAT,[0:2:35],'-k');
-% $$$ clabel(c,h,[0:2:35]);
-% $$$ [c,h] = contour(WOAlon,-WOAdep,WOAT,[20 20],'-k','linewidth',2);
-% $$$ % $$$ [c,h] = contour(WOAlat,-WOAdep,WOAT,[20 20],'-k','linewidth',2);
-% $$$ hold on;
-% $$$ [c,h] = contour(Xt,-Zt,temp,[20 20],'--k','linewidth',2);
-% $$$ % $$$ [c,h] = contour(Yt,-Zt,temp,[20 20],'--k','linewidth',2);
+% Calculate bias from WOA:
+Tbias = temp-interp2(WOAlon',-WOAdep',WOAT',Xt,-Zt,'linear');
+% $$$ Tbias = temp-interp2(WOAlat',-WOAdep',WOAT',Yt,-Zt,'linear');
+
+%Colormap:
+clim = [-3 3];
+sp = 0.25;
+cpts = [-1e10 clim(1):sp:clim(2) 1e10];
+npts = length(cpts)
+cmap = redblue(npts-3);
+    
+% $$$ figure;
+% $$$ set(gcf,'Position',[1          36        1920         970]);
+subplot(2,3,rr);
+contourf(Xt,-Zt,Tbias,cpts,'linestyle','none');
+% $$$ contourf(Yt,-Zt,Tbias,cpts,'linestyle','none');
+hold on;
+[c,h] = contour(WOAlon,-WOAdep,WOAT,[0:2:35],'-k');
+% $$$ [c,h] = contour(WOAlat,-WOAdep,WOAT,[0:2:35],'-k');
+clabel(c,h,[0:2:35]);
+[c,h] = contour(WOAlon,-WOAdep,WOAT,[20 20],'-k','linewidth',2);
+% $$$ [c,h] = contour(WOAlat,-WOAdep,WOAT,[20 20],'-k','linewidth',2);
+hold on;
+[c,h] = contour(Xt,-Zt,temp,[20 20],'--k','linewidth',2);
+% $$$ [c,h] = contour(Yt,-Zt,temp,[20 20],'--k','linewidth',2);
+ylim([-300 0]);
+xlim([-220 -80]);
 % $$$ ylim([-300 0]);
-% $$$ xlim([-220 -80]);
-% $$$ % $$$ ylim([-300 0]);
-% $$$ % $$$ xlim([-15 15]);
-% $$$ if (rr == 3 | rr == 6)
-% $$$     cb = colorbar;
-% $$$     ylabel(cb,'Temperature Bias ($^\circ$C)');
+% $$$ xlim([-15 15]);
+if (rr == 3 | rr == 6)
+    cb = colorbar;
+    ylabel(cb,'Temperature Bias ($^\circ$C)');
+end
+if (rr <= 3)
+    set(gca,'xticklabel',[]);
+else
+    xlabel('Longitude ($^\circ$E)');
+end
 % $$$ end
-% $$$ if (rr <= 3)
-% $$$     set(gca,'xticklabel',[]);
-% $$$ else
-% $$$     xlabel('Longitude ($^\circ$E)');
-% $$$ end
-% $$$ % $$$ end
-% $$$ % $$$ xlabel('Latitude ($^\circ$N)');
-% $$$ if (rr == 1 | rr == 4)
-% $$$     ylabel('Depth (m)');
-% $$$ else
-% $$$     set(gca,'yticklabel',[]);
-% $$$ end
-% $$$ caxis(clim);
-% $$$ colormap(cmap);
-% $$$ % $$$ set(gca,'FontSize',15);
-% $$$ % $$$ title([strrep(strrep(strrep(strrep(strrep(RUNS{rr}{1},'_',' '),'ACCESS-OM2 ' ...
-% $$$ % $$$                     ,'AOM'),'deg jra55',''),' may',''),'ryf8485 ','') ' - WOA13 Equatorial T ($^\circ$C)']);
-% $$$ text(-219,-285,RUNS{rr}{3},'Backgroundcolor','w');
-% $$$ 
-% $$$ poss = [0.0693    0.5271    0.2726    0.3753; ...
-% $$$         0.3578    0.5271    0.2726    0.3753; ...
-% $$$         0.6463    0.5271    0.2726    0.3753; ...
-% $$$         0.0693    0.1134    0.2726    0.3753; ...
-% $$$         0.3578    0.1134    0.2726    0.3753; ...
-% $$$         0.6463    0.1134    0.2726    0.3753];
-% $$$ set(gca,'Position',poss(rr,:));
-% $$$ end
+% $$$ xlabel('Latitude ($^\circ$N)');
+if (rr == 1 | rr == 4)
+    ylabel('Depth (m)');
+else
+    set(gca,'yticklabel',[]);
+end
+caxis(clim);
+colormap(cmap);
+% $$$ set(gca,'FontSize',15);
+% $$$ title([strrep(strrep(strrep(strrep(strrep(RUNS{rr}{1},'_',' '),'ACCESS-OM2 ' ...
+% $$$                     ,'AOM'),'deg jra55',''),' may',''),'ryf8485 ','') ' - WOA13 Equatorial T ($^\circ$C)']);
+text(-219,-285,RUNS{rr}{3},'Backgroundcolor','w');
+
+poss = [0.0693    0.5271    0.2726    0.3753; ...
+        0.3578    0.5271    0.2726    0.3753; ...
+        0.6463    0.5271    0.2726    0.3753; ...
+        0.0693    0.1134    0.2726    0.3753; ...
+        0.3578    0.1134    0.2726    0.3753; ...
+        0.6463    0.1134    0.2726    0.3753];
+set(gca,'Position',poss(rr,:));
+end
 
 %%% Plot Diathermal fluxes:
 
@@ -332,7 +332,7 @@ for i=1:length(months)
     Tout(Tout==0) = NaN;
     [c,h] = contour(Xt,-Zt,Tout,[0:1:35],'-k');
     clabel(c,h,[0:2:35]);
-% $$$     [c,h] = contour(Xt,-Zt,Tout,[22.5 22.5],'-k','linewidth',2);
+    [c,h] = contour(Xt,-Zt,Tout,[22.5 22.5],'-k','linewidth',2);
 % $$$ if (strcmp(model,'MOM01'))
 % $$$     mnu = monthsu01{i};
 % $$$ else

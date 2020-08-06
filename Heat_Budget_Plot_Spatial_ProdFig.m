@@ -24,10 +24,10 @@ RUNS = { ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf_kds100',[3135]}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf_kds135',[3135]}, ...
 % $$$ % 1/4-degree
-% $$$          {'ACCESS-OM2_025deg_jra55_ryf_norediGM',[7680]}, ...
-         {'ACCESS-OM2_025deg_jra55_ryf',[7680]}, ...
+% $$$          {'ACCESS-OM2_025deg_jra55_ryf',[7680]}, ...
+         {'ACCESS-OM2_025deg_jra55_ryf_norediGM',[7680]}, ...
 % $$$          {'ACCESS-OM2_025deg_jra55_ryf_noGM',[7680]}, ...
-         {'ACCESS-OM2_025deg_jra55_ryf_rediGM_kb1em5',[7781]}, ...
+% $$$          {'ACCESS-OM2_025deg_jra55_ryf_rediGM_kb1em5',[7781]}, ...
 % $$$          {'ACCESS-OM2_025deg_jra55_ryf_rediGM_kbvar',[7781]}, ...
 % $$$          {'ACCESS-OM2_025deg_jra55_ryf_kds75',[7680]}, ...
 % $$$          {'ACCESS-OM2_025deg_jra55_ryf8485_gmredi',[73]}, ...
@@ -40,7 +40,7 @@ RUNS = { ...
        };
 cols = {'b','r','k','m','g'};
 
-rr = 2;
+rr = 1;
 % $$$ figure;
 % $$$ set(gcf,'Position',[87    52   848   937]); % North Atlantic Two panel.
 
@@ -84,18 +84,14 @@ rr = 2;
 % $$$ % $$$     TYPE = 'WMT';
 % $$$ % $$$     Tl = 19.75;
 % $$$ % $$$     labels = {'(a) MOM025-kb0','(b) MOM025-kb5','(f) $5^\circ$C'};%10$^\circ$C'};%$15^\circ$C'};
-% $$$     labels = {'(a) $22.5^\circ$','(b) $15^\circ$C','(c) $5^\circ$C'};%10$^\circ$C'};%$15^\circ$C'};
+    labels = {'(a) $22.5^\circ$','(b) $15^\circ$C','(c) $5^\circ$C'};%10$^\circ$C'};%$15^\circ$C'};
                                                                      %    labels = {'(a) $1/4^\circ$','(b) $2.5^\circ$ Conservative Remap'};%$22.5^\circ$','(c) $15^\circ$C','(e) $5^\circ$C'};%10$^\circ$C'};%$15^\circ$C'};
 % $$$ % $$$     labels = {'(a) Numerical Mixing','(b) Vertical Mixing','(f) $5^\circ$C'};%10$^\circ$C'};%$15^\circ$C'};
-    labels = {'(a) $15^\circ$C ACCESS-OM2-025-RG - ACCESS-OM2-025', ...
-              '(b) $5^\circ$C ACCESS-OM2-025-RG - ACCESS-OM2-025', ...
-              '(c) $15^\circ$C ACCESS-OM2-025-R - ACCESS-OM2-025', ...
-              '(d) $5^\circ$C ACCESS-OM2-025-R - ACCESS-OM2-025'};
-    labels = {'(a) Numerical Mixing Difference', ...
-              '(b) Vertical Mixing Difference'};
+% $$$ % $$$     labels = {'(a) ACCESS-OM2-025-RG $15^\circ$C','(b) ACCESS-OM2-025-RG $5^\circ$C', ...
+% $$$ % $$$              '(c) ACCESS-OM2-025 $15^\circ$C','(d) ACCESS-OM2-025 $5^\circ$C', ...
+% $$$ % $$$              '(e) ACCESS-OM2-025-R $15^\circ$C','(f) ACCESS-OM2-025-R $5^\circ$C'};
 % $$$     labels = {'(a) ACCESS-OM2-01 $\mathcal{I}$ $15^\circ$C','(b) ACCESS-OM2-01-hvisc minus ACCESS-OM2-01 $\mathcal{I}$ $15^\circ$C'};
-iii = 1;
-% $$$ for iii=1:length(Tls)
+for iii=1:length(Tls)
 % $$$     iii = 1;
     Tl = Tls(iii);
 % $$$     iii = 2;
@@ -134,20 +130,11 @@ iii = 1;
 % $$$     FlM(isnan(FlM)) = 0;
 % $$$     FlI(isnan(FlI)) = 0;
 % $$$     nans = FlM==0.0 | FlI==0.0;
-% $$$ % $$$     FlM = log10(abs(FlI)./abs(FlM));
+% $$$     FlM = log10(abs(FlI)./abs(FlM));
 % $$$     FlM = abs(FlI)./(abs(FlI)+abs(FlM));
 % $$$     FlM(nans) = NaN;
-% $$$     FlM = FlI;
+    FlM = FlI;
     FlM(FlM==0) = NaN;
-    FlI(FlI==0) = NaN;
-    
-% $$$     FlM1 = FlM;
-    FlM2 = FlM;
-    FlI2 = FlI;
-    FlM1 = FlM;
-    FlI1 = FlI;
-
-    FlM = FlM3-FlM1;
 
 % $$$     FlMs = FlM;
 % $$$     FlMs = FlMs+FlM;
@@ -397,8 +384,8 @@ iii = 1;
     end
 
     [xL,yL] = size(lon);
-    xvec = 1:2:xL;
-    yvec = 1:2:yL;
+    xvec = 1:1:xL;
+    yvec = 1:1:yL;
 % $$$     xvec = 720:1:1060; %-100 -> -30
 % $$$     yvec = 540:1:730; % +15 -> +50
 % $$$     xvec = 720:1:1320; %-100 -> +50
@@ -429,11 +416,11 @@ iii = 1;
 % $$$     clim = [-2 2];
 % $$$     sp = 0.05;
 % $$$     clim = [0 1];
-    sp = 1;
-    clim = [-25 25];
+% $$$     sp = 1;
+% $$$     clim = [-30 30];
 % $$$     clim = [-50 50];
 % $$$     sp = 2;
-    cCH = 0; % 0 = symmetric redblue
+    cCH = 2; % 0 = symmetric redblue
              % 1 = negative definite parula
              % 2 = negative parula with +ve's possible
              % 3 = negative parula with cutoff pink above
@@ -489,29 +476,24 @@ iii = 1;
 % $$$ % $$$ set(gcf,'Position',[3          59        1916         914]);
 % $$$ % $$$ set(gcf,'Position',[88         371        1625         603]);
 %set(gcf,'Position',[3          59        1476         921]); % Production NumMix first fig.
-set(gcf,'Position',[1          36        1920         970]);
+%set(gcf,'Position',[1          36        1920         970]);
+set(gcf,'Position',[1         144        1884         849]);
 % $$$ set(gcf,'Position',get(0,'ScreenSize'));
 % $$$     set(gcf,'Position',[3    40   998   963]); % MOM025-kb0 Kback diff figure.
 % $$$ set(gcf,'Position',[40    83   990   897]); % North Atlantic zoom.
 % $$$ % $$$ set(gcf,'Position',[3    40   956   963]);
-    set(gcf,'defaulttextfontsize',15);
-    set(gcf,'defaultaxesfontsize',15);
+    set(gcf,'defaulttextfontsize',25);
+    set(gcf,'defaultaxesfontsize',25);
 
-% $$$ % $$$ % $$$ 
-% $$$ % 2x1:
-% $$$     poss = [0.1300    0.54    0.7403    0.4149; ...
-% $$$             0.1300    0.0876    0.7403    0.4149];
+% $$$ % $$$ 
+% 2x1:
+    poss = [0.1300    0.54    0.7403    0.4149; ...
+            0.1300    0.0876    0.7403    0.4149];
 % $$$ % 1+3:
 % $$$ poss = [0.1300    0.4553    0.7693    0.4697; ...
 % $$$         0.1300    0.1389    0.2343    0.2680; ...
 % $$$         0.3951    0.1389    0.2343    0.2680; ...
 % $$$         0.6681    0.1389    0.2343    0.2680];
-% 2x2:
-    poss = [0.1300    0.58      0.3548    0.3692; ...
-            0.5700    0.58      0.3548    0.3692; ...
-            0.1300    0.1100    0.3548    0.3692; ...
-            0.5700    0.1100    0.3548    0.3692];
-
 % $$$ for i=1:length(months)
 % $$$     if (i == 1)
 % $$$         subplot(5,3,[1 9]);
@@ -519,8 +501,7 @@ set(gcf,'Position',[1          36        1920         970]);
 % $$$         subplot(5,3,[10 13]+(i-2));
 % $$$     end
     i = 1;
-    ii = 3;
-    subplot(2,2,ii);
+% $$$     subplot(2,1,iii);
 % $$$     subplot(3,2,2*(rr-1)+iii);
     X = lon(xvec,yvec);
     Y = lat(xvec,yvec);
@@ -546,10 +527,10 @@ set(gcf,'Position',[1          36        1920         970]);
     hold on;    
     contourf(X,Y,LAND(xvec,yvec),[clim(1)-sp clim(1)],'linestyle','none');
     caxis(climn);
-% $$$     if (ii==2 | ii ==4)
+% $$$     if (iii==2)
     cb = colorbar;
     if (strcmp(TYPE,'VertInt'))
-        ylabel(cb,'$\mathcal{M}$ (Wm$^{-2}$)');
+        ylabel(cb,'$\mathcal{I}$ (Wm$^{-2}$)');
 % $$$         ylabel(cb,'$\log_{10}(\mathcal{I}/\mathcal{M})$');
 % $$$         ylabel(cb,'$|\mathcal{I}|/(|\mathcal{I}|+|\mathcal{M}|)$');
     else
@@ -560,7 +541,6 @@ set(gcf,'Position',[1          36        1920         970]);
 % $$$     end
 %;% $$$     end
     hold on;
-% $$$     end
 % $$$     % Plot regions:
 % $$$     if (i==1)
 % $$$     if (exist('regions'))
@@ -580,19 +560,18 @@ set(gcf,'Position',[1          36        1920         970]);
 % $$$     end
 % $$$     end
 % $$$     if (rr == 3)
-    if (ii>=3)
         xlabel('Longitude ($^\circ$E)');
-    else
-        set(gca,'xticklabel',[]);
-    end
-    if (ii == 1 | ii ==3)
+% $$$     else
+% $$$         set(gca,'xticklabel',[]);
+% $$$     end
+% $$$     if (iii == 1)
         ylabel('Latitude ($^\circ$N)');
-    else
-        set(gca,'yticklabel',[]);
-    end
+% $$$     else
+% $$$         set(gca,'yticklabel',[]);
+% $$$     end
         
-    set(gca,'xtick',[-270:30:60]);
-    set(gca,'ytick',[-75:15:75]);
+% $$$     set(gca,'xtick',[-270:30:60]);
+% $$$     set(gca,'ytick',[-75:15:75]);
 % $$$     poss = [0.0886    0.68    0.345    0.27; ...
 % $$$             0.4503    0.68    0.345    0.27; ...
 % $$$             0.0886    0.38    0.345    0.27; ...
@@ -600,19 +579,19 @@ set(gcf,'Position',[1          36        1920         970]);
 % $$$             0.0886    0.08    0.345    0.27; ...
 % $$$             0.4503    0.08    0.345    0.27];
 
-    set(gca,'Position',poss(ii,:));
 % $$$     set(gca,'Position',[poss(2*(rr-1)+iii,:)]);
-    ylim([-65 75]);
+% $$$     ylim([-65 75]);
+% $$$     text(-277,70,labels{iii},'BackgroundColor','w','Margin',0.5,'FontSize',20);
+    ylim([-45 45]);
+    text(-277,40,labels{iii},'BackgroundColor','w','Margin',0.5,'FontSize',25);
+    colormap(cmap);
 % $$$     text(-277,70,labels{2*(rr-1)+iii},'BackgroundColor','w','Margin',0.5,'FontSize',20);
 % $$$     text(-277,72,labels{2*(rr-1)+iii},'BackgroundColor','w','Margin',0.5,'FontSize',12);
 % $$$     ylim([-60 80]);
-% $$$     text(-277,70,labels{iii},'BackgroundColor','w','Margin',0.5,'FontSize',20);
-    text(-277,68,labels{ii},'BackgroundColor','w','Margin',0.5,'FontSize',13);
 % $$$     ylim([-50 70]);
 % $$$     set(gca,'FontSize',17);
-    colormap(cmap);
-    ylim([-45 45]);
-    text(-278,41,labels{ii},'BackgroundColor','w','Margin',0.5,'FontSize',13);
+% $$$     ylim([-45 45]);
+% $$$     text(-278,41,labels{2},'BackgroundColor','w','Margin',0.5,'FontSize',15);
 
 % $$$     set(gca,'xtick',[-270:20:60]);
 % $$$     set(gca,'ytick',[-75:10:75]);

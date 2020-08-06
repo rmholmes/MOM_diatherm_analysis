@@ -9,8 +9,8 @@ region = 'Global';
 
 % new run:
 base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
-model = 'ACCESS-OM2_025deg_jra55_ryf_noGM';
-outputs = [7680];
+model = 'ACCESS-OM2_025deg_jra55_ryf_norediGM';
+outputs = [81];
 
 for output = outputs
     save([base model sprintf('_output%03d_BaseVars.mat',output)], ...

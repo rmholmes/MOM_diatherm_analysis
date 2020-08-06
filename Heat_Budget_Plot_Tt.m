@@ -6,15 +6,16 @@ clear all;
 
 base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
 
-RUNS = { ...
-         {'ACCESS-OM2_1deg_jra55_rdf',[51:55],[1972]}, ...
-         {'ACCESS-OM2_1deg_jra55_rdf_pert',[51:55],[1972]}, ...
-       };
+RUNS = struct( ...
+       'model',{'ACCESS-OM2_1deg_jra55_rdf','ACCESS-OM2_1deg_jra55_rdf_pert'},...
+       'outputs',[51:55], ...
+       'zeroyear',[1972]);
 
-rr = 1;
+rr = 2;
+for rr = 1:length(RUNS)
     rr
-    outputs = RUNS{rr}{2};
-    model = RUNS{rr}{1};
+    outputs = RUNS(rr).outputs;
+    model = RUNS(rr).model;
 
 % $$$     clearvars -except base RUNS rr outputs model leg legh;
     
@@ -22,14 +23,17 @@ rr = 1;
     if (~exist('ndays'))
         ndays = diff(time_snap);
     end
+    RUNS(rr).ndays = ndays;
     region = 'Global';
-    nyrs = tL/12;
-    if (nyrs == round(nyrs))
-        szTe = [TL+1 12 nyrs];szT  = [TL 12 nyrs];
+    if (ndays(1) < 300) % Monthly data
+        nyrs = tL/12;
+        nmnt = 12;
+        szTe = [TL+1 nmnt nyrs];szT  = [TL nmnt nyrs];
         yrs = 1:nyrs;
     else
-        nyrs = 1;
-        szTe = [TL+1 tL];szT = [TL tL];
+        nyrs = tL;
+        nmnt = 1;
+        szTe = [TL+1 nyrs];szT = [TL nyrs];
     end    
     ycur = 1;
     
@@ -45,129 +49,129 @@ rr = 1;
 % $$$     load([base model sprintf('_output%03d_',outputs(i)) 'GlobalHBud_MonAnBin.mat']);
 % $$$     GWB = GWBann;
 
-% $$$         load([base model sprintf('_output%03d_',outputs(i)) region '_HBud.mat']);
-% $$$         
-% $$$         % Fluxes:
-% $$$         P(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.PME+GWB.RMX,szTe); % PME effective heat flux (W)
-% $$$         F(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.SWH+GWB.VDS+GWB.FRZ+GWB.ETS,szTe); % Surface heat flux (W)
-% $$$         Ffz(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.FRZ,szTe); % Surface heat flux (W)
-% $$$         Fsw(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.SWH,szTe); % Surface heat flux (W)
-% $$$         Fsh(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.VDS,szTe); % Surface heat flux (W)
-% $$$         Fet(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.ETS,szTe); % Surface heat flux (W)
-% $$$         MNL(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.KNL,szTe);
-% $$$         M(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.VDF+GWB.KNL,szTe); % Vertical mixing flux (W)
-% $$$         if (isfield(GWB,'VDFkppiw')) % Vertical mixing components
-% $$$             VDFkppiw(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.VDFkppiw,szTe);
-% $$$             VDFkppish(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.VDFkppish,szTe);
-% $$$             VDFkppicon(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.VDFkppicon,szTe);
-% $$$             VDFkppbl(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.VDFkppbl,szTe);
-% $$$             VDFkppdd(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.VDFkppdd,szTe);
-% $$$             VDFwave(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.VDFwave,szTe);
-% $$$             VDFnloc(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.KNL,szTe);
-% $$$             VDFsum(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.VDFkppiw+GWB.VDFkppish+GWB.VDFkppicon+ ...
-% $$$                 GWB.VDFkppbl+GWB.VDFkppdd+GWB.VDFwave+GWB.KNL,szTe);
-% $$$             % Note: May be missing enhanced mixing near rivers
-% $$$             % (river_diffuse_temp) in ACCESS-OM2
-% $$$         end
-% $$$         if (isfield(GWB,'RED')) % Redi Diffusion
-% $$$             R(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.RED+GWB.K33,szTe); % Redi diffusion (W)
-% $$$         else
-% $$$             R(:,:,ycur:(ycur+nyrs-1)) = zeros(size(P(:,:,ycur:(ycur+nyrs-1))));
-% $$$         end
-% $$$         if (isfield(GWB,'NGM')) % GM parameterization
-% $$$             GM(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.NGM,szTe); % GM (W)
-% $$$         else
-% $$$             GM(:,:,ycur:(ycur+nyrs-1)) = zeros(size(P(:,:,ycur:(ycur+nyrs-1))));
-% $$$         end    
-% $$$         if (isfield(GWB,'MDS')) % Mix-downslope
-% $$$             MD(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.MDS,szTe);
-% $$$             M(:,:,ycur:(ycur+nyrs-1)) = M(:,:,ycur:(ycur+nyrs-1)) + reshape(GWB.MDS,szTe); %ADD TO VERTICAL MIXING, but it's small...
-% $$$         else
-% $$$             MD(:,:,ycur:(ycur+nyrs-1)) = zeros(size(P(:,:,ycur:(ycur+nyrs-1))));
-% $$$         end    
-% $$$         if (isfield(GWB,'SIG')) % Sigma-diff
-% $$$             SG(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.SIG,szTe);
-% $$$             M(:,:,ycur:(ycur+nyrs-1)) = M(:,:,ycur:(ycur+nyrs-1)) + reshape(GWB.SIG,szTe);
-% $$$         else
-% $$$             SG(:,:,ycur:(ycur+nyrs-1)) = zeros(size(P(:,:,ycur:(ycur+nyrs-1))));
-% $$$         end    
-% $$$         if (isfield(GWB,'NUM')) % Pre-calculated numerical mixing
-% $$$             NUM(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.NUM,szTe); % NUM (W)
-% $$$         else
-% $$$             NUM(:,:,ycur:(ycur+nyrs-1)) = zeros(size(P(:,:,ycur:(ycur+nyrs-1))));
-% $$$         end    
-% $$$         if (isfield(GWB,'SUB'))
-% $$$             SUB(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.SUB,szTe);
-% $$$         else
-% $$$             SUB(:,:,ycur:(ycur+nyrs-1)) = zeros(size(P(:,:,ycur:(ycur+nyrs-1))));
-% $$$         end
-% $$$         D(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.TEN-GWB.ADV,szTe)-GM(:,:,ycur:(ycur+nyrs-1))-SUB(:,:,ycur:(ycur+nyrs-1)); % Material derivative of T (W)
-% $$$         TEN(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.TEN,szTe); % Tendency
-% $$$         ADV(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.ADV,szTe); % Advection
-% $$$         SW(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.SWH,szTe); % Short-wave heat
-% $$$         JS(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.SFW,szTe); % Surface Volume Flux
-% $$$ 
-% $$$         % Pacific Interior fluxes:
-% $$$         if (strcmp(region,'Pacific'))
-% $$$             JI(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.JBS+GWB.JSP+GWB.JITF,szTe); %Combined volume flux out
-% $$$             QI(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.QBS+GWB.QSP+GWB.QITF,szTe); %Combined heat flux out
-% $$$         else
-% $$$             QI(:,:,ycur:(ycur+nyrs-1)) = zeros(size(P(:,:,ycur:(ycur+nyrs-1))));
-% $$$             JI(:,:,ycur:(ycur+nyrs-1)) = zeros(size(P(:,:,ycur:(ycur+nyrs-1))));
-% $$$         end
-% $$$ 
-% $$$         % Snapshot fields:
-% $$$         dVdt(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.dVdt,szTe); % V Change (m3s-1)
-% $$$         dHdt(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.dHdt,szTe); % H Change (W)
-% $$$ 
-% $$$         % Water-mass transformation:
-% $$$         G(:,:,ycur:(ycur+nyrs-1)) = dVdt(:,:,ycur:(ycur+nyrs-1)) - JS(:,:,ycur:(ycur+nyrs-1)) + JI(:,:,ycur:(ycur+nyrs-1)); %Water-mass transformation (m3s-1)
-% $$$ 
-% $$$         % Surface Volume flux base flux (not P!)
-% $$$         JSH(:,:,ycur:(ycur+nyrs-1)) = JS(:,:,ycur:(ycur+nyrs-1)).*repmat(Te,[1 tL nyrs])*rho0*Cp;
-% $$$ 
-% $$$         % Interior heat source P:
-% $$$         PI(:,:,ycur:(ycur+nyrs-1)) = P(:,:,ycur:(ycur+nyrs-1)) - JSH(:,:,ycur:(ycur+nyrs-1));
-% $$$ 
-% $$$         % Interior heat source Q:
-% $$$         QII(:,:,ycur:(ycur+nyrs-1)) = QI(:,:,ycur:(ycur+nyrs-1)) - JI(:,:,ycur:(ycur+nyrs-1)).*repmat(Te,[1 tL nyrs])*rho0*Cp;
-% $$$ 
-% $$$         % Across-isotherm advective heat flux:
-% $$$         CIA(:,:,ycur:(ycur+nyrs-1)) = G(:,:,ycur:(ycur+nyrs-1)).*repmat(Te,[1 tL nyrs])*rho0*Cp;
-% $$$ 
-% $$$         % External HC Tendency:
-% $$$         EHC(:,:,ycur:(ycur+nyrs-1)) = dVdt(:,:,ycur:(ycur+nyrs-1)).*repmat(Te,[1 tL nyrs])*rho0*Cp;
-% $$$ 
-% $$$         % Internal HC Tendency:
-% $$$         N(:,:,ycur:(ycur+nyrs-1)) = dHdt(:,:,ycur:(ycur+nyrs-1)) - EHC(:,:,ycur:(ycur+nyrs-1));
-% $$$ % $$$ N(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.TEN,szTe);
-% $$$ 
-% $$$         % Implicit mixing:
-% $$$         I(:,:,ycur:(ycur+nyrs-1)) = N(:,:,ycur:(ycur+nyrs-1)) - F(:,:,ycur:(ycur+nyrs-1)) - P(:,:,ycur:(ycur+nyrs-1)) ...
-% $$$                                   - M(:,:,ycur:(ycur+nyrs-1)) - R(:,:,ycur:(ycur+nyrs-1)) + JSH(:,:,ycur:(ycur+nyrs-1)) ...
-% $$$                                   - SUB(:,:,ycur:(ycur+nyrs-1)) - GM(:,:,ycur:(ycur+nyrs-1));
-% $$$ 
-% $$$         % Non-advective flux into volume:
-% $$$         B(:,:,ycur:(ycur+nyrs-1)) = F(:,:,ycur:(ycur+nyrs-1))+M(:,:,ycur:(ycur+nyrs-1))+I(:,:,ycur:(ycur+nyrs-1))+R(:,:,ycur:(ycur+nyrs-1));
-% $$$ 
-% $$$         % Monthly binned Internal HC Tendency:
-% $$$         if (isfield('GWB','TENMON'))
-% $$$             Nmon(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.TENMON,szTe);
-% $$$         end
-% $$$ 
-% $$$         % WMT from B:
-% $$$         WMTM(:,:,ycur:(ycur+nyrs-1)) = -diff(M(:,:,ycur:(ycur+nyrs-1)),[],1)/dT/rho0/Cp;
-% $$$         WMTF(:,:,ycur:(ycur+nyrs-1)) = -diff(F(:,:,ycur:(ycur+nyrs-1)),[],1)/dT/rho0/Cp;
-% $$$         WMTI(:,:,ycur:(ycur+nyrs-1)) = -diff(I(:,:,ycur:(ycur+nyrs-1)),[],1)/dT/rho0/Cp;
-% $$$         WMTR(:,:,ycur:(ycur+nyrs-1)) = -diff(R(:,:,ycur:(ycur+nyrs-1)),[],1)/dT/rho0/Cp;
-% $$$         WMT(:,:,ycur:(ycur+nyrs-1)) = WMTM(:,:,ycur:(ycur+nyrs-1))+WMTF(:,:,ycur:(ycur+nyrs-1))+WMTI(:,:,ycur:(ycur+nyrs-1))+WMTR(:,:,ycur:(ycur+nyrs-1));
-% $$$ 
-% $$$         % WMT HB from B:
-% $$$         HWMTM(:,:,ycur:(ycur+nyrs-1)) = rho0*Cp*WMTM(:,:,ycur:(ycur+nyrs-1)).*repmat(T,[1 tL nyrs]);
-% $$$         HWMTF(:,:,ycur:(ycur+nyrs-1)) = rho0*Cp*WMTF(:,:,ycur:(ycur+nyrs-1)).*repmat(T,[1 tL nyrs]);
-% $$$         HWMTI(:,:,ycur:(ycur+nyrs-1)) = rho0*Cp*WMTI(:,:,ycur:(ycur+nyrs-1)).*repmat(T,[1 tL nyrs]);
-% $$$         HWMTR(:,:,ycur:(ycur+nyrs-1)) = rho0*Cp*WMTR(:,:,ycur:(ycur+nyrs-1)).*repmat(T,[1 tL nyrs]);
-% $$$         HWMT(:,:,ycur:(ycur+nyrs-1)) = HWMTM(:,:,ycur:(ycur+nyrs-1))+HWMTF(:,:,ycur:(ycur+nyrs-1))+HWMTI(:,:,ycur:(ycur+nyrs-1))+HWMTR(:,:,ycur:(ycur+nyrs-1));
+        load([base model sprintf('_output%03d_',outputs(i)) region '_HBud.mat']);
+        
+        % Fluxes:
+        RUNS(rr).P(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.PME+GWB.RMX,szTe); % PME effective heat flux (W)
+        RUNS(rr).F(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.SWH+GWB.VDS+GWB.FRZ+GWB.ETS,szTe); % Surface heat flux (W)
+        RUNS(rr).Ffz(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.FRZ,szTe); % Surface heat flux (W)
+        RUNS(rr).Fsw(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.SWH,szTe); % Surface heat flux (W)
+        RUNS(rr).Fsh(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.VDS,szTe); % Surface heat flux (W)
+        RUNS(rr).Fet(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.ETS,szTe); % Surface heat flux (W)
+        RUNS(rr).MNL(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.KNL,szTe);
+        RUNS(rr).M(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.VDF+GWB.KNL,szTe); % Vertical mixing flux (W)
+        if (isfield(GWB,'VDFkppiw')) % Vertical mixing components
+            RUNS(rr).VDFkppiw(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.VDFkppiw,szTe);
+            RUNS(rr).VDFkppish(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.VDFkppish,szTe);
+            RUNS(rr).VDFkppicon(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.VDFkppicon,szTe);
+            RUNS(rr).VDFkppbl(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.VDFkppbl,szTe);
+            RUNS(rr).VDFkppdd(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.VDFkppdd,szTe);
+            RUNS(rr).VDFwave(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.VDFwave,szTe);
+            RUNS(rr).VDFnloc(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.KNL,szTe);
+            RUNS(rr).VDFsum(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.VDFkppiw+GWB.VDFkppish+GWB.VDFkppicon+ ...
+                GWB.VDFkppbl+GWB.VDFkppdd+GWB.VDFwave+GWB.KNL,szTe);
+            % Note: May be missing enhanced mixing near rivers
+            % (river_diffuse_temp) in ACCESS-OM2
+        end
+        if (isfield(GWB,'RED')) % Redi Diffusion
+            RUNS(rr).R(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.RED+GWB.K33,szTe); % Redi diffusion (W)
+        else
+            RUNS(rr).R(:,:,ycur:(ycur+nyrs-1)) = zeros(size(RUNS(rr).P(:,:,ycur:(ycur+nyrs-1))));
+        end
+        if (isfield(GWB,'NGM')) % GM parameterization
+            RUNS(rr).GM(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.NGM,szTe); % GM (W)
+        else
+            RUNS(rr).GM(:,:,ycur:(ycur+nyrs-1)) = zeros(size(RUNS(rr).P(:,:,ycur:(ycur+nyrs-1))));
+        end    
+        if (isfield(GWB,'MDS')) % Mix-downslope
+            RUNS(rr).MD(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.MDS,szTe);
+            RUNS(rr).M(:,:,ycur:(ycur+nyrs-1)) = RUNS(rr).M(:,:,ycur:(ycur+nyrs-1)) + reshape(GWB.MDS,szTe); %ADD TO VERTICAL MIXING, but it's small...
+        else
+            RUNS(rr).MD(:,:,ycur:(ycur+nyrs-1)) = zeros(size(RUNS(rr).P(:,:,ycur:(ycur+nyrs-1))));
+        end    
+        if (isfield(GWB,'SIG')) % Sigma-diff
+            RUNS(rr).SG(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.SIG,szTe);
+            RUNS(rr).M(:,:,ycur:(ycur+nyrs-1)) = RUNS(rr).M(:,:,ycur:(ycur+nyrs-1)) + reshape(GWB.SIG,szTe);
+        else
+            RUNS(rr).SG(:,:,ycur:(ycur+nyrs-1)) = zeros(size(RUNS(rr).P(:,:,ycur:(ycur+nyrs-1))));
+        end    
+        if (isfield(GWB,'NUM')) % Pre-calculated numerical mixing
+            RUNS(rr).NUM(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.NUM,szTe); % NUM (W)
+        else
+            RUNS(rr).NUM(:,:,ycur:(ycur+nyrs-1)) = zeros(size(RUNS(rr).P(:,:,ycur:(ycur+nyrs-1))));
+        end    
+        if (isfield(GWB,'SUB'))
+            RUNS(rr).SUB(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.SUB,szTe);
+        else
+            RUNS(rr).SUB(:,:,ycur:(ycur+nyrs-1)) = zeros(size(RUNS(rr).P(:,:,ycur:(ycur+nyrs-1))));
+        end
+        RUNS(rr).D(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.TEN-GWB.ADV,szTe)-RUNS(rr).GM(:,:,ycur:(ycur+nyrs-1))-RUNS(rr).SUB(:,:,ycur:(ycur+nyrs-1)); % Material derivative of T (W)
+        RUNS(rr).TEN(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.TEN,szTe); % Tendency
+        RUNS(rr).ADV(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.ADV,szTe); % Advection
+        RUNS(rr).SW(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.SWH,szTe); % Short-wave heat
+        RUNS(rr).JS(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.SFW,szTe); % Surface Volume Flux
+
+        % Pacific Interior fluxes:
+        if (strcmp(region,'Pacific'))
+            RUNS(rr).JI(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.JBS+GWB.JSP+GWB.JITF,szTe); %Combined volume flux out
+            RUNS(rr).QI(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.QBS+GWB.QSP+GWB.QITF,szTe); %Combined heat flux out
+        else
+            RUNS(rr).QI(:,:,ycur:(ycur+nyrs-1)) = zeros(size(RUNS(rr).P(:,:,ycur:(ycur+nyrs-1))));
+            RUNS(rr).JI(:,:,ycur:(ycur+nyrs-1)) = zeros(size(RUNS(rr).P(:,:,ycur:(ycur+nyrs-1))));
+        end
+
+        % Snapshot fields:
+        RUNS(rr).dVdt(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.dVdt,szTe); % V Change (m3s-1)
+        RUNS(rr).dHdt(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.dHdt,szTe); % H Change (W)
+
+        % Water-mass transformation:
+        RUNS(rr).G(:,:,ycur:(ycur+nyrs-1)) = RUNS(rr).dVdt(:,:,ycur:(ycur+nyrs-1)) - RUNS(rr).JS(:,:,ycur:(ycur+nyrs-1)) + RUNS(rr).JI(:,:,ycur:(ycur+nyrs-1)); %Water-mass transformation (m3s-1)
+
+        % Surface Volume flux base flux (not P!)
+        RUNS(rr).JSH(:,:,ycur:(ycur+nyrs-1)) = RUNS(rr).JS(:,:,ycur:(ycur+nyrs-1)).*repmat(Te,[1 nmnt nyrs])*rho0*Cp;
+
+        % Interior heat source P:
+        RUNS(rr).PI(:,:,ycur:(ycur+nyrs-1)) = RUNS(rr).P(:,:,ycur:(ycur+nyrs-1)) - RUNS(rr).JSH(:,:,ycur:(ycur+nyrs-1));
+
+        % Interior heat source Q:
+        RUNS(rr).QII(:,:,ycur:(ycur+nyrs-1)) = RUNS(rr).QI(:,:,ycur:(ycur+nyrs-1)) - RUNS(rr).JI(:,:,ycur:(ycur+nyrs-1)).*repmat(Te,[1 nmnt nyrs])*rho0*Cp;
+
+        % Across-isotherm advective heat flux:
+        RUNS(rr).CIA(:,:,ycur:(ycur+nyrs-1)) = RUNS(rr).G(:,:,ycur:(ycur+nyrs-1)).*repmat(Te,[1 nmnt nyrs])*rho0*Cp;
+
+        % External HC Tendency:
+        RUNS(rr).EHC(:,:,ycur:(ycur+nyrs-1)) = RUNS(rr).dVdt(:,:,ycur:(ycur+nyrs-1)).*repmat(Te,[1 nmnt nyrs])*rho0*Cp;
+
+        % Internal HC Tendency:
+        RUNS(rr).N(:,:,ycur:(ycur+nyrs-1)) = RUNS(rr).dHdt(:,:,ycur:(ycur+nyrs-1)) - RUNS(rr).EHC(:,:,ycur:(ycur+nyrs-1));
+% $$$ N(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.TEN,szTe);
+
+        % Implicit mixing:
+        RUNS(rr).I(:,:,ycur:(ycur+nyrs-1)) = RUNS(rr).N(:,:,ycur:(ycur+nyrs-1)) - RUNS(rr).F(:,:,ycur:(ycur+nyrs-1)) - RUNS(rr).P(:,:,ycur:(ycur+nyrs-1)) ...
+                                  - RUNS(rr).M(:,:,ycur:(ycur+nyrs-1)) - RUNS(rr).R(:,:,ycur:(ycur+nyrs-1)) + RUNS(rr).JSH(:,:,ycur:(ycur+nyrs-1)) ...
+                                  - RUNS(rr).SUB(:,:,ycur:(ycur+nyrs-1)) - RUNS(rr).GM(:,:,ycur:(ycur+nyrs-1));
+
+        % Non-advective flux into volume:
+        RUNS(rr).B(:,:,ycur:(ycur+nyrs-1)) = RUNS(rr).F(:,:,ycur:(ycur+nyrs-1))+RUNS(rr).M(:,:,ycur:(ycur+nyrs-1))+RUNS(rr).I(:,:,ycur:(ycur+nyrs-1))+RUNS(rr).R(:,:,ycur:(ycur+nyrs-1));
+
+        % Monthly binned Internal HC Tendency:
+        if (isfield('GWB','TENMON'))
+            RUNS(rr).Nmon(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.TENMON,szTe);
+        end
+
+        % WMT from B:
+        RUNS(rr).WMTM(:,:,ycur:(ycur+nyrs-1)) = -diff(RUNS(rr).M(:,:,ycur:(ycur+nyrs-1)),[],1)/dT/rho0/Cp;
+        RUNS(rr).WMTF(:,:,ycur:(ycur+nyrs-1)) = -diff(RUNS(rr).F(:,:,ycur:(ycur+nyrs-1)),[],1)/dT/rho0/Cp;
+        RUNS(rr).WMTI(:,:,ycur:(ycur+nyrs-1)) = -diff(RUNS(rr).I(:,:,ycur:(ycur+nyrs-1)),[],1)/dT/rho0/Cp;
+        RUNS(rr).WMTR(:,:,ycur:(ycur+nyrs-1)) = -diff(RUNS(rr).R(:,:,ycur:(ycur+nyrs-1)),[],1)/dT/rho0/Cp;
+        RUNS(rr).WMT(:,:,ycur:(ycur+nyrs-1)) = RUNS(rr).WMTM(:,:,ycur:(ycur+nyrs-1))+RUNS(rr).WMTF(:,:,ycur:(ycur+nyrs-1))+RUNS(rr).WMTI(:,:,ycur:(ycur+nyrs-1))+RUNS(rr).WMTR(:,:,ycur:(ycur+nyrs-1));
+
+        % WMT HB from B:
+        RUNS(rr).HWMTM(:,:,ycur:(ycur+nyrs-1)) = rho0*Cp*RUNS(rr).WMTM(:,:,ycur:(ycur+nyrs-1)).*repmat(T,[1 nmnt nyrs]);
+        RUNS(rr).HWMTF(:,:,ycur:(ycur+nyrs-1)) = rho0*Cp*RUNS(rr).WMTF(:,:,ycur:(ycur+nyrs-1)).*repmat(T,[1 nmnt nyrs]);
+        RUNS(rr).HWMTI(:,:,ycur:(ycur+nyrs-1)) = rho0*Cp*RUNS(rr).WMTI(:,:,ycur:(ycur+nyrs-1)).*repmat(T,[1 nmnt nyrs]);
+        RUNS(rr).HWMTR(:,:,ycur:(ycur+nyrs-1)) = rho0*Cp*RUNS(rr).WMTR(:,:,ycur:(ycur+nyrs-1)).*repmat(T,[1 nmnt nyrs]);
+        RUNS(rr).HWMT(:,:,ycur:(ycur+nyrs-1)) = RUNS(rr).HWMTM(:,:,ycur:(ycur+nyrs-1))+RUNS(rr).HWMTF(:,:,ycur:(ycur+nyrs-1))+RUNS(rr).HWMTI(:,:,ycur:(ycur+nyrs-1))+RUNS(rr).HWMTR(:,:,ycur:(ycur+nyrs-1));
 
         ycur = ycur+nyrs;
     end
@@ -176,13 +180,14 @@ rr = 1;
     
     % Correct time vector zero year:
     dvec = datevec(dnum);
-    if (length(RUNS{rr}{3})== 1)
-        dvec(:,1) = dvec(:,1)-dvec(1,1) + RUNS{rr}{3}(1);
+    if (isfield(RUNS(1),'zeroyear'))
+        dvec(:,1) = dvec(:,1)-dvec(1,1) + RUNS(rr).zeroyear;
     else
         dvec(:,1) = dvec(:,1) + 1900;
     end
-    dnum = datenum(dvec);
-    yrs = 1:10;
+    RUNS(rr).dvec = dvec;
+    RUNS(rr).dnum = datenum(dvec);
+    RUNS(rr).yrs = 1:10;
 
     % Load Global V and H:
     load([base model sprintf('_output%03d',outputs(i)) '_VHza.mat']);
@@ -203,31 +208,31 @@ rr = 1;
     else
         'ERROR: V & H MONTHLY!'
     end
-    V = cat(1,cumsum(V,1,'reverse'),zeros(1,nyrs));
-    H = cat(1,cumsum(H,1,'reverse'),zeros(1,nyrs));
-    HE = rho0*Cp*V.*repmat(Te,[1 nyrs]);
-    HI = H - HE;    
+    RUNS(rr).V = cat(1,cumsum(V,1,'reverse'),zeros(1,nyrs));
+    RUNS(rr).H = cat(1,cumsum(H,1,'reverse'),zeros(1,nyrs));
+    RUNS(rr).HE = rho0*Cp*RUNS(rr).V.*repmat(Te,[1 nyrs]);
+    RUNS(rr).HI = RUNS(rr).H - RUNS(rr).HE;    
     
-    % Remap to ocean percentile:
-    Vtot = V(1,:);
-    p_ofT = V./repmat(Vtot,[TL+1 1]);
-
-    p = linspace(0,1,1000);
-    pl = length(p);
-    T_ofp = zeros(pl,length(yrs));
-    H_ofp = T_ofp;
-    HI_ofp = T_ofp;
-    HE_ofp = T_ofp;
-    for yi = 1:length(yrs)
-        T_ofp(:,yi) = interp1(p_ofT(:,yi)+(1:TL+1)'/1e10,Te,p,'linear');
-        T_ofp(1,yi) = Te(end);
-        H_ofp(:,yi) = interp1(Te,H(:,yi),T_ofp(:,yi),'linear');
-        HE_ofp(:,yi) = interp1(Te,HE(:,yi),T_ofp(:,yi),'linear');
-        HI_ofp(:,yi) = interp1(Te,HI(:,yi),T_ofp(:,yi),'linear');
-    end
+% $$$     % Remap to ocean percentile:
+% $$$     Vtot = V(1,:);
+% $$$     p_ofT = V./repmat(Vtot,[TL+1 1]);
+% $$$ 
+% $$$     p = linspace(0,1,1000);
+% $$$     pl = length(p);
+% $$$     T_ofp = zeros(pl,length(yrs));
+% $$$     H_ofp = T_ofp;
+% $$$     HI_ofp = T_ofp;
+% $$$     HE_ofp = T_ofp;
+% $$$     for yi = 1:length(yrs)
+% $$$         T_ofp(:,yi) = interp1(p_ofT(:,yi)+(1:TL+1)'/1e10,Te,p,'linear');
+% $$$         T_ofp(1,yi) = Te(end);
+% $$$         H_ofp(:,yi) = interp1(Te,H(:,yi),T_ofp(:,yi),'linear');
+% $$$         HE_ofp(:,yi) = interp1(Te,HE(:,yi),T_ofp(:,yi),'linear');
+% $$$         HI_ofp(:,yi) = interp1(Te,HI(:,yi),T_ofp(:,yi),'linear');
+% $$$     end
 
     % Remap to ocean volume:
-    Vtot = max(V(1,:));
+    Vtot = max(RUNS(rr).V(1,:));
 % $$$     p_ofT = V./repmat(Vtot,[TL+1 1]);
 
     Vi = linspace(0,Vtot,1000);
@@ -237,12 +242,20 @@ rr = 1;
     HI_ofV = T_ofV;
     HE_ofV = T_ofV;
     for yi = 1:nyrs
-        T_ofV(:,yi) = interp1(flipud(V(:,yi))+(1:(TL+1))'/(TL+1)*Vtot/1e12,flipud(Te),Vi,'linear');
+        T_ofV(:,yi) = interp1(flipud(RUNS(rr).V(:,yi))+(1:(TL+1))'/(TL+1)*Vtot/1e12,flipud(Te),Vi,'linear');
         T_ofV(1,yi) = Te(end);
-        H_ofV(:,yi) = interp1(Te,H(:,yi),T_ofV(:,yi),'linear');
-        HE_ofV(:,yi) = interp1(Te,HE(:,yi),T_ofV(:,yi),'linear');
-        HI_ofV(:,yi) = interp1(Te,HI(:,yi),T_ofV(:,yi),'linear');
+        H_ofV(:,yi) = interp1(Te,RUNS(rr).H(:,yi),T_ofV(:,yi),'linear');
+        HE_ofV(:,yi) = interp1(Te,RUNS(rr).HE(:,yi),T_ofV(:,yi),'linear');
+        HI_ofV(:,yi) = interp1(Te,RUNS(rr).HI(:,yi),T_ofV(:,yi),'linear');
     end
+    RUNS(rr).Vi = Vi;
+    RUNS(rr).Vl = Vl;
+    RUNS(rr).T_ofV = T_ofV;
+    RUNS(rr).H_ofV = H_ofV;
+    RUNS(rr).HI_ofV = HI_ofV;
+    RUNS(rr).HE_ofV = HE_ofV;
+    RUNS(rr).Vtot = Vtot;
+end
 
 % $$$     % Remap ocean percentiles to depth:
 % $$$     Vz = zeros(zL,1);%length(V(1,1,:)));
@@ -255,6 +268,20 @@ rr = 1;
 % $$$     end
 % $$$     Vz = Vz/length(outputs);
 % $$$     p_Vz = cumsum(Vz)/sum(Vz);
+
+% Take annual mean to make things easier:
+for rr = 1:length(RUNS)
+    names = fieldnames(RUNS(rr));
+    for vi = 1:length(names)
+        eval(['sz = size(RUNS(rr).' names{vi} ');']);
+        ind = find(sz==12);
+        if (length(ind)==1)
+            eval(['RUNS(rr).' names{vi} '=squeeze(monmean(RUNS(rr).' names{vi} ...
+                  ',ind,RUNS(rr).ndays(1:12)));']);
+        end
+    end
+end
+          
 %%% Temperature vs. time:
 fields = { ...
 % $$$           {N, 'Internal HC Tendency $\partial\mathcal{H}_I/\partial t$','m',2,'-'}, ...
@@ -265,9 +292,9 @@ fields = { ...
 % $$$           {I, 'Numerical Mixing $\mathcal{I}$','b',2,'-'}, ...
 % $$$           {R, 'Redi Mixing $\mathcal{R}$',[0 0.5 0],2,'-'}, ...
 % $$$           {M+I+R, 'Total Mixing $\mathcal{M}+\mathcal{I}+\mathcal{R}$',[0 0.5 0],2,'--'}, ...
-% $$$           {HI_ofp, '$\overline{\Theta}(p,t)-\Theta(p,t) = \mathcal{H}_I/(\rho_0 C_p V_T p)$','m',2,'-'}, ...
-% $$$           {H_ofp, '$\overline{\Theta}(p,t) = \mathcal{H}/(\rho_0 C_p V_T p)$','m',2,'-'}, ...
-% $$$           {HE_ofp, '$\Theta(p,t) = \mathcal{H}_E/(\rho_0 C_p V_T p)$','m',2,'-'}, ...
+% $$$           {HI, '$\mathcal{H}_I(\Theta)$','m',2,'-'}, ...
+% $$$           {H, '$\mathcal{H}(\Theta)$','m',2,'-'}, ...
+% $$$           {HE, '$\mathcal{H}_E(\Theta)$','m',2,'-'}, ...
           {T_ofV, '$\Theta(\mathcal{V},t)$','m',2,'-'}, ...
           };
 
@@ -284,14 +311,19 @@ scale = 1;label = '$^\circ$C';x = Te;
 caxs = [-0.15 0.15];
 sp = 0.005;
 
+% Heat content:
+scale = 1/1e23;label = '$10^{23}J$';x = Te;
+caxs = [-2 2];
+sp = 0.01;
+
 % Time-integrate fluxes:
 Tint = 0;
 
 % remapping for percentiles:
-premap = 0;
+premap = 1;
 
 % Subtract climatology:
-Sclim = 1;
+Sclim = 0;
 climean = [1972 1981];
 
 % Annual average:
@@ -450,15 +482,16 @@ clear all;
 base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
 
 RUNS = { ...
-         {'ACCESS-OM2_025deg_jra55_iaf',[17:56]}, ...
+         {'ACCESS-OM2_1deg_jra55_rdf',[51:55],[1972]}, ...
+         {'ACCESS-OM2_1deg_jra55_rdf_pert',[51:55],[1972]}, ...
        };
 
-rr = 1;
+rr = 2;
     rr
     outputs = RUNS{rr}{2};
     model = RUNS{rr}{1};
 
-    clearvars -except base RUNS rr outputs model leg legh;
+% $$$     clearvars -except base RUNS rr outputs model leg legh;
     
     load([base model sprintf('_output%03d_BaseVars.mat',outputs(1))]);
     if (~exist('ndays'))
@@ -477,8 +510,8 @@ rr = 1;
     
     dnum = [];
     
-    Vs = zeros(zL,tL,1);
-    Hs = zeros(zL,tL,1);
+    Vs = zeros(zL,nyrs,1);
+    Hs = zeros(zL,nyrs,1);
 
     %% Load Global Budget:
     for i=1:length(outputs)
@@ -495,21 +528,25 @@ rr = 1;
     
     % Correct time vector zero year:
     dvec = datevec(dnum);
-    dvec(:,1) = dvec(:,1) + 1900;
+    if (length(RUNS{rr}{3})== 1)
+        dvec(:,1) = dvec(:,1)-dvec(1,1) + RUNS{rr}{3}(1);
+    else
+        dvec(:,1) = dvec(:,1) + 1900;
+    end
     dnum = datenum(dvec);
+    yrs = 1:10;
     
     Ts = Hs/rho0/Cp./Vs;
     Vs = cumsum(Vs,1);
     Hs = cumsum(Hs,1);
 
 % Subtract climatology:
-Sclim = 1;
-climean = [1976 1986];
+Sclim = 0;
+climean = [1972 1981];
 
 % Annual average:
-AA = 1;
+AA = 0;
 
-tvec = dnum;
 % Annual average:
 if (AA)
     T =  squeeze(monmean(Ts,2,ndays));
@@ -517,19 +554,26 @@ if (AA)
     V =  squeeze(monmean(Vs,2,ndays));
     tvec = unique(dvec(:,1));
 else
-    V = Vs;
-    H = Hs;
+    V = reshape(Vs,[length(Vs(:,1,1))  nyrs*length(Vs(1,1,:))]);
+    H = reshape(Hs,[length(Vs(:,1,1)) nyrs*length(Hs(1,1,:))]);
+    T = reshape(Ts,[length(Vs(:,1,1)) nyrs*length(Hs(1,1,:))]);
 end
+
+% $$$ Tcont = T;
+T = T - Tcont;
+
 % Subtract climateology:
+yrvec = unique(dvec(:,1));
+% Subtract climatology:
 if (Sclim)
-    T = T-repmat(mean(T(:,find(tvec>=climean(1) & tvec<=climean(2))),2),[1 ...
-                        length(tvec)]);
-    V = V-repmat(mean(V(:,find(tvec>=climean(1) & tvec<=climean(2))),2),[1 ...
-                        length(tvec)]);
-    H = H-repmat(mean(H(:,find(tvec>=climean(1) & tvec<=climean(2))),2),[1 ...
-                        length(tvec)]);
+    T = T-repmat(mean(T(:,find(yrvec>=climean(1) & ...
+                                     yrvec<=climean(2)),:),2),[1 length(yrvec)]);
+    V = V-repmat(mean(V(:,find(yrvec>=climean(1) & ...
+                                     yrvec<=climean(2)),:),2),[1 length(yrvec)]);
+    H = H-repmat(mean(H(:,find(yrvec>=climean(1) & ...
+                                     yrvec<=climean(2)),:),2),[1 length(yrvec)]);
 end
-[X,Y] = ndgrid(tvec,-z);
+[X,Y] = ndgrid(yrvec,-z);
 % $$$ subplot(1,2,1);
 % $$$ pcolPlot(X,Y,H');
 % $$$ caxs = [-0.8 0.8]*1e23;
@@ -548,3 +592,4 @@ title('Temperature Anomaly $(^\circ$C)');%Heat Content Anomaly above depth level
 caxis(caxs);%[-0.5 0.5]*1e23);
 set(gca,'FontSize',15);
 colormap(redblue);
+xlim([1972 2018]);

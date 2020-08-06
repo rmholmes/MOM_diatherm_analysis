@@ -2,11 +2,12 @@
 % MOM025 or MOM01 simulations and save's into .mat files
 
 baseL = '/scratch/e14/rmh561/mom/archive/';
+baseL = '/srv/ccrc/data03/z3500785/mom/';
 
 % MOM-SIS025:
 model = 'MOM_Gyre_Run014';
-baseD = [baseL 'MOM_Gyre/']; %Data Directory.
-ICdir = ['/scratch/e14/rmh561/mom/input/gyre1/'];
+baseD = [baseL 'MOM_Gyre/Run004/']; %Data Directory.
+% $$$ ICdir = ['/scratch/e14/rmh561/mom/input/gyre1/'];
 
 outD = [baseD 'mat_data/'];
 rstbaseD = baseD;
@@ -16,7 +17,7 @@ post = ''; % For MOM-SIS.
 % term options:
 haveSF = 1; % 1= have surface forcing (vdiffuse_sbc)
 haveRedi = 0; % 1 = Redi diffusion is on, 0 = off
-haveKPP = 1; % 1 = KPP is on (need nonlocal term)
+haveKPP = 0; % 1 = KPP is on (need nonlocal term)
 haveGM = 0; % 1 = GM is on, 0 = off;
 haveLT  = 0; % 1 = Laplacian lateral tracer diffusion on. 
 haveSUB = 0; % 1 = submeso is on, 0 = off;
@@ -25,11 +26,11 @@ haveSIG = 0; % 1 = SIG is on, 0 = off;
 haveMIX = 0; % 1 = Do mixing components (vdiffuse_diff_cbt_*), 0 = don't. 
 
 % Processing options:
-doBASE     = 1; % 1 = save BaseVars.mat file
-dodVdtdHdt = 1; % 1 = calculate dVdt/dHdt and save into .nc file
-doVHza     = 1; % 1 = save zonally-integrated V and H fields from
+doBASE     = 0; % 1 = save BaseVars.mat file
+dodVdtdHdt = 0; % 1 = calculate dVdt/dHdt and save into .nc file
+doVHza     = 0; % 1 = save zonally-integrated V and H fields from
                 % average time slots in a .mat file.
-doNUMDIF   = 1; % 1 = calculate tempdiff x,y,T,t and save into .nc file
+doNUMDIF   = 0; % 1 = calculate tempdiff x,y,T,t and save into .nc file
 doSGMviac  = 0; % 1 = calculate SUB/GM influence via binned
                 % convergence (otherwise uses lateral flux). The
                 % better option is to use the lateral flux -> This

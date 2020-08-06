@@ -24,10 +24,10 @@ RUNS = { ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf_kds100',[3135]}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf_kds135',[3135]}, ...
 % $$$ % 1/4-degree
-% $$$          {'ACCESS-OM2_025deg_jra55_ryf_norediGM',[7680]}, ...
-         {'ACCESS-OM2_025deg_jra55_ryf',[7680]}, ...
+% $$$          {'ACCESS-OM2_025deg_jra55_ryf',[7680]}, ...
+         {'ACCESS-OM2_025deg_jra55_ryf_norediGM',[7680]}, ...
 % $$$          {'ACCESS-OM2_025deg_jra55_ryf_noGM',[7680]}, ...
-         {'ACCESS-OM2_025deg_jra55_ryf_rediGM_kb1em5',[7781]}, ...
+% $$$          {'ACCESS-OM2_025deg_jra55_ryf_rediGM_kb1em5',[7781]}, ...
 % $$$          {'ACCESS-OM2_025deg_jra55_ryf_rediGM_kbvar',[7781]}, ...
 % $$$          {'ACCESS-OM2_025deg_jra55_ryf_kds75',[7680]}, ...
 % $$$          {'ACCESS-OM2_025deg_jra55_ryf8485_gmredi',[73]}, ...
@@ -40,9 +40,10 @@ RUNS = { ...
        };
 cols = {'b','r','k','m','g'};
 
-rr = 2;
+rr = 1;
 % $$$ figure;
-% $$$ set(gcf,'Position',[87    52   848   937]); % North Atlantic Two panel.
+set(gcf,'Position',[158          40        1641         963]);%get(0,'ScreenSize'));
+set(gcf,'Position',[87    52   848   937]); % North Atlantic Two panel.
 
 % $$$ for rr = 1:length(RUNS);
     outputs = RUNS{rr}{2};
@@ -72,8 +73,8 @@ rr = 2;
     %%% Spatial Structure:
 % $$$     VAR = 'FlI';
     TYPE = 'VertInt';
-% $$$     Tls = 15;
-    Tls = [22.5 15 5];
+    Tls = 15;
+% $$$     Tls = [22.5 15 5];
 % $$$ % $$$     VAR = 'EKE';
 % $$$ % $$$     TYPE = 'variances';
 % $$$ % $$$     Tl = 5;
@@ -84,21 +85,17 @@ rr = 2;
 % $$$ % $$$     TYPE = 'WMT';
 % $$$ % $$$     Tl = 19.75;
 % $$$ % $$$     labels = {'(a) MOM025-kb0','(b) MOM025-kb5','(f) $5^\circ$C'};%10$^\circ$C'};%$15^\circ$C'};
-% $$$     labels = {'(a) $22.5^\circ$','(b) $15^\circ$C','(c) $5^\circ$C'};%10$^\circ$C'};%$15^\circ$C'};
-                                                                     %    labels = {'(a) $1/4^\circ$','(b) $2.5^\circ$ Conservative Remap'};%$22.5^\circ$','(c) $15^\circ$C','(e) $5^\circ$C'};%10$^\circ$C'};%$15^\circ$C'};
+%    labels = {'(a) $22.5^\circ$','(c) $15^\circ$C','(e) $5^\circ$C'};%10$^\circ$C'};%$15^\circ$C'};
+    labels = {'(a) $1/4^\circ$','(b) $2.5^\circ$ Remap'};%$22.5^\circ$','(c) $15^\circ$C','(e) $5^\circ$C'};%10$^\circ$C'};%$15^\circ$C'};
 % $$$ % $$$     labels = {'(a) Numerical Mixing','(b) Vertical Mixing','(f) $5^\circ$C'};%10$^\circ$C'};%$15^\circ$C'};
-    labels = {'(a) $15^\circ$C ACCESS-OM2-025-RG - ACCESS-OM2-025', ...
-              '(b) $5^\circ$C ACCESS-OM2-025-RG - ACCESS-OM2-025', ...
-              '(c) $15^\circ$C ACCESS-OM2-025-R - ACCESS-OM2-025', ...
-              '(d) $5^\circ$C ACCESS-OM2-025-R - ACCESS-OM2-025'};
-    labels = {'(a) Numerical Mixing Difference', ...
-              '(b) Vertical Mixing Difference'};
+% $$$ % $$$     labels = {'(a) ACCESS-OM2-025-RG $15^\circ$C','(b) ACCESS-OM2-025-RG $5^\circ$C', ...
+% $$$ % $$$              '(c) ACCESS-OM2-025 $15^\circ$C','(d) ACCESS-OM2-025 $5^\circ$C', ...
+% $$$ % $$$              '(e) ACCESS-OM2-025-R $15^\circ$C','(f) ACCESS-OM2-025-R $5^\circ$C'};
 % $$$     labels = {'(a) ACCESS-OM2-01 $\mathcal{I}$ $15^\circ$C','(b) ACCESS-OM2-01-hvisc minus ACCESS-OM2-01 $\mathcal{I}$ $15^\circ$C'};
-iii = 1;
 % $$$ for iii=1:length(Tls)
-% $$$     iii = 1;
+    iii = 1;
     Tl = Tls(iii);
-% $$$     iii = 2;
+    iii = 1;
 % $$$     name = [base model sprintf('_output%03d',outputs(1)) '_' TYPE '_T' strrep(num2str(Tl),'.','p') 'C.mat']
 % $$$     eval(['load(name,''' VAR ''');']);
 % $$$     eval([VAR '(isnan(' VAR ')) = 0.0;']);
@@ -137,17 +134,8 @@ iii = 1;
 % $$$ % $$$     FlM = log10(abs(FlI)./abs(FlM));
 % $$$     FlM = abs(FlI)./(abs(FlI)+abs(FlM));
 % $$$     FlM(nans) = NaN;
-% $$$     FlM = FlI;
+    FlM = FlI;
     FlM(FlM==0) = NaN;
-    FlI(FlI==0) = NaN;
-    
-% $$$     FlM1 = FlM;
-    FlM2 = FlM;
-    FlI2 = FlI;
-    FlM1 = FlM;
-    FlI1 = FlI;
-
-    FlM = FlM3-FlM1;
 
 % $$$     FlMs = FlM;
 % $$$     FlMs = FlMs+FlM;
@@ -397,12 +385,12 @@ iii = 1;
     end
 
     [xL,yL] = size(lon);
-    xvec = 1:2:xL;
-    yvec = 1:2:yL;
+    xvec = 1:1:xL;
+    yvec = 1:1:yL;
 % $$$     xvec = 720:1:1060; %-100 -> -30
 % $$$     yvec = 540:1:730; % +15 -> +50
-% $$$     xvec = 720:1:1320; %-100 -> +50
-% $$$     yvec = 540:1:940; % +15 -> +75
+    xvec = 720:1:1320; %-100 -> +50
+    yvec = 540:1:940; % +15 -> +75
 % $$$     xvec = 880:1:1280; %-60 -> +40
 % $$$     yvec = 266:1:396; % -50 -> -25
     txtmonth = {'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'};
@@ -423,20 +411,19 @@ iii = 1;
 % $$$     %Colormap and continents:
     sp = 5;
     clim = [-100 0];
-% $$$     sp = 5;
-% $$$     clim = [-100 100];
+    sp = 5;
+    clim = [-100 100];
 % $$$     sp = 0.25;
 % $$$     clim = [-2 2];
 % $$$     sp = 0.05;
 % $$$     clim = [0 1];
-    sp = 1;
-    clim = [-25 25];
+% $$$     sp = 1;
+% $$$     clim = [-30 30];
 % $$$     clim = [-50 50];
 % $$$     sp = 2;
     cCH = 0; % 0 = symmetric redblue
              % 1 = negative definite parula
              % 2 = negative parula with +ve's possible
-             % 3 = negative parula with cutoff pink above
     if (cCH==0)
         cpts = [-1e10 clim(1):sp:clim(2) 1e10];
         npts = length(cpts);
@@ -463,17 +450,8 @@ iii = 1;
             cmap(end-buf+1+ii,:) = cmap(end,:)*ii/(buf-1) + ...
                 cmap(end-buf+1,:)*(buf-1-ii)/(buf-1);
         end
-    end
-% $$$     elseif (cCH == 3)
-% $$$     end        
-% $$$         buf = 5;
-% $$$         clim = [clim(1) buf*sp];
-% $$$         cpts = [-1e10 clim(1):sp:clim(2) 1e10];
-% $$$         cmap(end+1,:) = cmap(end,:); % 1st positive bin
-% $$$         cmap(end+buf-1,:) = [1 0.7 0.9]; % last pink bin
-% $$$         for ii = 1:(buf-2)
-% $$$             cmap(end-buf+1+ii,:) = [0.97 0.97 0.8];
-% $$$         end
+    end        
+% $$$     cmap = flipud(cmap);
 
     tmp = LAND;
     tmp(isnan(LAND)) = clim(1)-sp/2;
@@ -485,33 +463,26 @@ iii = 1;
     climn = [clim(1)-sp clim(2)];
 % $$$ % $$$ %Mean of all months:
 % $$$ % $$$     cla;
-    figure;
+% $$$     figure;
 % $$$ % $$$ set(gcf,'Position',[3          59        1916         914]);
 % $$$ % $$$ set(gcf,'Position',[88         371        1625         603]);
-%set(gcf,'Position',[3          59        1476         921]); % Production NumMix first fig.
-set(gcf,'Position',[1          36        1920         970]);
+% $$$ set(gcf,'Position',[3          59        1476         921]); % Production NumMix first fig.
 % $$$ set(gcf,'Position',get(0,'ScreenSize'));
 % $$$     set(gcf,'Position',[3    40   998   963]); % MOM025-kb0 Kback diff figure.
 % $$$ set(gcf,'Position',[40    83   990   897]); % North Atlantic zoom.
 % $$$ % $$$ set(gcf,'Position',[3    40   956   963]);
-    set(gcf,'defaulttextfontsize',15);
-    set(gcf,'defaultaxesfontsize',15);
+    set(gcf,'defaulttextfontsize',20);
+    set(gcf,'defaultaxesfontsize',20);
 
-% $$$ % $$$ % $$$ 
-% $$$ % 2x1:
-% $$$     poss = [0.1300    0.54    0.7403    0.4149; ...
-% $$$             0.1300    0.0876    0.7403    0.4149];
+% $$$ % $$$ 
+% 2x1:
+    poss = [0.1300    0.54    0.7403    0.4149; ...
+            0.1300    0.0876    0.7403    0.4149];
 % $$$ % 1+3:
 % $$$ poss = [0.1300    0.4553    0.7693    0.4697; ...
 % $$$         0.1300    0.1389    0.2343    0.2680; ...
 % $$$         0.3951    0.1389    0.2343    0.2680; ...
 % $$$         0.6681    0.1389    0.2343    0.2680];
-% 2x2:
-    poss = [0.1300    0.58      0.3548    0.3692; ...
-            0.5700    0.58      0.3548    0.3692; ...
-            0.1300    0.1100    0.3548    0.3692; ...
-            0.5700    0.1100    0.3548    0.3692];
-
 % $$$ for i=1:length(months)
 % $$$     if (i == 1)
 % $$$         subplot(5,3,[1 9]);
@@ -519,8 +490,7 @@ set(gcf,'Position',[1          36        1920         970]);
 % $$$         subplot(5,3,[10 13]+(i-2));
 % $$$     end
     i = 1;
-    ii = 3;
-    subplot(2,2,ii);
+    subplot(2,1,iii);
 % $$$     subplot(3,2,2*(rr-1)+iii);
     X = lon(xvec,yvec);
     Y = lat(xvec,yvec);
@@ -532,24 +502,21 @@ set(gcf,'Position',[1          36        1920         970]);
     else
         Z = FlM(:,:,months{i});
     end
+    A = area(xvec,yvec);
     Z = Z(xvec,yvec);
-
-% $$$     % Remapping:
-% $$$     A = area(xvec,yvec);
-% $$$     cfac = 10;
-% $$$     [Xs,Ys,Zs,As] = conservative_coarsen_grid(X,Y,Z,A,cfac);    
+    
+    cfac = 1;
+    [Xs,Ys,Zs,As] = conservative_coarsen_grid(X,Y,Z,A,cfac);    
+    Zs(Zs<clim(1)) = clim(1);
 % $$$     contourf(Xs,Ys,Zs,cpts,'linestyle','none');
-% $$$     pcolPlot(Xs,Ys,Zs);
-
-    Z(Z<clim(1)) = clim(1);
-    contourf(X,Y,Z,cpts,'linestyle','none');    
+    pcolPlot(Xs,Ys,Zs);
     hold on;    
     contourf(X,Y,LAND(xvec,yvec),[clim(1)-sp clim(1)],'linestyle','none');
     caxis(climn);
-% $$$     if (ii==2 | ii ==4)
+% $$$     if (iii==2)
     cb = colorbar;
     if (strcmp(TYPE,'VertInt'))
-        ylabel(cb,'$\mathcal{M}$ (Wm$^{-2}$)');
+        ylabel(cb,'$\mathcal{I}$ (Wm$^{-2}$)');
 % $$$         ylabel(cb,'$\log_{10}(\mathcal{I}/\mathcal{M})$');
 % $$$         ylabel(cb,'$|\mathcal{I}|/(|\mathcal{I}|+|\mathcal{M}|)$');
     else
@@ -560,7 +527,6 @@ set(gcf,'Position',[1          36        1920         970]);
 % $$$     end
 %;% $$$     end
     hold on;
-% $$$     end
 % $$$     % Plot regions:
 % $$$     if (i==1)
 % $$$     if (exist('regions'))
@@ -580,19 +546,18 @@ set(gcf,'Position',[1          36        1920         970]);
 % $$$     end
 % $$$     end
 % $$$     if (rr == 3)
-    if (ii>=3)
         xlabel('Longitude ($^\circ$E)');
-    else
-        set(gca,'xticklabel',[]);
-    end
-    if (ii == 1 | ii ==3)
+% $$$     else
+% $$$         set(gca,'xticklabel',[]);
+% $$$     end
+% $$$     if (iii == 1)
         ylabel('Latitude ($^\circ$N)');
-    else
-        set(gca,'yticklabel',[]);
-    end
+% $$$     else
+% $$$         set(gca,'yticklabel',[]);
+% $$$     end
         
-    set(gca,'xtick',[-270:30:60]);
-    set(gca,'ytick',[-75:15:75]);
+% $$$     set(gca,'xtick',[-270:30:60]);
+% $$$     set(gca,'ytick',[-75:15:75]);
 % $$$     poss = [0.0886    0.68    0.345    0.27; ...
 % $$$             0.4503    0.68    0.345    0.27; ...
 % $$$             0.0886    0.38    0.345    0.27; ...
@@ -600,35 +565,33 @@ set(gcf,'Position',[1          36        1920         970]);
 % $$$             0.0886    0.08    0.345    0.27; ...
 % $$$             0.4503    0.08    0.345    0.27];
 
-    set(gca,'Position',poss(ii,:));
 % $$$     set(gca,'Position',[poss(2*(rr-1)+iii,:)]);
-    ylim([-65 75]);
+% $$$     ylim([-65 75]);
 % $$$     text(-277,70,labels{2*(rr-1)+iii},'BackgroundColor','w','Margin',0.5,'FontSize',20);
 % $$$     text(-277,72,labels{2*(rr-1)+iii},'BackgroundColor','w','Margin',0.5,'FontSize',12);
 % $$$     ylim([-60 80]);
 % $$$     text(-277,70,labels{iii},'BackgroundColor','w','Margin',0.5,'FontSize',20);
-    text(-277,68,labels{ii},'BackgroundColor','w','Margin',0.5,'FontSize',13);
 % $$$     ylim([-50 70]);
 % $$$     set(gca,'FontSize',17);
     colormap(cmap);
-    ylim([-45 45]);
-    text(-278,41,labels{ii},'BackgroundColor','w','Margin',0.5,'FontSize',13);
+% $$$     ylim([-45 45]);
+% $$$     text(-278,41,labels{2},'BackgroundColor','w','Margin',0.5,'FontSize',15);
 
-% $$$     set(gca,'xtick',[-270:20:60]);
-% $$$     set(gca,'ytick',[-75:10:75]);
-% $$$     ylim([15 47]);
-% $$$     xlim([-95 -15]);
-% $$$     text(-93,45,labels{iii},'BackgroundColor','w','Margin',0.5,'FontSize',20);
+    set(gca,'xtick',[-270:20:60]);
+    set(gca,'ytick',[-75:10:75]);
+    ylim([15 47]);
+    xlim([-95 -15]);
+    text(-93,45,labels{iii},'BackgroundColor','w','Margin',0.5,'FontSize',20);
 % $$$     text(-93,45,'(a) $14^\circ$C','BackgroundColor','w','Margin',0.5,'FontSize',15);
 
-% $$$ % $$$ % $$$     % North Atlantic two panel:
-% $$$     if (iii == 1)
-% $$$         set(gca,'Position',[0.1253    0.5318    0.6707    0.4326]);
-% $$$         set(gca,'xticklabel',[]);
-% $$$         xlabel('');
-% $$$     else
-% $$$         set(gca,'Position',[0.1253    0.08    0.6707    0.4326]);
-% $$$     end
+% $$$ % $$$     % North Atlantic two panel:
+    if (iii == 1)
+        set(gca,'Position',[0.1253    0.5318    0.6707    0.4326]);
+        set(gca,'xticklabel',[]);
+        xlabel('');
+    else
+        set(gca,'Position',[0.1253    0.08    0.6707    0.4326]);
+    end
 end
 end
 
