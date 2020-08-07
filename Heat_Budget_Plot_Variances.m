@@ -72,7 +72,7 @@ rr = 1;
 
 
 %% Variances:
-Tl = 15;
+Tl = 22.5;
 
 % FAKE IT, with ndays:
 ndays = [31 28 31 30 31 30 31 31 30 31 30 31];
@@ -120,11 +120,11 @@ udhd = sqrt(0.5*(udxsq+vdysq));
 
 VARS = {'udhd','Tdh','Tdv'};
 % $$$ names = {'(b) $\sqrt{\frac{1}{4}\left(|\Delta_x u|^2+|\Delta_y u|^2+|\Delta_x v|^2+|\Delta_y v|^2\right)}$', ...
-names = {'(b) $\sqrt{\frac{1}{2}\left(|\Delta_x u|^2+|\Delta_y v|^2\right)}$', ...
-         '(d) $\sqrt{\frac{1}{2}\left(|\Delta_x T|^2+|\Delta_y T|^2\right)}$', ...
-         '(f) $\sqrt{|\Delta_z T|^2}$'};
+names = {'(a) $\sqrt{\frac{1}{2}\left(|\Delta_x u|^2+|\Delta_y v|^2\right)}$', ...
+         '(c) $\sqrt{\frac{1}{2}\left(|\Delta_x T|^2+|\Delta_y T|^2\right)}$', ...
+         '(e) $\sqrt{|\Delta_z T|^2}$'};
 units = {'$ms^{-1}$','$^\circ C$','$^\circ C$'};
-clims = {[0 0.1],[0 1],[0 6]};
+clims = {[0 0.06],[0 1],[0 6]};
     
 %%% Plot spatial pattern:
 
@@ -193,8 +193,8 @@ for i=1:length(VARS)
     set(gca,'ytick',[-75:15:75]);
     ylim([-60 60]);
     colormap(gca,cmap{i});
-% $$$     title('$22.5^\circ$C isotherm');
-    title('$15^\circ$C isotherm');
+    title('$22.5^\circ$C isotherm');
+% $$$     title('$15^\circ$C isotherm');
     text(-275,54,[names{i}],'BackgroundColor','w','FontSize',13);% ' on ' num2str(Tl) '$^\circ$C isotherm']);
     set(gca,'Position',poss(i,:));
 end
