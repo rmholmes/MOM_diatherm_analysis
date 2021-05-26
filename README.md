@@ -36,9 +36,10 @@ through the [Consortium for Ocean-Sea Ice Modelling in
 Australia](http://cosima.org.au/), e.g. see [Research Data
 Australia](https://researchdata.edu.au/cosima-model-output-collection/993052).
 
-The processed .mat files have been provided [here](LINK TBC). This
-branch of this repository contains stripped down processing scripts
-for producing most of the analysis provided in Holmes et al. (2021,
+The processed .mat files have been provided on
+(Zenodo)[https://dx.doi.org/10.5281/zenodo.4798380]. This branch of
+this repository contains stripped down processing scripts for
+producing most of the analysis provided in Holmes et al. (2021,
 JAMES). The routines are:
 
 - `Heat_Budget_Plot_Global.m`: This script produces the
