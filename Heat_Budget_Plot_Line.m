@@ -5,6 +5,7 @@ clear all;
 
 base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
 
+% GM/Redi:
 RUNS = {'ACCESS-OM2_025deg_jra55_ryf_norediGM', ...
         'ACCESS-OM2_025deg_jra55_ryf_noGM', ...
         'ACCESS-OM2_025deg_jra55_ryf', ...
@@ -12,10 +13,10 @@ RUNS = {'ACCESS-OM2_025deg_jra55_ryf_norediGM', ...
 colors = {'r','r','r'};
 styles = {'-',':','--'};
 names = {'ACCESS-OM2-025','ACCESS-OM2-025-N','ACCESS-OM2-025-NG'};
-region = 'Kuroshio';
 region = 'GulfStream';
 Tcaxs = [-2 30];
 
+% Background diffusivity runs:
 % $$$ RUNS = {'ACCESS-OM2_025deg_jra55_ryf', ...
 % $$$         'ACCESS-OM2_025deg_jra55_ryf_rediGM_kbvar', ...
 % $$$         'ACCESS-OM2_025deg_jra55_ryf_rediGM_kb1em5', ...
@@ -23,7 +24,6 @@ Tcaxs = [-2 30];
 % $$$ colors = {'r',[0 0.5 0],'k'};
 % $$$ styles = {'-',':','--'};
 % $$$ names = {'ACCESS-OM2-025-NG','ACCESS-OM2-025-NG-kbv','ACCESS-OM2-025-NG-kb5'};
-% $$$ region = 'Kuroshio';
 % $$$ region = 'EastTropPac';
 % $$$ Tcaxs = [10 30];
 
