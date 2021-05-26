@@ -72,7 +72,7 @@ rr = 1;
 
 
 %% Variances:
-Tl = 22.5;
+Tl = 15;
 
 % FAKE IT, with ndays:
 ndays = [31 28 31 30 31 30 31 31 30 31 30 31];
@@ -104,6 +104,7 @@ Tdh = sqrt(0.5*(Tdxsq+Tdysq));
 Tdv = sqrt(Tdzsq);
 udh = sqrt(0.25*(udxsq+vdxsq+udysq+vdysq));
 udhd = sqrt(0.5*(udxsq+vdysq));
+udhc = sqrt(0.5*(udysq+vdxsq));
 
 % $$$ VARS = {'EKE','wvar','Tdhsq','Tdzsq'};
 % $$$ names = {'(a) $\overline{u''u''}+\overline{v''v''}$',['(g) $\' ...
@@ -118,13 +119,14 @@ udhd = sqrt(0.5*(udxsq+vdysq));
 % $$$ units = {'','$m^4s^{-1}$','$^\circ C^2$','$^\circ C^2$'};
 % $$$     clims = {[0 200],[0 0.5e12],[0 4e-9],[0 40]};
 
-VARS = {'udhd','Tdh','Tdv'};
+VARS = {'udhd','udhc','Tdh','Tdv'};
 % $$$ names = {'(b) $\sqrt{\frac{1}{4}\left(|\Delta_x u|^2+|\Delta_y u|^2+|\Delta_x v|^2+|\Delta_y v|^2\right)}$', ...
-names = {'(a) $\sqrt{\frac{1}{2}\left(|\Delta_x u|^2+|\Delta_y v|^2\right)}$', ...
-         '(c) $\sqrt{\frac{1}{2}\left(|\Delta_x T|^2+|\Delta_y T|^2\right)}$', ...
-         '(e) $\sqrt{|\Delta_z T|^2}$'};
-units = {'$ms^{-1}$','$^\circ C$','$^\circ C$'};
-clims = {[0 0.06],[0 1],[0 6]};
+names = {'(c) $\sqrt{\frac{1}{2}\left(|\Delta_x u|^2+|\Delta_y v|^2\right)}$', ...
+         '(d) $\sqrt{\frac{1}{2}\left(|\Delta_y u|^2+|\Delta_x v|^2\right)}$', ...
+         '(c) $\sqrt{\frac{1}{2}\left(|\Delta_x \Theta|^2+|\Delta_y \Theta|^2\right)}$', ...
+         '(e) $\sqrt{|\Delta_z \Theta|^2}$'};
+units = {'$ms^{-1}$','$ms^{-1}$','$^\circ C$','$^\circ C$'};
+clims = {[0 0.06],[0 0.06],[0 1],[0 6]};
     
 %%% Plot spatial pattern:
 
@@ -136,8 +138,8 @@ clims = {[0 0.06],[0 1],[0 6]};
     end
 
     [xL,yL] = size(lon);
-    xvec = 1:2:xL;
-    yvec = 1:2:yL;
+    xvec = 1:4:xL;
+    yvec = 1:4:yL;
 
     %Colormaps:
 % $$$     clims = {[0 0.02],[0 0.3e-7],[0 4e-9],[0 20]};
@@ -147,7 +149,7 @@ clims = {[0 0.06],[0 1],[0 6]};
     cmapbase(end,:) = [0.97 0.97 0.8];
     cmapbase(end-1,:) = (cmapbase(end-1,:)+cmapbase(end,:))/2;
     cmapbase = flipud(cmapbase);
-    for i=1:4
+    for i=1:length(VARS)
         sp = (clims{i}(2)-clims{i}(1))/(nlv-3);
         cpts{i} = [-1e10 clims{i}(1):sp:clims{i}(2) 1e10];
         cmap{i} = cmapbase;
@@ -193,8 +195,8 @@ for i=1:length(VARS)
     set(gca,'ytick',[-75:15:75]);
     ylim([-60 60]);
     colormap(gca,cmap{i});
-    title('$22.5^\circ$C isotherm');
-% $$$     title('$15^\circ$C isotherm');
+% $$$     title('$22.5^\circ$C isotherm');
+    title('$15^\circ$C isotherm');
     text(-275,54,[names{i}],'BackgroundColor','w','FontSize',13);% ' on ' num2str(Tl) '$^\circ$C isotherm']);
     set(gca,'Position',poss(i,:));
 end

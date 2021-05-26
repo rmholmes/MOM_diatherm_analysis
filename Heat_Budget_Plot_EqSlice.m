@@ -211,7 +211,7 @@ end
 Xi = repmat(Xt(:,1),[1 TL]);
 
 var = cumsum(vdif+vnlc,2,'reverse'); % Vertical Mixing Flux
-% $$$ var = ndif; % Numerical mixing
+var = ndif; % Numerical mixing
 % $$$ var = u_sq - u.^2 + v_sq-v.^2; % EKE
 % $$$ var = w_sq - w.^2; % Vertical EKE
 % $$$ var = Tdxsq+Tdysq; % Horizontal T differences
@@ -344,7 +344,7 @@ for i=1:length(months)
 % $$$ [c,h] = contour(Xu,-Zu,mean(u(:,:,mnu),3),[0.2:0.2:2],'-', ...
 % $$$                 'color',ucol);
 % $$$ clabel(c,h,'color','w');
-    plot(Xu(:,1),-monmean(mld(:,months{i}),2,ndays(months{i})),'--','color',[0 0.5 0],'linewidth',3);
+% $$$     plot(Xu(:,1),-monmean(mld(:,months{i}),2,ndays(months{i})),'--','color',[0 0.5 0],'linewidth',3);
     ylim([-200 0]);
 % $$$     plot(Xt(1:10:end,:),-Zt(1:10:end,:),'.','color',[0.5 0.5 0.5]);
 % $$$     xlim([-80 -12]);

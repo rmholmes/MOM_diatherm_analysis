@@ -24,10 +24,12 @@ RUNS = { ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf_kds100',[3135]}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf_kds135',[3135]}, ...
 % $$$ % 1/4-degree
-% $$$          {'ACCESS-OM2_025deg_jra55_ryf_norediGM',[7680]}, ...
-         {'ACCESS-OM2_025deg_jra55_ryf',[7680]}, ...
+         {'ACCESS-OM2_025deg_jra55_ryf_norediGM',[7680]}, ...
+% $$$          {'ACCESS-OM2_025deg_jra55_ryf',[7680]}, ...
 % $$$          {'ACCESS-OM2_025deg_jra55_ryf_noGM',[7680]}, ...
-         {'ACCESS-OM2_025deg_jra55_ryf_rediGM_kb1em5',[7781]}, ...
+% $$$          {'ACCESS-OM2_025deg_jra55_ryf_norediGM',[81]}, ...
+% $$$          {'ACCESS-OM2_025deg_jra55_ryf_norediGM_smoothkppbl',[81]}, ...
+% $$$          {'ACCESS-OM2_025deg_jra55_ryf_rediGM_kb1em5',[7781]}, ...
 % $$$          {'ACCESS-OM2_025deg_jra55_ryf_rediGM_kbvar',[7781]}, ...
 % $$$          {'ACCESS-OM2_025deg_jra55_ryf_kds75',[7680]}, ...
 % $$$          {'ACCESS-OM2_025deg_jra55_ryf8485_gmredi',[73]}, ...
@@ -40,7 +42,7 @@ RUNS = { ...
        };
 cols = {'b','r','k','m','g'};
 
-rr = 2;
+rr = 1;
 % $$$ figure;
 % $$$ set(gcf,'Position',[87    52   848   937]); % North Atlantic Two panel.
 
@@ -72,8 +74,8 @@ rr = 2;
     %%% Spatial Structure:
 % $$$     VAR = 'FlI';
     TYPE = 'VertInt';
-% $$$     Tls = 15;
-    Tls = [22.5 15 5];
+    Tls = 10;
+% $$$     Tls = [22.5 15 5];
 % $$$ % $$$     VAR = 'EKE';
 % $$$ % $$$     TYPE = 'variances';
 % $$$ % $$$     Tl = 5;
@@ -87,10 +89,10 @@ rr = 2;
 % $$$     labels = {'(a) $22.5^\circ$','(b) $15^\circ$C','(c) $5^\circ$C'};%10$^\circ$C'};%$15^\circ$C'};
                                                                      %    labels = {'(a) $1/4^\circ$','(b) $2.5^\circ$ Conservative Remap'};%$22.5^\circ$','(c) $15^\circ$C','(e) $5^\circ$C'};%10$^\circ$C'};%$15^\circ$C'};
 % $$$ % $$$     labels = {'(a) Numerical Mixing','(b) Vertical Mixing','(f) $5^\circ$C'};%10$^\circ$C'};%$15^\circ$C'};
-    labels = {'(a) $15^\circ$C ACCESS-OM2-025-RG - ACCESS-OM2-025', ...
-              '(b) $5^\circ$C ACCESS-OM2-025-RG - ACCESS-OM2-025', ...
-              '(c) $15^\circ$C ACCESS-OM2-025-R - ACCESS-OM2-025', ...
-              '(d) $5^\circ$C ACCESS-OM2-025-R - ACCESS-OM2-025'};
+% $$$     labels = {'(a) $15^\circ$C ACCESS-OM2-025-NG - ACCESS-OM2-025', ...
+% $$$               '(b) $5^\circ$C ACCESS-OM2-025-NG - ACCESS-OM2-025', ...
+% $$$               '(c) $15^\circ$C ACCESS-OM2-025-N - ACCESS-OM2-025', ...
+% $$$               '(d) $5^\circ$C ACCESS-OM2-025-N - ACCESS-OM2-025'};
     labels = {'(a) Numerical Mixing Difference', ...
               '(b) Vertical Mixing Difference'};
 % $$$     labels = {'(a) ACCESS-OM2-01 $\mathcal{I}$ $15^\circ$C','(b) ACCESS-OM2-01-hvisc minus ACCESS-OM2-01 $\mathcal{I}$ $15^\circ$C'};
@@ -146,8 +148,28 @@ iii = 1;
     FlI2 = FlI;
     FlM1 = FlM;
     FlI1 = FlI;
+    
+    % Cumulative contributions plot:
+    [Xs,Ys,FlMs,As] = conservative_coarsen_grid(lon,lat,FlM1,area,10);
+    fluxLR = FlMs(~isnan(FlMs)); tranLR = FlMs(~isnan(FlMs)).*As(~isnan(FlMs));
+    [fluxLR,I] = sort(fluxLR);
+    tranLR = tranLR(I);
+    tranLR = flipud(tranLR);
+    fluxLR1 = flipud(fluxLR);
+    tranLR = cumsum(tranLR);
+    tranLR1 = tranLR/tranLR(end);
+    [Xs,Ys,FlMs,As] = conservative_coarsen_grid(lon,lat,FlM,area,10);
+    fluxLR = FlMs(~isnan(FlMs)); tranLR = FlMs(~isnan(FlMs)).*As(~isnan(FlMs));
+    [fluxLR,I] = sort(fluxLR);
+    tranLR = tranLR(I);
+    tranLR = flipud(tranLR);
+    fluxLR = flipud(fluxLR);
+    tranLR = cumsum(tranLR);
+    tranLR = tranLR/tranLR(end);
+    
+    FlM = FlI1-FlI;
+    FlM = FlM1-FlM;
 
-    FlM = FlM3-FlM1;
 
 % $$$     FlMs = FlM;
 % $$$     FlMs = FlMs+FlM;
@@ -397,14 +419,16 @@ iii = 1;
     end
 
     [xL,yL] = size(lon);
-    xvec = 1:2:xL;
-    yvec = 1:2:yL;
+% $$$     xvec = 1:2:xL;
+% $$$     yvec = 1:2:yL;
 % $$$     xvec = 720:1:1060; %-100 -> -30
 % $$$     yvec = 540:1:730; % +15 -> +50
 % $$$     xvec = 720:1:1320; %-100 -> +50
 % $$$     yvec = 540:1:940; % +15 -> +75
 % $$$     xvec = 880:1:1280; %-60 -> +40
 % $$$     yvec = 266:1:396; % -50 -> -25
+    xvec = 500:1:1260; %-100 -> -30
+    yvec = 300:1:1080; % +15 -> +50
     txtmonth = {'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'};
 
 % $$$     months = {[1:12], ...
@@ -422,17 +446,17 @@ iii = 1;
     
 % $$$     %Colormap and continents:
     sp = 5;
-    clim = [-100 0];
+    clim = [-150 0];
 % $$$     sp = 5;
 % $$$     clim = [-100 100];
 % $$$     sp = 0.25;
 % $$$     clim = [-2 2];
 % $$$     sp = 0.05;
 % $$$     clim = [0 1];
-    sp = 1;
+    sp = 0.5;
     clim = [-25 25];
-% $$$     clim = [-50 50];
-% $$$     sp = 2;
+% $$$     sp = 2.5;
+% $$$     clim = [-75 75];
     cCH = 0; % 0 = symmetric redblue
              % 1 = negative definite parula
              % 2 = negative parula with +ve's possible
@@ -491,26 +515,26 @@ iii = 1;
 %set(gcf,'Position',[3          59        1476         921]); % Production NumMix first fig.
 set(gcf,'Position',[1          36        1920         970]);
 % $$$ set(gcf,'Position',get(0,'ScreenSize'));
-% $$$     set(gcf,'Position',[3    40   998   963]); % MOM025-kb0 Kback diff figure.
+    set(gcf,'Position',[3    40   998   963]); % MOM025-kb0 Kback diff figure.
 % $$$ set(gcf,'Position',[40    83   990   897]); % North Atlantic zoom.
 % $$$ % $$$ set(gcf,'Position',[3    40   956   963]);
     set(gcf,'defaulttextfontsize',15);
     set(gcf,'defaultaxesfontsize',15);
 
 % $$$ % $$$ % $$$ 
-% $$$ % 2x1:
-% $$$     poss = [0.1300    0.54    0.7403    0.4149; ...
-% $$$             0.1300    0.0876    0.7403    0.4149];
+% 2x1:
+    poss = [0.1300    0.54    0.7403    0.4149; ...
+            0.1300    0.0876    0.7403    0.4149];
 % $$$ % 1+3:
 % $$$ poss = [0.1300    0.4553    0.7693    0.4697; ...
 % $$$         0.1300    0.1389    0.2343    0.2680; ...
 % $$$         0.3951    0.1389    0.2343    0.2680; ...
 % $$$         0.6681    0.1389    0.2343    0.2680];
-% 2x2:
-    poss = [0.1300    0.58      0.3548    0.3692; ...
-            0.5700    0.58      0.3548    0.3692; ...
-            0.1300    0.1100    0.3548    0.3692; ...
-            0.5700    0.1100    0.3548    0.3692];
+% $$$ % 2x2:
+% $$$     poss = [0.1300    0.58      0.3548    0.3692; ...
+% $$$             0.5700    0.58      0.3548    0.3692; ...
+% $$$             0.1300    0.1100    0.3548    0.3692; ...
+% $$$             0.5700    0.1100    0.3548    0.3692];
 
 % $$$ for i=1:length(months)
 % $$$     if (i == 1)
@@ -519,8 +543,8 @@ set(gcf,'Position',[1          36        1920         970]);
 % $$$         subplot(5,3,[10 13]+(i-2));
 % $$$     end
     i = 1;
-    ii = 3;
-    subplot(2,2,ii);
+    ii = 2;
+    subplot(2,1,ii);
 % $$$     subplot(3,2,2*(rr-1)+iii);
     X = lon(xvec,yvec);
     Y = lat(xvec,yvec);
@@ -549,7 +573,7 @@ set(gcf,'Position',[1          36        1920         970]);
 % $$$     if (ii==2 | ii ==4)
     cb = colorbar;
     if (strcmp(TYPE,'VertInt'))
-        ylabel(cb,'$\mathcal{M}$ (Wm$^{-2}$)');
+        ylabel(cb,'$\mathcal{I}$ (Wm$^{-2}$)');
 % $$$         ylabel(cb,'$\log_{10}(\mathcal{I}/\mathcal{M})$');
 % $$$         ylabel(cb,'$|\mathcal{I}|/(|\mathcal{I}|+|\mathcal{M}|)$');
     else
@@ -613,7 +637,8 @@ set(gcf,'Position',[1          36        1920         970]);
     colormap(cmap);
     ylim([-45 45]);
     text(-278,41,labels{ii},'BackgroundColor','w','Margin',0.5,'FontSize',13);
-
+obj = plot([-59 -25 -25 -59 -59],[35 35 47 47 35],'-k');
+obj = plot([-150 -100 -100 -150 -150],[5 5 15 15 5],'-k');
 % $$$     set(gca,'xtick',[-270:20:60]);
 % $$$     set(gca,'ytick',[-75:10:75]);
 % $$$     ylim([15 47]);
@@ -629,6 +654,24 @@ set(gcf,'Position',[1          36        1920         970]);
 % $$$     else
 % $$$         set(gca,'Position',[0.1253    0.08    0.6707    0.4326]);
 % $$$     end
+
+%%% Sub-panel for diff-back:
+
+    subp = axes('Position',[0.3660    0.5857    0.1691    0.1153]);
+    axes(subp);
+    plot(fluxLR,tranLR,'-k','linewidth',2);
+    hold on;
+    plot(fluxLR1,tranLR1,'--k','linewidth',2);
+    xlim([-40 0]);
+    ylim([-0.01 1]);
+    set(gca,'xtick',[-40:10:0]);
+    set(gca,'ytick',[0:0.25:1]);
+    xlabel('$\mathcal{I}$ (Wm$^{-2}$)');
+    ylabel('$\mathcal{I}^g$ Contribution');
+    set(subp,'color','none','FontSize',10);
+    grid on;
+    
+
 end
 end
 

@@ -1,7 +1,7 @@
-% This script makes plots of the spatial structure of the
+ script makes plots of the spatial structure of the
 % diathermal fluxes in the MOM simulations.
 
-close all;
+% Thisclose all;
 clear all;
 
 base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
@@ -74,6 +74,7 @@ rr = 1;
     TYPE = 'VertInt';
 % $$$     Tls = 15;
     Tls = [22.5 15 5];
+% $$$     Tls = 22.5;
 % $$$ % $$$     VAR = 'EKE';
 % $$$ % $$$     TYPE = 'variances';
 % $$$ % $$$     Tl = 5;
@@ -84,8 +85,12 @@ rr = 1;
 % $$$ % $$$     TYPE = 'WMT';
 % $$$ % $$$     Tl = 19.75;
 % $$$ % $$$     labels = {'(a) MOM025-kb0','(b) MOM025-kb5','(f) $5^\circ$C'};%10$^\circ$C'};%$15^\circ$C'};
-    labels = {'(a) $22.5^\circ$','(b) $15^\circ$C','(c) $5^\circ$C'};%10$^\circ$C'};%$15^\circ$C'};
+    labels = {'(a) $22.5^\circ$C','(b) $15^\circ$C','(c) $5^\circ$C'};%10$^\circ$C'};%$15^\circ$C'};
                                                                      %    labels = {'(a) $1/4^\circ$','(b) $2.5^\circ$ Conservative Remap'};%$22.5^\circ$','(c) $15^\circ$C','(e) $5^\circ$C'};%10$^\circ$C'};%$15^\circ$C'};
+subppos = [0.3710    0.1896    0.1502 0.1873; ...
+          0.3715    0.2440    0.1502    0.1873; ...
+          0.3604    0.3722    0.1502    0.1873;]
+% $$$     labels{1} = labels{2};
 % $$$ % $$$     labels = {'(a) Numerical Mixing','(b) Vertical Mixing','(f) $5^\circ$C'};%10$^\circ$C'};%$15^\circ$C'};
 % $$$ % $$$     labels = {'(a) ACCESS-OM2-025-RG $15^\circ$C','(b) ACCESS-OM2-025-RG $5^\circ$C', ...
 % $$$ % $$$              '(c) ACCESS-OM2-025 $15^\circ$C','(d) ACCESS-OM2-025 $5^\circ$C', ...
@@ -135,6 +140,28 @@ for iii=1:length(Tls)
 % $$$     FlM(nans) = NaN;
     FlM = FlI;
     FlM(FlM==0) = NaN;
+    
+    % Cumulative contributions plot at two different resolutions:
+    X = lon;
+    Y = lat;
+    [Xs,Ys,FlMs,As] = conservative_coarsen_grid(lon,lat,FlM,area,10);
+    
+% $$$     fluxFR = FlM(~isnan(FlM)); tranFR = FlM(~isnan(FlM)).*area(~isnan(FlM));
+    fluxLR = FlMs(~isnan(FlMs)); tranLR = FlMs(~isnan(FlMs)).*As(~isnan(FlMs));
+    
+% $$$     [fluxFR,I] = sort(fluxFR);
+% $$$     tranFR = tranFR(I);
+% $$$     tranFR = flipud(tranFR);
+% $$$     fluxFR = flipud(fluxFR);
+% $$$     tranFR = cumsum(tranFR);
+% $$$     tranFR = tranFR/tranFR(end);
+% $$$ 
+    [fluxLR,I] = sort(fluxLR);
+    tranLR = tranLR(I);
+    tranLR = flipud(tranLR);
+    fluxLR = flipud(fluxLR);
+    tranLR = cumsum(tranLR);
+    tranLR = tranLR/tranLR(end);
 
 % $$$     FlMs = FlM;
 % $$$     FlMs = FlMs+FlM;
@@ -580,10 +607,10 @@ set(gcf,'Position',[1         144        1884         849]);
 % $$$             0.4503    0.08    0.345    0.27];
 
 % $$$     set(gca,'Position',[poss(2*(rr-1)+iii,:)]);
-% $$$     ylim([-65 75]);
-% $$$     text(-277,70,labels{iii},'BackgroundColor','w','Margin',0.5,'FontSize',20);
-    ylim([-45 45]);
-    text(-277,40,labels{iii},'BackgroundColor','w','Margin',0.5,'FontSize',25);
+    ylim([-65 75]);
+    text(-277,70,labels{iii},'BackgroundColor','w','Margin',0.5,'FontSize',25);
+% $$$     ylim([-45 45]);
+% $$$     text(-277,40,labels{iii},'BackgroundColor','w','Margin',0.5,'FontSize',25);
     colormap(cmap);
 % $$$     text(-277,70,labels{2*(rr-1)+iii},'BackgroundColor','w','Margin',0.5,'FontSize',20);
 % $$$     text(-277,72,labels{2*(rr-1)+iii},'BackgroundColor','w','Margin',0.5,'FontSize',12);
@@ -608,6 +635,20 @@ set(gcf,'Position',[1         144        1884         849]);
 % $$$     else
 % $$$         set(gca,'Position',[0.1253    0.08    0.6707    0.4326]);
 % $$$     end
+    
+    % Add sub-panel with Ig contribution:
+    subp = axes('Position',subppos(iii,:));
+    axes(subp);
+    plot(fluxLR,tranLR,'-k','linewidth',2);
+    xlim([-40 0]);
+    ylim([-0.01 1]);
+    set(gca,'xtick',[-40:10:0]);
+    set(gca,'ytick',[0:0.25:1]);
+    xlabel('$\mathcal{I}$ (Wm$^{-2}$)');
+    ylabel('$\mathcal{I}^g$ Contribution');
+    set(subp,'color','none','FontSize',15);
+    grid on;
+    
 end
 end
 

@@ -23,7 +23,7 @@ clear V H;
 VG = monmean(VG,2,ndays);
 HG = monmean(HG,2,ndays);
 
-gname = [base 'ocean_grid.nc'];
+gname = [base 'ocean_grid_mom025.nc'];
 
 area = ncread(gname,'area_t');
 ht = ncread(gname,'ht');

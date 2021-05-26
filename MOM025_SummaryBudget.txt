@@ -1,0 +1,77 @@
+
+WITHOUT TMAX ADJUSTMENT:
+
+Temperatures 20C - 34C:
+-------------------------------------------------------------
+Surface Forcing (into layer) Indo-Pac =  1.21, Atlantic =  0.47, SO = -0.11 (Atl = -0.04, Pac = -0.06), WR = -0.06 (Atl = -0.03, Pac = -0.03)
+Surface Forcing (into layer) Indo-Pac =  1.22, Atlantic =  0.44, SO = -0.08 (Atl =  0.41, Pac = -0.78), WR = -0.07 (Atl =  0.41, Pac = -0.78)
+
+Mixing      (flux at bottom) Indo-Pac =  1.07, Atlantic =  0.44, SO =  0.07, WR =  0.07
+
+Transport 34S   (into layer) Indo-Pac = -0.21, Atlantic =  0.03, SO = -0.18
+Transport 34S   (into layer) Indo-Pac = -0.16, Atlantic =  0.00, SO = -0.15
+
+Transport 50N   (into layer) Atlantic =  0.08
+Transport 50N   (into layer) Atlantic =  0.00
+Tendency        (into layer) Indo-Pac = -0.00, Atlantic =  0.00, SO = -0.00, WR = -0.00
+Transport BS    (into layer)            -0.06.
+Residuals                    Indo-Pac =  0.00, Atlantic = -0.00, SO = -0.00
+ 
+Temperatures 15C - 20C:
+-------------------------------------------------------------
+Surface Forcing (into layer) Indo-Pac = -0.10, Atlantic = -0.06, SO = -0.18 (Atl = -0.07, Pac = -0.10), WR = -0.16 (Atl = -0.07, Pac = -0.09)
+Surface Forcing (into layer) Indo-Pac = -0.07, Atlantic = -0.08, SO = -0.18 (Atl = -0.92, Pac =  0.04), WR = -0.16 (Atl = -0.07, Pac = -0.15)
+
+Mixing      (flux at bottom) Indo-Pac =  0.63, Atlantic =  0.35, SO =  0.27, WR =  0.27
+Transport 34S   (into layer) Indo-Pac = -0.37, Atlantic = -0.01, SO = -0.38
+Transport 34S   (into layer) Indo-Pac = -0.37, Atlantic = -0.01, SO = -0.38
+
+Transport 50N   (into layer) Atlantic =  0.03
+Transport 50N   (into layer) Atlantic =  0.02
+
+Tendency        (into layer) Indo-Pac = -0.00, Atlantic =  0.00, SO =  0.00, WR =  0.00
+Transport BS    (into layer)            -0.02.
+Residuals                    Indo-Pac = -0.00, Atlantic = -0.00, SO = -0.00
+ 
+Temperatures -3C - 15C:
+-------------------------------------------------------------
+Surface Forcing (into layer) Indo-Pac = -0.21, Atlantic = -0.75, SO = -0.14 (Atl = -0.03, Pac = -0.12), WR = -0.07 (Atl = -0.02, Pac = -0.06)
+Surface Forcing (into layer) Indo-Pac = -0.19, Atlantic = -0.77, SO = -0.14 (Atl = -4.44, Pac =  3.74), WR = -0.07 (Atl = -0.02, Pac = -0.06)
+
+Mixing      (flux at bottom) Indo-Pac =  0.00, Atlantic =  0.00, SO =  0.00, WR =  0.00
+Transport 34S   (into layer) Indo-Pac = -0.37, Atlantic =  0.49, SO =  0.12
+Transport 34S   (into layer) Indo-Pac = -0.37, Atlantic =  0.49, SO =  0.12
+
+Transport 50N   (into layer) Atlantic =  0.78
+Transport 50N   (into layer) Atlantic =  0.78
+
+Tendency        (into layer) Indo-Pac =  0.10, Atlantic =  0.03, SO =  0.01, WR = -0.00
+Transport BS    (into layer)            -0.06.
+Residuals                    Indo-Pac =  0.00, Atlantic = -0.00, SO = -0.00
+ 
+WITH TMAX ADJUSTMENT:
+
+Temperatures 20C - 34C:
+-------------------------------------------------------------
+Mixing      (flux at bottom) Indo-Pac =  1.07, Atlantic =  0.44, SO =  0.07, WR =  0.07
+Transport 45S   (into layer) SO = -0.01
+Tendency        (into layer) Indo-Pac = -0.00, Atlantic =  0.00, SO = -0.00, WR = -0.00
+Transport BS    (into layer)             0.00.
+Residuals                    Indo-Pac = -0.00, Atlantic = -0.00, SO =  0.00
+ 
+Temperatures 15C - 20C:
+-------------------------------------------------------------
+Mixing      (flux at bottom) Indo-Pac =  0.63, Atlantic =  0.35, SO =  0.27, WR =  0.27
+Transport 45S   (into layer) SO = -0.02
+Tendency        (into layer) Indo-Pac = -0.00, Atlantic =  0.00, SO =  0.00, WR =  0.00
+Transport BS    (into layer)             0.00.
+Residuals                    Indo-Pac = -0.00, Atlantic = -0.00, SO = -0.00
+ 
+Temperatures -3C - 15C:
+-------------------------------------------------------------
+Mixing      (flux at bottom) Indo-Pac =  0.00, Atlantic =  0.00, SO =  0.00, WR =  0.00
+Transport 45S   (into layer) SO = -0.08
+Tendency        (into layer) Indo-Pac =  0.10, Atlantic =  0.03, SO =  0.01, WR = -0.00
+Transport BS    (into layer)            -0.04.
+Residuals                    Indo-Pac =  0.00, Atlantic =  0.00, SO =  0.00
+ 

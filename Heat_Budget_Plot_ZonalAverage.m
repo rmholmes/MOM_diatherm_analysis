@@ -16,25 +16,22 @@ RUNS = { ...
 % $$$     {'MOM025_kb1em5',[95:99]}, ...
 % $$$     {'MOM025_kb1em6',[30]}, ...
 % $$$ % ACCESS-OM2 Gadi runs:
-         {'ACCESS-OM2_025deg_jra55_ryf_norediGM',[7680],'(a) ACCESS-OM2-025'}, ...
-         {'ACCESS-OM2_025deg_jra55_ryf',[7680],'(b) ACCESS-OM2-025-NG'}, ...
-         {'ACCESS-OM2_025deg_jra55_ryf_rediGM_kb1em5',[7781],'(c) ACCESS-OM2-025-NG-kb5'}, ...
-% $$$          {'ACCESS-OM2_025deg_jra55_ryf8485_gmredi',[73]}, ...
-% $$$          {'ACCESS-OM2_025deg_jra55_ryf_noGM',[7680],'ACCESS-OM2-025-R'}, ...
-% $$$          {'ACCESS-OM2_025deg_jra55_ryf',[80]}, ...
-% $$$          {'ACCESS-OM2_025deg_jra55_ryf',[300]}, ...
-         {'ACCESS-OM2_1deg_jra55_ryf',[31],'(d) ACCESS-OM2-1-KDS50'}, ...
+% $$$          {'ACCESS-OM2_1deg_jra55_ryf',[31],'(b) ACCESS-OM2-1-KDS50'}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf_gfdl50',[31]}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf_kds75',[3135]}, ...
 % $$$          {'ACCESS-OM2_1deg_jra55_ryf_kds100',[3135]}, ...
-         {'ACCESS-OM2_1deg_jra55_ryf_kds135',[3135],'(e) ACCESS-OM2-1-KDS135'}, ...
-         {'ACCESS-OM2_01deg_jra55_ryf',[636643],'(f) ACCESS-OM2-01'}, ...
+% $$$          {'ACCESS-OM2_1deg_jra55_ryf_kds135',[3135],'(c) ACCESS-OM2-1-KDS135'}, ...
+% $$$          {'ACCESS-OM2_025deg_jra55_ryf',[7680],'ACCESS-OM2-025-RG'}, ...
+% $$$          {'ACCESS-OM2_025deg_jra55_ryf8485_gmredi',[73]}, ...
+         {'ACCESS-OM2_025deg_jra55_ryf_norediGM',[7680],'ACCESS-OM2-025'}, ...
+% $$$          {'ACCESS-OM2_025deg_jra55_ryf_noGM',[7680],'ACCESS-OM2-025-R'}, ...
+% $$$          {'ACCESS-OM2_025deg_jra55_ryf',[80]}, ...
+% $$$          {'ACCESS-OM2_025deg_jra55_ryf',[300]}, ...
+% $$$          {'ACCESS-OM2_01deg_jra55_ryf',[636639],'(f) ACCESS-OM2-01'}, ...
 % $$$          {'ACCESS-OM2_01deg_jra55_ryf_k_smag_iso3',[640643],'(f) ACCESS-OM2-01'}, ...
        };
-doZAremap = 0; % remap too depth.
-subCont = 0; % subtract control and plot anomalies.
-
-figure;
+doZAremap = 1; % remap too depth.
+subCont = 1; % subtract control and plot anomalies.
 
 for rr = 1:length(RUNS)
     outputs = RUNS{rr}{2};
@@ -98,11 +95,10 @@ for reg = 1:length(regions)
         end
     end
     
-    if (doZAremap)
     ZAtemp = mean(ZAtempS,3);
     tempZA = mean(tempZAS,3);
     rhoZA = mean(rhoZAS,3);
-    end
+
     % Take annual and mean across outputs:
     names = fieldnames(ZAR);
     for ii=1:length(names)
@@ -192,6 +188,7 @@ dy = [dy(1); dy];
 % NumMix:
 fields = { ...
           {'NUM',1./repmat(dy,[1 TL+1])/1e12,'Numerical Mixing',[-25 0],0.5,'TW/$^\circ$latitude'},
+          {'M',-1./repmat(dy,[1 TL+1])/1e12,'Vertical Mixing',[-25 0],0.5,'TW/$^\circ$latitude'},
 };
 
 cpts = cell(1,length(fields));
@@ -208,36 +205,16 @@ cmap(end-1,:) = (cmap(end-1,:)+cmap(end,:))/2;
 AIsp = 0.25;
 latfilt = 1;
 
-%Fluxes only:
-% $$$ figure;
-set(gcf,'Position',[2125          11        1680         960]);
-%set(gcf,'Position',[3          40        1278         963]);
+set(gcf,'Position',[3          40        1278         963]);
 set(gcf,'defaulttextfontsize',15);
 set(gcf,'defaultaxesfontsize',15);
 
-% 2x3:
-% $$$ poss = [0.11     0.5949    0.25      0.3301; ...
-% $$$         0.375    0.5949    0.1875    0.3301; ...
-% $$$         0.58     0.5949    0.1719    0.3301; ...
-% $$$         0.11     0.2300    0.25      0.3301; ...
-% $$$         0.375    0.2300    0.1875    0.3301; ...
-% $$$         0.58     0.2300    0.1719    0.3301];
-poss = [0.11     0.5949    0.21    0.3301; ...
-        0.35    0.5949    0.21    0.3301; ...
-        0.59     0.5949    0.21    0.3301; ...
-        0.11     0.2300    0.21    0.3301; ...
-        0.35    0.2300    0.21    0.3301; ...
-        0.59     0.2300    0.21    0.3301];
-% $$$ poss = [0.0802    0.69      0.35    0.27; ...
-% $$$         0.5210    0.69      0.35    0.27; ...
-% $$$         0.0802    0.39      0.35    0.27; ...
-% $$$         0.5210    0.39      0.35    0.27; ...
-% $$$         0.0802    0.0685    0.35    0.27; ...
-% $$$         0.5210    0.0685    0.35    0.27];
+poss = [0.12    0.39      0.35    0.25; ...
+        0.5210    0.39      0.35    0.25];
         
-letlabs = {'(a)','(b)','(c)','(d)','(e)','(f)','(g)','(h)','(i)'};
+labels = {'(a) Numerical Mixing','(b) Vertical Mixing'};
 for i=1:length(fields)
-    subplot(2,3,rr);%2*(rr-1)+1);
+    subplot(3,2,2*(rr-1)+i);
     if (doZAremap)    
         X =repmat(yt,[1 TL+1]);
         Y = ZAtemp;
@@ -263,103 +240,45 @@ for i=1:length(fields)
         [X,Y] = ndgrid(yt,-z);
         [c,h] = contour(X,Y,tempZA,[-2:2:34],'-k');
         clabel(c,h);
-% $$$         [c,h] = contour(X,Y,rhoZA,[1020:0.2:1040],'-','color',[0.5 0.5 0.5]);
+        [c,h] = contour(X,Y,tempZA,[5 15 22.5],'-m','linewidth',1);
     else
-% $$$         plot(yvec,filter_field(meanSST,latfilt,'-t'),':','color',col);
-% $$$         eval(['plot(yt,filter_field(ZA_' regLets{reg} '.minSST,latfilt,''-t''),'':'',''color'',col);']);
         eval(['plot(yt,filter_field(ZA_' regLets{reg} '.maxTt,latfilt,''-t''),'':k'');']);
     end
-    if (doZAremap)
-        ylim([-2000 0]);
-        text(-79,-1900,label);%,'BackgroundColor','w');%[strrep(model,'_','\_')]);%RUNS{letlabs{letno} ' ' fields{i}{3}]);
-    else
-        ylim([-2 34]);
-        text(-79,32.15,label,'BackgroundColor','w');%[strrep(model,'_','\_')]);%RUNS{letlabs{letno} ' ' fields{i}{3}]);
-    end
-        caxis([-25 0]);%fields{i}{4});
-        box on; 
-        grid on;
-        letno = rr;%3*(i-1)+r;
-        xlim([-80 80]);
-% $$$         xlim([-80 0]);
-        set(gca,'xtick',[-90:30:90]);
-        if (rr>=4)
-            xlabel('Latitude ($^\circ$N)');
-        else
-            set(gca,'xticklabel',[]);
-        end
-        if (rr==1 | rr == 4)% | rr == 5)
-            ylabel('Temperature ($^\circ$C)');
-% $$$             ylabel('Depth (m)');%Temperature $\Theta$
-                                %($^\circ$C)');
-        else
-            set(gca,'yticklabel',[]);
-        end
-        if (rr==3 | rr == 6)
-            cb = colorbar;
-            ylabel(cb,fields{i}{6});
-        end
-        set(gca,'Position',poss(rr,:));%2*(rr-1)+1,:));
-end
-% $$$ if (rr == 1)
-colormap(gca,cmap);
-end
-% $$$ else
-% $$$     colormap(gca,redblue);
-% $$$ end
-% $$$ if (1) % Add temperature and density anomalies plots:
-% $$$     if (subCont)
-% $$$         if (rr==1)
-% $$$             tempZAC = tempZA;
-% $$$             rhoZAC = rhoZA;
-% $$$         else
-% $$$             tempZA = tempZA-tempZAC;
-% $$$             rhoZA = rhoZA-rhoZAC;
-% $$$         end
-% $$$     end
-% $$$     subplot(3,2,2*rr);
-% $$$     [X,Y] = ndgrid(yt,-z);
-% $$$     if (rr == 1)
-% $$$         contourf(X,Y,tempZA,[-2:0.5:34],'linestyle','none');
-% $$$         hold on;
-% $$$         [c,h] = contour(X,Y,rhoZA,[1020:0.2:1040],'-','color',[0.5 ...
-% $$$                             0.5 0.5]);
-% $$$     else
-% $$$         contourf(X,Y,tempZA,[-2:0.05:2],'linestyle','none');
-% $$$         hold on;
-% $$$         sp = 0.03
-% $$$         [c,h] = contour(X,Y,rhoZA,[-1:sp:-sp],'--','color',[0.5 0.5 0.5]);
-% $$$ % $$$         clabel(c,h);
-% $$$         [c,h] = contour(X,Y,rhoZA,[sp:sp:1],'-','color',[0.5 0.5 0.5]);
-% $$$ % $$$         clabel(c,h);
-% $$$     end
-% $$$     if (rr>=3)
-% $$$         xlabel('Latitude ($^\circ$N)');
-% $$$     else
-% $$$         set(gca,'xticklabel',[]);
-% $$$     end
-% $$$     cb = colorbar;
-% $$$     ylabel(cb,'$^\circ$C');
-% $$$     set(gca,'yticklabel',[]);
-% $$$     
-% $$$     if (rr == 1)
-% $$$         caxis([0 15]);
-% $$$     else
-% $$$         caxis([-1.5 1.5]);
-% $$$     end
 % $$$     ylim([-2000 0]);
-% $$$     xlim([-80 80]);
-% $$$     set(gca,'xtick',[-90:30:90]);
-% $$$     grid on;
-% $$$     box on;
-% $$$     colormap(gca,redblue);
-% $$$     set(gca,'Position',poss(2*rr,:));
-% $$$     if (rr == 1)
-% $$$         title('Temperature (color) and density (contours)');%Numerical mixing and isotherms');
-% $$$     end
-% $$$ 
-% $$$ end
-% $$$     
-% $$$     
-% $$$ % $$$     set(gca,'Position',poss(rr,:));
-% $$$ end
+% $$$     text(-79,-1900,labels{i});%,'BackgroundColor','w');%[strrep(model,'_','\_')]);%RUNS{letlabs{letno} ' ' fields{i}{3}]);
+    ylim([-4000 -500]);
+    text(-79,-3800,labels{i},'BackgroundColor','w');%[strrep(model,'_','\_')]);%RUNS{letlabs{letno} ' ' fields{i}{3}]);
+    caxis([-25 0]);%fields{i}{4});
+    box on; 
+    grid on;
+    letno = rr;%3*(i-1)+r;
+    xlim([-80 80]);
+    set(gca,'xtick',[-90:30:90]);
+    xlabel('Latitude ($^\circ$N)');
+    if (i == 1)
+        ylabel('Depth (m)');
+    else
+        set(gca,'yticklabel',[]);
+        cb = colorbar;
+        ylabel(cb,fields{i}{6});
+    end
+    set(gca,'color','k');
+
+    set(gca,'Position',poss(i,:));
+    
+    gca2 = copyobj(gca,gcf);
+    axes(gca2);
+    colorbar off;
+    pos = poss(i,:);
+    pos(2) = pos(2)+pos(4);
+    pos(4) = pos(4)/4*3;
+    set(gca2,'Position',pos);
+    set(gca2,'xticklabel',[]);
+    xlabel(gca2,'');
+    ylabel(gca2,'');
+    ylim([-500 0]);
+    
+end
+colormap(cmap);
+end
+
