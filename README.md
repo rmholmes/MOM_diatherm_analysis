@@ -45,9 +45,9 @@ JAMES). The routines are:
 - `Heat_Budget_Plot_Global.m`: This script produces the
   globally-averaged heat budget in temperature coordinates
   (e.g. Figs. 2, 7 and 15 of Holmes et al. 2021), including the
-  numerical mixing term. This script also outputs the
-  globally-integrated numerical mixing and explicit mixing metrics
-  Inet, Mnet and Nnet used in the summary Fig 17.
+  numerical mixing term, for all 13 configurations. This script also
+  outputs the globally-integrated numerical mixing and explicit mixing
+  metrics Inet, Mnet and Nnet used in the summary Fig 17.
 
 - `Heat_Budget_Plot_Spatial.m`: This script produces the
   longitude-latitude spatial structure maps (e.g. Figs. 3, 8, 10,

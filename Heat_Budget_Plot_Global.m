@@ -1,5 +1,5 @@
-% This script makes plots of the heat budget in the MOM
-% simulations.
+% This script makes plots of the globally-integrated heat budget in
+% temperature coordinates from ACCESS-OM2 simulations.
 
 % $$$ close all;
 clear all;
@@ -7,7 +7,6 @@ clear all;
 base = '/srv/ccrc/data03/z3500785/mom/mat_data/';
 
 RUNS = { ...
-% ACCESS-OM2 Gadi runs:
 % $$$ % 1-degree
          {'ACCESS-OM2_1deg_jra55_ryf',[31]}, ...
          {'ACCESS-OM2_1deg_jra55_ryf_gfdl50',[31]}, ...
@@ -57,9 +56,6 @@ for rr = 1:length(RUNS);
     %% Global Calculations:
     for i=1:length(outputs)
         
-% $$$     % Annual or Monthly offline Binning:
-% $$$     load([base model sprintf('_output%03d_',outputs(i)) 'GlobalHBud_MonAnBin.mat']);
-% $$$     GWB = GWBann;
         try
             load([base model sprintf('_output%03d_',outputs(i)) region '_HBud.mat']);
         catch        
@@ -85,8 +81,6 @@ for rr = 1:length(RUNS);
             VDFnloc(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.KNL,szTe);
             VDFsum(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.VDFkppiw+GWB.VDFkppish+GWB.VDFkppicon+ ...
                                                      GWB.VDFkppbl+GWB.VDFkppdd+GWB.VDFwave+GWB.KNL,szTe);
-            % Note: May be missing enhanced mixing near rivers
-            % (river_diffuse_temp) in ACCESS-OM2
         end
         if (isfield(GWB,'RED')) % Redi Diffusion
             R(:,:,ycur:(ycur+nyrs-1)) = reshape(GWB.RED+GWB.K33,szTe); % Redi diffusion (W)
@@ -226,7 +220,6 @@ for rr = 1:length(RUNS);
     Inet = sum(I*dT,1);
     Mnet = sum(M*dT,1)+sum(R*dT,1);
     Inetstr = [Inetstr sprintf(' Inet = %5.1f PWdegC, Mnet = %5.1f PWdegC',mean(monmean(Inet,2,ndays(1:length(Inet(1,:,1)))),3)/1e15,mean(monmean(Mnet,2,ndays(1:length(Mnet(1,:,1)))),3)/1e15) ' ' model ' \n '];
-
     %%%%Heat Flux: ---------------------------------------------------------------------------------------------
 % Production fields:
     fields = { ...
@@ -245,21 +238,14 @@ for rr = 1:length(RUNS);
 % $$$              };
 
     Fscale = 1/1e15;
-% $$$ 
-% $$$ % $$$ yrtyps = {'-','--','-.',':','-d','-s','--d','--s',':d',':s','-.d','-.s','-o'}; % line-types for different years
-% $$$ typs = {'-','-','--',':','-.','-','--',':','-','-','--',':','-.'}; % line-types for different years
-% $$$ cols = {'m','k','k','k','k','r','r','r',[0.302 0.7451 0.9333],'b','b','b','b'};
-% $$$ % $$$ wids = {2,2,2,2,2,2,2,2,2,2,2,2,2,2};
-% $$$ typs = {'-','-','--',':','-.','-','--',':','-','-','--',':','-.'}; % line-types for different years
-% $$$ wids = {1,1,1,1,1,1,1,1,1,1,1,1,1,1};
-    typs = {'-','--',':','-.','-','-',':','-.','--',':'};
-    wids = {2,2,2,2,2,2,1,1,1,1,1,1,1,1};
+    typs = {'-','--',':','-.','-','-',':','-.','--',':','-','-','-','-','-'};
+    wids = {2,2,2,2,2,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
     cols = {'b','r','k','m','g'};
     %Fluxes only:
-% $$$ figure;
-% $$$ set(gcf,'Position',[207          97        1609         815]);
-% $$$ leg = {};
-% $$$ legh = [];
+    figure;
+    set(gcf,'Position',[207          97        1609         815]);
+    leg = {};
+    legh = [];
     for i=1:length(fields)
         hold on;
         if (length(fields{i}{1}(:,1)) == length(Te))
@@ -268,31 +254,10 @@ for rr = 1:length(RUNS);
             x = T;
         end
         
-        % Plot years from a single run separately:
-% $$$     for j=1:length(yrs) 
-% $$$         h = plot(Te,monmean(fields{i}{1}(:,:,yrs(j)),2,ndays(months))*Fscale,yrtyps{j}, 'color',fields{i}{3} ...
-% $$$              ,'linewidth',3);
-% $$$         if (j == 1)
-% $$$             legh(i) = h;
-% $$$         end
-% $$$     end
-% $$$     leg{i} = fields{i}{2};
-
-% $$$     % Average years together for a single run:
-% $$$     legh(i) = plot(x,mean(monmean(fields{i}{1},2,ndays(months))*Fscale,3),fields{i}{5}, 'color',fields{i}{3} ...
-% $$$          ,'linewidth',fields{i}{4});
-% $$$     leg{i} = fields{i}{2};
-        
         % Average years together for multiple runs:
-        tmp = plot(x,mean(monmean(fields{i}{1},2,ndays(months))*Fscale,3),typs{rr}, 'color',fields{i}{3} ...
-                   ,'linewidth',wids{rr});
-% $$$         tmp = plot(x,mean(monmean(fields{i}{1},2,ndays(months))*Fscale,3),fields{i}{5}, 'color',cols{rr} ...
-% $$$                    ,'linewidth',wids{rr});
-% $$$         tmp = plot(x,mean(monmean(fields{i}{1},2,ndays(months))*Fscale,3),typs{rr}, 'color',cols{rr}, 'linewidth',wids{rr});
-% $$$         if i==1
-% $$$             leg{rr} = strrep(RUNS{rr}{1},'_',' ');
-% $$$             legh(rr) = tmp;
-% $$$         end
+        tmp = plot(x,mean(monmean(fields{i}{1},2,ndays(months))*Fscale,3),'-', 'color',fields{i}{3});
+        leg{i} = fields{i}{2};
+        legh(i) = tmp;
     end
     ylim([-1.5 1.5]);
     xlim([-3 31]);
@@ -300,7 +265,9 @@ for rr = 1:length(RUNS);
     grid on;
     ylabel('Heat flux into fluid warmer than $\Theta$ (PW)');
     xlabel('Temperature $\Theta$ ($^\circ$C)');
-% $$$ lg = legend(legh,leg);
-% $$$ set(lg,'Position',[0.5881    0.5500    0.2041    0.2588]);
-
+    lg = legend(legh,leg);
+    set(lg,'Position',[0.5881    0.5500    0.2041    0.2588]);
+    title(strrep(RUNS{rr}{1},'_',' '));
 end
+
+sprintf(Inetstr)
