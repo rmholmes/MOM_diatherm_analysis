@@ -104,25 +104,6 @@ for reg = 1:length(regions)
         ZAR.psiTu(i) = ZAR.PSI(i,indu);
     end
 
-    % Min SST (monthly - from surface forcing):
-    % Load SST for plotting:
-    load([base model sprintf('_output%03d_SurfaceVars.mat',outputs(1))],'SST');
-    SSTa = SST;
-    for i=2:length(outputs)
-        load([base model sprintf('_output%03d_SurfaceVars.mat',outputs(i))],'SST');
-        SSTa = SSTa+SST;
-    end
-    SST = SSTa/length(outputs);
-    if (~(strcmp(region,'') | strcmp(region,'Global')))
-        [maskREG,~,~,~,~,~,~] = Heat_Budget_Mask(region,'','',base,model);
-    else
-        maskREG = ones(size(SST(:,:,1)));
-    end
-    SST = SST.*repmat(maskREG,[1 1 length(SST(1,1,:))]);
-    SST(SST==0) = NaN;
-% $$$     ZAR.minSST = squeeze(min(monmean(SST,3,ndays),[],1)');
-% $$$     if (max(ZAR.minSST)>100); ZAR.minSST = ZAR.minSST-273.15; end
-
     % Total MHTs:
     ZAR.MHTSUB = ZAR.AHDSUB(:,end);
     ZAR.MHTADV = ZAR.AI(:,end);
@@ -130,9 +111,6 @@ for reg = 1:length(regions)
     ZAR.MHTR   = ZAR.AHDR(:,end);
     ZAR.MHT    = ZAR.MHTADV + ZAR.MHTSUB + ZAR.MHTGM + ZAR.MHTR;
     
-% $$$     % Zonal average isotherm depths for remapping:
-% $$$     ZAR.
-
     eval(['ZA_' regLet ' = ZAR;']);
     clear ZAR;
 end %end region loop

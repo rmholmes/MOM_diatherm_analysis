@@ -37,7 +37,7 @@ rr = 1;
 
 
 %% Variances:
-Tl = 15;
+Tl = 22.5;
 
 % FAKE IT, with ndays:
 ndays = [31 28 31 30 31 30 31 31 30 31 30 31];
@@ -85,7 +85,7 @@ clims = {[0 0.06],[0 0.06],[0 1],[0 6]};
         obj = matfile([base model sprintf('_output%03d_SurfaceVars.mat',outputs(1))]);
         LAND = obj.SST(:,:,1);
     catch
-        LAND = zeros(size(FlM(:,:,1)));
+        LAND = zeros(size(Tdh));
     end
 
     [xL,yL] = size(lon);

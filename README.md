@@ -72,6 +72,9 @@ JAMES). The routines are:
   but in order to use this script one needs access to the NCI system
   (if required, I can provide this access).
 
+Note that the "base" path at the top of each script will need to be
+altered to point at wherever you have downloaded the data.
+
 If you run into any problems please contact me at
 `ryan.holmes@unsw.edu.au`
 

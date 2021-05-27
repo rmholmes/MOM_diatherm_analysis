@@ -17,23 +17,13 @@ region = 'GulfStream';
 Tcaxs = [-2 30];
 
 % Background diffusivity runs:
-% $$$ RUNS = {'ACCESS-OM2_025deg_jra55_ryf', ...
-% $$$         'ACCESS-OM2_025deg_jra55_ryf_rediGM_kbvar', ...
-% $$$         'ACCESS-OM2_025deg_jra55_ryf_rediGM_kb1em5', ...
-% $$$        };
-% $$$ colors = {'r',[0 0.5 0],'k'};
-% $$$ styles = {'-',':','--'};
-% $$$ names = {'ACCESS-OM2-025-NG','ACCESS-OM2-025-NG-kbv','ACCESS-OM2-025-NG-kb5'};
-% $$$ region = 'EastTropPac';
-% $$$ Tcaxs = [10 30];
-
-RUNS = {'ACCESS-OM2_025deg_jra55_ryf_norediGM', ...
-        'ACCESS-OM2_025deg_jra55_ryf_norediGM_smoothkppbl'
+RUNS = {'ACCESS-OM2_025deg_jra55_ryf', ...
+        'ACCESS-OM2_025deg_jra55_ryf_rediGM_kbvar', ...
+        'ACCESS-OM2_025deg_jra55_ryf_rediGM_kb1em5', ...
        };
 colors = {'r',[0 0.5 0],'k'};
 styles = {'-',':','--'};
-names = {'ACCESS-OM2-025','ACCESS-OM2-025-KPPBL-smooth'};
-region = 'Kuroshio';
+names = {'ACCESS-OM2-025-NG','ACCESS-OM2-025-NG-kbv','ACCESS-OM2-025-NG-kb5'};
 region = 'EastTropPac';
 Tcaxs = [10 30];
 
@@ -58,7 +48,7 @@ for rr = 1:length(RUNS)
     udhs{rr} = sqrt(0.5*(udxsq+vdysq));
     Tdhs{rr} = sqrt(0.5*(Tdxsq+Tdysq));
     Tdzs{rr} = sqrt(Tdzsq);
-    EKEs{rr} = EKE;
+    EKEs{rr} = mean(EKE,1);
 end
 
 poss = [0.05    0.0900    0.16    0.8150; ...
