@@ -50,12 +50,13 @@ JAMES). The routines are:
   metrics Inet, Mnet and Nnet used in the summary Fig 17.
 
 - `Heat_Budget_Plot_Spatial.m`: This script produces the
-  longitude-latitude spatial structure maps (e.g. Figs. 3, 8, 10,
-  A.1). Any of the 13 configurations can be chosen and data for a few
-  different isotherms are provided.
+  longitude-latitude spatial structure maps (e.g. Figs. 3, 8, 10, A.1)
+  of either numerical or vertical mixing. Data is provided for all 13
+  configurations for the 5, 15 and 22.5C isotherms.
 
-- `Heat_Budget_Plot_EqSlice.m`: This script produces equatorial Pacific
-  longitude-depth plots (e.g. Figs. 6, 12 and 14).
+- `Heat_Budget_Plot_EqSlice.m`: This script produces equatorial
+  Pacific longitude-depth plots of either numerical or vertical mixing
+  (e.g. Figs. 6, 12 and 14).
 
 - `Heat_Budget_Plot_ZonalAverage.m`: This script plots the global zonal
   average of vertical and numerical mixing in Fig. 4.

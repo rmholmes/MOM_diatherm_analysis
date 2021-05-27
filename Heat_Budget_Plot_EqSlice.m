@@ -25,17 +25,18 @@ RUNS = { ...
          {'ACCESS-OM2_025deg_jra55_ryf_kds75',[7680]}, ...
 % 1/10-degree
          {'ACCESS-OM2_01deg_jra55_ryf',[636643]}, ...
-         {'ACCESS-OM2_01deg_jra55_ryf_k_smag_iso7p9',[648:655]}, ...
+% $$$          {'ACCESS-OM2_01deg_jra55_ryf_k_smag_iso7p9',[648655]}, ...
        };
 cols = {'b',[0.3020    0.7451    0.9333],'b','b','b'};
 typs = {'-','-','--',':','-.'};
 
 figure;
-set(gcf,'Position',[1923           5        1366         998]);
+set(gcf,'Position',[1          36        1920         970]);
 set(gcf,'defaulttextfontsize',15);
 set(gcf,'defaultaxesfontsize',15);
 
 for rr = 1:length(RUNS);
+% $$$ rr = 1;
     outputs = RUNS{rr}{2};
     model = RUNS{rr}{1};
     
@@ -174,6 +175,7 @@ for ti=1:tL
 end
 Xi = repmat(Xt(:,1),[1 TL]);
 
+% Choose variable:
 var = cumsum(vdif+vnlc,2,'reverse'); % Vertical Mixing Flux
 var = ndif; % Numerical mixing
 
@@ -221,19 +223,10 @@ months = {[1:tL]}%:12]};
             end
         end
     end        
-% $$$     cmap = flipud(cmap);
-    
-    % MOM025 kb3seg example:
-    labels = {'(a) Numerical Mixing','(b) Vertical Mixing'};%,'(c) KDS75','(d) KDS100','(e) KDS135'};
-    poss = [0.1300    0.4800    0.4154    0.3355; ...
-            0.1300    0.1100    0.4154    0.3355;];    
 
-set(gcf,'Position',[1923           5        1366         998]);
-set(gcf,'defaulttextfontsize',15);
-set(gcf,'defaultaxesfontsize',15);
-rr = 1;
+% $$$ rr = 1;
 for i=1:length(months)
-    subplot(3,2,rr);
+    subplot(3,4,rr);
     contourf(Xi,nanmonmean(Zi(:,:,months{i}),3,ndays(months{i})),nanmonmean(var(:,:,months{i}),3,ndays(months{i})),cpts,'linestyle','none');
     hold on;
     Tout = nanmonmean(temp(:,:,months{i}),3,ndays(months{i}));
@@ -247,8 +240,7 @@ for i=1:length(months)
     xlabel('Longitude ($^\circ$E)');
     ylabel('Depth (m)');
     caxis(clim);
-    text(-199,-10,labels{rr},'Backgroundcolor','w','FontSize',15,'margin',0.5);
-    set(gca,'Position',poss(rr,:));
+    title(strrep(RUNS{rr}{1},'_',' '))
 end
 
 colormap(gca, cmap);

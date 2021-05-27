@@ -23,11 +23,11 @@ RUNS = { ...
          {'ACCESS-OM2_025deg_jra55_ryf_kds75',[7680]}, ...
 % 1/10-degree
          {'ACCESS-OM2_01deg_jra55_ryf',[636643]}, ...
-         {'ACCESS-OM2_01deg_jra55_ryf_k_smag_iso7p9',[648:655]}, ...
+         {'ACCESS-OM2_01deg_jra55_ryf_k_smag_iso7p9',[648655]}, ...
        };
 cols = {'b','r','k','m','g'};
 
-rr = 7;
+for rr = 1:length(RUNS)
     outputs = RUNS{rr}{2};
     model = RUNS{rr}{1};
     
@@ -51,11 +51,12 @@ rr = 7;
     ycur = 1;
 
     TYPE = 'VertInt';
-    Tls = 22.5; % Isotherm choice
+    Tl = 5; % Isotherm choice
     labels = {'(a) $22.5^\circ$C'};
     iii = 1;
     name = [base model sprintf('_output%03d',outputs(1)) '_' TYPE '_T' strrep(num2str(Tl),'.','p') 'C.mat']
     load(name,'FlI','FlM');
+
     % Choose vertical or numerical mixing:
     FlM = FlI;
     FlM(FlM==0) = NaN;
@@ -130,9 +131,6 @@ rr = 7;
     poss = [0.1300    0.54    0.7403    0.4149; ...
             0.1300    0.0876    0.7403    0.4149];
     i = 1;
-    ii = 2;
-    subplot(2,1,ii);
-% $$$     subplot(3,2,2*(rr-1)+iii);
     X = lon(xvec,yvec);
     Y = lat(xvec,yvec);
     if (length(months{i})>1)
@@ -154,19 +152,14 @@ rr = 7;
     ylabel(cb,'$\mathcal{I}$ (Wm$^{-2}$)');
     ylim(cb,clim);
     hold on;
-    if (ii>=3)
-        xlabel('Longitude ($^\circ$E)');
-    else
-        set(gca,'xticklabel',[]);
-    end
-    if (ii == 1 | ii ==3)
-        ylabel('Latitude ($^\circ$N)');
-    else
-        set(gca,'yticklabel',[]);
-    end
+    xlabel('Longitude ($^\circ$E)');
+    ylabel('Latitude ($^\circ$N)');
         
     set(gca,'xtick',[-270:30:60]);
     set(gca,'ytick',[-75:15:75]);
+    set(gca,'color','k');
     ylim([-65 75]);
-    text(-277,68,labels{ii},'BackgroundColor','w','Margin',0.5,'FontSize',13);
+    text(-277,68,labels{1},'BackgroundColor','w','Margin',0.5,'FontSize',13);
     colormap(cmap);
+    title(strrep(RUNS{rr}{1},'_',' '));
+end
