@@ -2,15 +2,15 @@
 
 This repository contains MatLab analysis routines for analysing
 diathermal heat transport in MOM5 simulations. These routines were
-used for the analysis described in [*Holmes et al (2019) Diathermal
+used for the analysis described in [Holmes et al (2019) Diathermal
 heat transport in a global ocean model, J. Phys. Oceanogr. 49,
-141-161*](https://doi.org/10.1175/JPO-D-18-0098.1), [*Holmes et al
+141-161](https://doi.org/10.1175/JPO-D-18-0098.1), [Holmes et al
 (2019) Atlantic ocean heat transport enabled by Indo-Pacific heat
 uptake and mixing, Geophysical Research Letters, 46,
-13939-13949*](https://doi.org/10.1029/2019GL085160) and [*Holmes et al
+13939-13949](https://doi.org/10.1029/2019GL085160) and [Holmes et al
 (2021) The geography of numerical mixing in a suite of global ocean
-models, in review at the Journal of Advances in Modeling Earth
-Systems](https://www.essoar.org/doi/10.1002/essoar.10504439.1).
+models, Journal of Advances in Modeling Earth
+Systems, 13, e2020MS002333](https://doi.org/10.1029/2020MS002333).
 
 ## Workflow
 
@@ -41,6 +41,6 @@ routine Heat_Budget_Plot_LatT.m should produce the figures used in the
 GRL article.
 
 If you run into any problems please email me at
-`ryan.holmes@unsw.edu.au`
+`r.holmes@sydney.edu.au`
 
 
