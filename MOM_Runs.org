@@ -1,0 +1,604 @@
+                  MOM Diathermal Runs Log
+                  -----------------------------
+                  Ryan Holmes       April 2018+
+-----------------------------------------------------------------------
+#+STARTUP: content
+
+To compile run in MOM5/exp/:
+module purge
+module load intel-compiler/2019.5.281
+module load netcdf/4.7.1
+module load openmpi/4.0.1
+./MOM_compile.csh --type MOM_SIS --platform nci --use_netcdf4
+* Log
+** 26-04-18
+- Trying to run 025 ryf8485_KDS75 from Andy, but many errors related
+  to python (payu) and others...
+
+** 27-4-18:
+Got MOM_Gyre idealized test case working, after fixing some errors
+related to the incorrect version of input.nml being downloaded. See
+below for progress.
+
+Making progrem with 1deg_jra55_ryf9091_kds50 run -> replaced all input
+files with the ones from 1deg_jra55_ryf/. Doesn't look like there is
+anything serious changed, mainly the time step is different. Salinity
+restoring looks the same. Didn't update namcouple, trying again...
+
+Still having trouble with ryf8485_KDS75 from Andy -> Although this was
+the payu error with prior_output_dir not found or something like that,
+hopefully fixed now???
+
+** 30-4-18:
+1deg_jra55_ryf9091_kds50 run doesn't work because restarts have some
+different settings (works from an initial condition). Try changing
+these? 
+
+Works if I change atmosphere/input_atm.nml, coupler/namcouple in the
+restart folder to the new versions!! 
+
+Started kds75, 100 and 135 runs for this. However, the kds100 is dying
+with an out of range salinity error...
+
+Giving up on 025_KDS75 for now...
+
+** 1-5-18
+
+Found out that the ACCESS-OM2 transports are all scaled differently,
+fixed and rerunning FlI analysis.
+
+analysis done: 1deg_jra55_ryf8485/
+               1deg_jra55_ryf8485_kds50...mushy
+** 1-6-18
+
+Did another two years of the kb3seg runs with Eulerian vertical mixing
+diagnostics for equatorial evaluation.
+
+** 5-6-18
+
+Updated MOM-SIS (software/MOM5) code to incorporate latest master
+changes. Also updated my branches to create a pull request for
+neutrho_temp changes for ACCESS-OM2. Also started a new
+MOM_HeatDiag_kb3seg year run with this new executable (which includes
+the change from neut_rho_is_temp to neutral_density_theta). Testing -
+seems to check out. Problem with long runtimes seems to have been
+temporary (latest run took 02:44).
+
+Getting ACCESS-OM2 running: ------------------------------
+
+Updated access-om2 code to latest. src/mom points to my latest
+ryan/master (same as used for kb3seg above). This was done by updating
+the outer repository and then individually updating all the submodules
+(which are listed in .gitmodules) using e.g. "git submodule update
+--init control/1deg_jra55_iaf". If I've made changes in these
+submodules (e.g. changed exe paths in config.yaml) then had to revert
+these first. For ones where i had changes I want to keep - switch back
+to master branch in the submodule directory and update manually, then
+merge these changes into my branch (e.g. diathermal in
+1deg_jra55_ryf8485).
+
+Copied across Kial's configs (*_may) and updated for diathermal
+diagnostics. 
+
+To get ACCESS-OM2 running/built:
+export ACCESS_OM_DIR=$(pwd) (in access-om2 dir).
+./install.sh
+
+then change executable paths in config.yaml and do payu run (needed
+payu/dev, which requires module use /projects/v45/modules).
+
+Problems with input files: Went back to using full paths to input
+files and executables in /short/public* (what is used in new
+1deg_jra55_ryf), except for the ocean executable. Also needed to
+changes accessom2.nml for a one-year runtime instead of 10!
+
+Introduced error in vdiffuse_diff_cbt diagnostic - now fixed. 
+
+** 20-6-18
+
+Running ACCESS-OM2 with Kial's restarts and updated code
+- Had problem with dt_ocean - need to remove from input.nml because of
+  Nic's code changes.
+- Also payu needs cice_in.nml from the old output folders, so needed
+  to copy these from config into an empty archive/output***/ice/
+
+Numerical mixing methods:
+- Checked with new direct volume budget and gives almost the same as
+  the old indirect method (small differences, presumably due to
+  machine-precision, or loading/saving back into files etc.).
+- However, new method from heat budget works much better!
+- Is the binning of temp_flux_x_on_nrho correct??? Could this be even
+  better? Have asked Steve.
+
+** 21-6-18
+On the binning on different grids:
+- Currently tx_trans_nrho and ty_trans_nrho, located on ET and NT
+  (east T-cell face and North T-cell face), are binned with the
+  temperature on the T-cell center - so this is not completely
+  accurate (see Steve's email). I've done the same for my heat fluxes
+  on my first attempt.
+
+Trying to fix this by introducing new Dens%neutralrho_et and
+Dens%neutralrho_nt arrays which should be on the T-cell ET and T-cell
+NT, and then bin with those. Testing now...
+
+** 22-6-18
+
+New T-cell binning seems to work slightly better (but I'm still not
+doing the GM and submeso terms).
+
+Now going to full T-cell edge binning, including GM and submeso terms
+with new nrho_face_bin option. Testing.
+
+Original T-cell center binning ndif_heat run:  output036_ndif_heat
+T-cell edge binning of tx_trans and xflux (but not GM or submeso): output036_ndif_heat_transTedg
+nrho_face_bin option: output036_ndif_heat_transTedgGMS
+
+nrho_face_bin option doesn't seem to show any significant changes
+relative to other, changes are restricted to interior of basins rather
+than the WBCs. Keeping anyway
+
+Production 10-year runs of the 1-degree configs all started
+(KDS50,75,100,135 and GFDL50). 
+
+** 27-6-18
+
+New 5 years of MOM025_kb3seg run done with ndiff_heat diags on.
+
+** 06-07-18
+
+MOM_Gyre run with new heat budget method. Results are better, but
+still weird, I don't know what is going on?
+
+** 12-07-18
+Found and fixed a bug with the kppbl diagnostic where it was not
+initialized properly. All the plots in Diathermal_Paper were made
+calculating kppbl by residual -> But the results are almost identical
+now that the bug has been fixed.
+
+** 23-07-18
+Running another MOM01 run with heat budget numerical mixing diagnostics.
+
+** 25-09-18
+
+Back to heat function paper:
+
+Significantly improved processing of ZAH code:
+- Now doing the sum from cold->warm from beginning like analysis. 
+- Introduced direct heat fluxes (temp_yflux_adv_on_nrho and
+  temp_yflux_submeso_on_nrho) calculation of the full heat transport
+  term A.
+- Fixed latitude averaging/derivatives -> This was done incorrectly
+  before because I hadn't realized that PSI was on yu points not yt
+  points. Now it is done correctly (and using the latitude spacing of
+  yu_ocean not yt_ocean (yuo not yto in processing code)).
+
+Started another 4 years of kb3seg in order to do this calculation
+properly over a four-year average.
+
+** 28-03-19
+Volume budget:
+- Differences Access-om2 and MOM-SIS in ocean_sbc input.nml:
+max_ice_thickness 1.0 vs 0.0
+do_bitwise_exact_sum=.false. vs. .true.
+
+options zero_net_water_coupler and zero_net_water_couple_restore are
+active, meaning that the net water into the ocean from atmosphere +
+land is kept mean zero, and that the net water into the ocean+ice is
+zero (but water can be exchanged between the coean and ice).
+
+Options to set components to zero (debug_water_fluxes)
+
+Most of the eta_tend diagnostics are for non-Bous contributions
+(e.g. covered by the diagnose_sea_level_forcing option)
+
+Checks: 
+- Global sum of (dzt*area) is 6e10m3 off from total_volume_seawater
+- Global sum of mass_pmepr_on_nrho is ~1000m3/sec (~3000m3/sec for
+  Chris) off from dVdt determined from dzt*area snapshots over a
+  seasonal cycle.
+- 
+
+Try a new run with total_ocean_pme_river and total_volume_seawater snapshots
+
+
+** 08-04-19 ACCESS-OM2-1 numerical mixing
+Notes on ACCESS-OM2-1 budgets week of 5/4/19:
+- ACCESS-OM2-1 uses conservative temperature, but the Cp is the same (we're not using TEOS10).
+- Lat-temp: 
+  - MDS and SIG drive meridional fluxes, so shouldn't really include them in vertical mixing.
+  - Some big problem with numerical mixing, especially in the SO. What is going on here?
+
+MOM Control numerical mixing:
+- Should numerical mixing be zero integrated over a fluid column? ->
+  It is not. Is this because of the volume budget issues? The net flux
+  shows lots of small-scale zonal-striations -> associated with
+  barotropic processes.
+- Comparison of 3D numerical mixing using SUB-con vs. SUB-latflux:
+  Overall they produce very similar results. The difference is nicely
+  shown in the lat-temp plot and shows that overall the convergence
+  method has slightly more up-gradient fluxes than the lateral-fluxes
+  method. The difference has no net (all temps) flux. Taken literally,
+  this difference is the (negative of the) numerical mixing due to the
+  submesoscale scheme - which is dominantly negative as expected
+  (although not required - there is likely some up-gradient fluxes
+  because the implemetation is through skew-fluxes and might have
+  problems?). 
+- The 3D SUB-latflux and latT SUB-latflux calculations differ mainly
+  through a net flux. This net flux is mostly (see line plot)
+  explained by the fact that the budgets are done in the opposite
+  direction (warm-to-cold vs. cold-to-warm). However, there is still
+  some remaining mismatch - but it's small and noisy - likely machine
+  precision or something?
+
+Steve comments on global budgets:
+- ascii should have the budgets to 12-significant digits
+- netcdf may only save to 6-significant digits. So perhaps it's coming
+  from this?
+
+Namelist differences:
+short/e14/rmh561/software/python/nmltab/nmltab.py -d ../../mom/MOM_HeatDiag_kb3seg/input.nml ../1deg_jra55_ryf8485_kds50_july/ocean/input.nml | less
+- heaps to do with coupling
+- ocean_barotropic: laplacian vs. biharmonic smoothing, bihgen friction
+- ocean_frazil: Only top level in MOM-SIS
+- friction differences
+- mixdownslope
+- cmip units
+- nphysics
+- overflow?
+- river_diffuse_salt and river_diffuse_temp -> enhanced diffusion of
+  temp and salt at rivers. This is added to diff_cbt (but not
+  diagnosed separately in my kpp-diff diags).
+- sigma-diff: On in access-om2-1 but in bottom cell only
+- some different submesoscale options
+- thickness dzt minimum
+
+- ocean vert kpp mom4p1: kbl_standard_method: false in ACCESS-OM2-1 ->
+  There is a warning in the code about negative mixing coefficients
+  with this option
+- smooth_blmc -> False in ACCESS-OM2-1
+- smooth_ri_kmax_eq_kmu -> True in ACCESS_OM2-1
+- ncar_ocean_flux
+- raoult_sat_vap
+
+ACCESS-OM2-1 vs. ACCESS-OM2-025 (gmredi):
+- ocean_bih_tracer: tracer_mix_micom
+- bihgen_friction and lapgen_friction
+- mixdownslope (off in 025)
+- overflow
+- sigma
+
+ACCESS-OM2-1 has much larger non-local KPP term, which is
+up-gradient. This spatial pattern matches the numerical mixing
+pattern - but so does all the other terms (e.g. vertical diffusion,
+which seems to compensate with non-local KPP a lot).
+
+Trying a run with smooth_blmc, kbl_standard_method and
+smooth_ri_kmax.. all flipped back -> This did not change anything.
+
+ACCESS-OM2-1 volume and salt budgets:
+&ocean_sbc_nml
+    runoff_salinity = 0.0 means that there should be no salt input from runoff.
+
+Could the fact that the transport in ACCESS-OM2 is saved in units of
+kg/s, vs. 10^9kg/s make a difference?
+
+Almost there with the ACCESS-OM2-1 lat-temp plots -> Just missing some
+linear-with-temperature mismatch/term.
+
+- Trying a 1deg run with double temp res.
+
+- Trying to get the 025_deg ACCESS-OM2 case going.
+
+** 08-04-19 update
+The Eulerian binned tendency term is seeing cooling from the sum of
+the RHS diabatic terms at the warmest temperatures -> Mixing is strong
+and surface forcing is cooling these waters. Everything else is pretty
+small at the very warmest temperatures (e.g. advection, SUB/GM
+etc.). Surface forcing is cooling these waters because the cooling by
+sw_heat at the warmest temps seems to out do the warming by the total
+vdiffuse_sbc (which is weak).
+
+Reducing the time-step from 5400 to 1800s mostly removes this
+issue. Perhaps it is fully removed at GFDL50? It also
+
+* Diagnostics needed for various runs:
+For global budget:
+- temp, dzt from snapshots (end of month, end of year)
+- mass_pmepr_on_nrho
+- vdiffuse_diff_cbt, nonlocal_KPP, vdiffuse_sbc, sw_heat, frazil,
+  eta_smooth, sfc_hflux_pme, rivermix
+- vdiffuse_k33, neutral_diffusion
+- mixdownslope
+
+For latitude-temp budget:
+- ty_trans_nrho, ty_trans_nrho_submeso
+- yflux_adv_on_nrho, yflux_submeso_on_nrho
+- ty_trans_nrho_gm
+- yflux_gm_on_nrho
+
+For 1-degree runs:
+Total = 20. (360*180*50*20*8 = 0.5GB, but ACCESS_OM2 results would
+suggest this is reduced to ~0.1GB by compression/missing
+values). Taking 0.2GB => 20GB for 100 years
+
+To reduce could combine:
+F = vdiffuse_sbc + frazil + eta_smooth + sw_heat
+P = hflux_pme + rivermix
+M = vdiffuse_diff_cbt + nonlocal_KPP + mixdownslope
+R = vdiffuse_k33 + neutral_diffusion
+Reducing to 13.
+Could also combine transports?, reducing to 9?
+
+For spatially-resolved numerical mixing:
+- tx_trans_nrho, tx_trans_nrho_submeso
+- xflux_adv_on_nrho, xflux_submeso_on_nrho
+- tx_trans_nrho_gm
+- xflux_gm_on_nrho
+
+For mixing components:
+- kppiw, kppish, kppicon, kppbl, kppdd, wave, back?
+
+Not used except for checks:
+- advection, tendency, submesoscale, neutral_gm
+
+* Summary:
+- MOM025-SIS:
+  1: kb=0    five years
+  2: kb=1e-5 one year
+  3: kb=1e-6 one year
+  4: kb=3seg five years + 5 years 
+- MOM025-SIS-WOMBAT one year, NO GM/SUBMESO TRANSPORTS
+- ACCESS-OM2-025: 
+  1: ryf8485 No GM/redi
+  2: ryf8485_gmredi
+  3: ryf8485_redi
+  4: ryf8485_KDS75 - not run yet.
+- MOM01-SIS one year 
+- ACCESS-OM2-1:
+  1: ryf
+  2: ryf8485
+  3: ryf8485_kds50_s13p8_mushy:
+     out 51: base case
+     out 52: 1em5 kb
+     out 73: 20?? years of 1em5 kb
+  4: ryf9091_kds50 (old setup)
+  5: ryf9091_kds75 (old setup)
+  6: ryf9091_kds100 (old setup - not working salinity error)
+  7: ryf9091_kds135 (old setup)
+
+* ACCESS-OM2 1-degree
+! May 2018+ runs -----------------------------------------------
+! 1deg_jra55_ryf8485_kds50_may
+! --------------
+output000-003     ! 20 years (5 year blocks) from spinup IC.
+output036         | 10 years from year 350 numdiff_heat diags
+! 1deg_jra55_ryf8485_gfdl50_may
+! --------------
+output036         | 10 years from year 350 numdiff_heat diags
+! 1deg_jra55_ryf8485_kds75_may
+! --------------
+output036         | 10 years from year 350 numdiff_heat diags
+! 1deg_jra55_ryf8485_kds100_may
+! --------------
+output036         | 10 years from year 350 numdiff_heat diags
+! 1deg_jra55_ryf8485_kds135_may
+! --------------
+output036         | 10 years from year 350 numdiff_heat diags
+
+
+! Before May 2018 ----------------------------------------------
+! 1deg_jra55_ryf
+! --------------
+output250 (yr501) | one year, full diags
+! 1deg_jra55_ryf8485
+! --------------
+output394 (yr789) | one year, full diags
+! 1deg_jra55_ryf8485_kds50_s13p8_mushy
+! --------------
+output051 (yr511) | one year, full diags
+output052 (yr512) | one year with 1em-5 back diff
+output057 (yr???) | More years with 1em-5 back diff
+! 1deg_jra55_ryf9091_kds50
+! --------------
+output045 (yr451) | one year, full diags, old setup with KDS50
+! 1deg_jra55_ryf9091_kds75
+! --------------
+output016 (yr161) | one year, full diags, old setup with KDS75
+! 1deg_jra55_ryf9091_kds135
+! --------------
+output012 (yr121) | one year, full diags, old setup with KDS135
+
+!!! All above deleted 21-1-19
+
+! After May 2018 ----------------------------------------------
+
+* ACCESS-OM2 1/4-degree
+! 025deg_jra55_ryf8485: No GM/Redi
+! --------------------
+output078 (yr152) | restart077 | one year, full diags
+
+! 025deg_jra55_ryf8485_gmredi
+! --------------------
+output073 (yr147) | restart072 | one year, full diags
+
+! 025deg_jra55_ryf8485_redi
+! --------------------
+output059 (yr119) | restart058 | one year, full diags
+
+! 025deg_jra55_ryf8485_KDS75
+! --------------------
+! present in Andy's /short. Run this!
+
+* MOM025-SIS
+! MOM_HeatDiag:
+! ---------------
+! New runs 2018 to get good statistics on Implicit mixing spatial structure
+output008   | restart007   | One-year run, production diags + trans_nrho + trans_submeso_nrho
+output009   | restart008   | One-year run, production diags + trans_nrho + trans_submeso_nrho
+output010   | restart009   | One-year run, production diags + trans_nrho + trans_submeso_nrho
+output011   | restart010   | One-year run, production diags + trans_nrho + trans_submeso_nrho
+output012   | restart011   | One-year run, production diags + trans_nrho + trans_submeso_nrho
+!!!! 8-12 OUTPUTS deleted 28/11/18 !!!!
+
+output013   | restart012   | One-year run, as before but with 1-degree binning instead of 0.5-degree binning.
+output014   | restart013   | One-year run, diathermal diags + separate mixing terms
+!!! Above 2 runs DELETED !!!
+output015-019 | restart014 | Five-years with numdiff_heat diags.
+output015-019 | restart014 | Re-do of previous runs (saved in old15-19) with heat flux xflux_submeso and yflux_submeso.
+!!! Above runs archived to mdss 16/10/19
+
+! MOM_HeatDiag_kb1em5: As for previous but with background diffusivity to 1e-5 m2s-1:
+! ---------------
+output014-015 | restart013 | Two-year run, 0.5-degree binning but with background diffusivity to 1e-5 m2s-1
+output016+    | restart015 | Continuation with no diathermal diagnostics
+output028-063 |            | Continuation with only yearly saves of ocean.nc diagnostics
+output064     |            | 51st year with diathermal diagnostics
+output065-093 |            | Continuation with only yearly saves of ocean.nc diagnostics
+             -- Now have done 80 years of spinup --
+output094     | restart093 | One-year run, diathermal diags + separate mixing terms
+!! 94 and 64 deleted 4/1/2019 !!
+output095-099 | restart094 | Five-year run with heat flux xflux_submeso and yflux_submeso.
+!!! Above runs archived to mdss 16/10/19
+
+! MOM_HeatDiag_kb1em6: 1e-6 background diffusivity:
+! ---------------
+output000-001 | restart013 | Two-year run, with background diffusivity to 1e-6 m2s-1 and diathermal diagnostics
+output002+    | restart015 | Continuation with no diathermal diagnostics
+output006-029 |            | Continuation with only yearly saves of ocean.nc diagnostics
+             -- Now have done 30 years of spinup --
+output030     | restart029 | One-year run, diathermal diags + separate mixing terms
+!!! Above run archived to mdss 16/10/19
+
+! MOM_HeatDiag_kb3seg: 
+! ---------------
+! These simulations had a linearly scaled diff_cbt_back from 1e-5 to
+! 1e-6 between 15deg and 5deg using the code in HWF
+! (ocean_vert_mix.F90). 
+output000     | restart013 | with diathermal diagnostics first year
+output001-025 |            | no diathermal diagnostics, These first 22
+                           | years had the diff_back implemented with
+                           | vert_diff_back_via_max. But this is
+                           | not consistent with the diff_cbt_iw
+                           |  implemented in the KPP routine.
+output026-074 |            | no diathermal diagnostics. eqred_iw
+                             implemented (reduction of diff_cbt_iw
+                             done in kpp routine)
+             -- Now have done 26 years of spinup with hwf + 49 years
+                             with kppiw = 75 total --
+output075     | restart074 | One-year run, diathermal diags + separate mixing terms
+output076-079              | 4 more years with diathermal diagnostics + diff. mixing terms.
+output080-084 | restart079 | Five-years with numdiff_heat diags and Eulerian vertical mixing and 
+                           | heat flux terms for evaluation against chipod data.
+
+output085     | restart084 | One year as above except with bug fix on
+                           | kppbl initialization (realised with chipod comparison).
+!! 75-85 outputs deleted 4/1/2019 !!
+!! 75-80 were used for the JPO paper !!
+
+output086     | restart085 | One year as above with xflux_submeso and yflux_submeso for testing.
+output087-090 | restart086 | four more years as for previous for heat function paper
+output091-094 | restart090 | Years getting variance diagnostics sorted (all deleted)
+output095     | restart094 | One year with Eulerian squared diagnostics (and no heat budget terms).
+output096-100 | restart095 | Five years with Eulerian squared diagnostics + all other diathermal 
+                             for production heat function and numerical mixing
+output101-110 | restart100 | Ten more years as above because of compression problems.
+output110-120 | restart100 | Ten more years with yearly output as control.
+output121     | restart120 | One more year with new binned diffusivity diagnostic (diff_cbt_t_on_nrho).
+output122     | restart122 | 5 days with metric grid vectors output.
+!! All outputs 100 and below deleted 16/10/19
+!! 101-110 were used for the GRL paper !!
+
+
+! MOM_HeatDiag_kb3seg_nosubmeso
+output091     | restart090 | One year as for kb3seg but with submesoscale param turned off to see affect on numerical mixing. 
+DELETED - was wrong
+
+! MOM_HeatDiag_nipoall:
+output000+    | restart100 (kb3seg) | yearly output of -ve IPO trend run from Nicola's paper with full diathermal diags
+
+! MOM_HeatDiag_RCP45:
+output000+    | restart100 (kb3seg) | yearly output of simple RCP45 (+1.5C Tair, +8Wm-2 DWLN) from Kial's paper with full diathermal diags
+
+! MOM_HeatDiag_SOUP15:
+output000+    | restart100 (kb3seg) | yearly output of 15% SO winds increase from Paul's GRL.
+
+! MOM_HeatDiag_AMOCOFF:
+output000+    | restart100 (kb3seg) | 
+
+** Old Runs
+Run         | Restart      | Description
+------------------------------------------------------------------------------------
+output000   | restart500   | One-year run with Monthly heat budget diagnostics, missed rivermix.
+output001   | restart000   | One-year run with "", added dzt and snapshots.
+output002o1 | restart001   | One-month run with daily output.
+output003o1 | restart002o1 | One-month run with inbuilt neutral density water-mass diagnostics, tweaked.
+output004o1 | restart003o1 | One-month run with altered inbuilt neutral density water-mass diagnostics, tweaked.
+output005o1 | restart004o1 | One-month run with altered inbuilt neutral density water-mass diagnostics, tweaked.
+output006o1 | restart005o1 | one-month run with monthly ouput. Online binning of T diagnostics with new code.
+output007o1 | restart006o1 | one-year run with monthly output. Online binning DELETED!!
+output008o1 | restart007o1 | 3-dt run with dt output. Online binning DELETED!!
+output002o2 | restart001   | One-year run with daily heat budget diagnostics. No online diagnostics DELETED!!
+      Notes: output002o2 uncollated size was 2TB, restart002 was 107GB
+
+output002   | restart001   | One-year run, production diags
+output003   | restart002   | One-year run, production diags
+output004   | restart003   | One-year run, production diags
+output005   | restart004   | One-year run, production diags
+output006   | restart005   | One-year run, production diags
+output007   | restart006   | One-year run, production diags + trans_nrho
+---- ALL ABOVE WERE DELETED, 04-04-18 ------------------
+
+* MOM025-SIS-WOMBAT
+! MOM_wombat:
+! -----------
+output1978 | restart1977 | One year run. NO GM/SUB Transports. Problem with global budget?
+DELETED 16/10/19
+
+* MOM01-SIS
+! MOM01_HeatDiag:
+! ---------------
+output266   | restart265   | 3-month run, production diags
+output267   | restart266   | 3-month run, production diags
+output268   | restart267   | 3-month run, production diags
+output269   | restart268   | 3-month run, production diags
+!!!! Above 4-runs DELETED 28/11/2018 !!!!
+
+output000 (yr72) | restart269   | 3-month run, production diags + trans_nrho + trans_submeso_nrho
+output001   | restart000   | 3-month run, production diags + trans_nrho + trans_submeso_nrho
+output002   | restart001   | 3-month run, production diags + trans_nrho + trans_submeso_nrho
+output003   | restart002   | 3-month run, production diags + trans_nrho + trans_submeso_nrho
+!!! Above runs DELETED Early 2019
+
+output004 (yr73) | restart003   | 3-month run, numerical heat budget diags (incl. submeso)
+output005   | restart004        | 3-month run, numerical heat budget diags (incl. submeso)
+output006   | restart005        | 3-month run, numerical heat budget diags (incl. submeso)
+output007   | restart006        | 3-month run, numerical heat budget diags (incl. submeso)
+These runs, with processing, have been archived to mdss 16/10/19
+* Idealized runs:
+
+to set up gyre1 test case (MOM_Gyre) I did:
+
+in software/MOM5/data/
+./get_exp_data.py gyre1.input.tar.gz - but this didn't work! The path
+is wrong, gives an old version of the input.nml. The correct version
+is in the path in data/data_sources.csv, which is a source on raijin
+ua8.
+
+then moved all input files to new experiment folder
+(rmh561/MOM_Gyre). Created a link to work and archive directories in
+rmh561/mom, moved .nc input files to mom/input/gyre1 and moved all
+input scripts (input.nml etc.) to experiment folder.
+
+Started off with a 1800-day (5 year) spinup case with zstar
+coordinates and minimal monthly output. Then will run my diathermal
+diagnostics over the top (in diag_table_diathermal).
+
+** 01-5-18
+
+Base case run successfully, gives large numerical diffusion
+particularly at the higher temps. Run for 12-months
+
+Kicked off a high (5e-5) vertical diffusivity case.
+
+

@@ -1,0 +1,389 @@
+
+                 Log file for MOM-CORENYF Heat Budget Simulations
+                 ------------------------------------------------
+                 
+                       Ryan Holmes March 2017
+----------------------------------------------------------------------
+
+#+STARTUP: content
+
+* 21-3-17 --------------------------------------------------------------
+
+Model successfully runs. Had a number of problems with collate
+step. To fix required:
+- Set explicitely the mppnccombine executable path using collate_exe
+  in config.
+- Set explicitely the path to the directory using payu collate --directory
+
+Diagnostics that are zero and not needed:
+  temp_vdiffuse_k33
+  geo_heat 
+  temp_runoffmix
+  temp_calvingmix
+
+So all diagnostic terms that are needed::
+  temp_tendency (Ttend)
+  temp_advection (Tadv)
+      - temp_xflux_adv
+      - temp_yflux_adv
+      - temp_zflux_adv
+  temp_submeso (Tsub)
+  temp_vdiffuse_diff_cbt (Tvdif)
+  temp_nonlocal_KPP (Tnloc)
+  temp_vdiffuse_sbc -> Only in k=1? (Tsbc)
+  sw_heat (Tswr)
+
+And surface fluxes (only at k=1):
+  sfc_hflux_pme (Tshf)
+  frazil_2d (Tfra)
+  temp_eta_smooth (Teta)
+
+To get a closed budget everywhere except near the coasts, you can use:
+
+Ttend-(Tadv+Tsub+Tvdif+Tnloc+Tsbc+Tswr)-(Tshf+Tfra+Teta) (k=1)
+
+Ttend-(Tadv+Tsub+Tvdif+Tnloc+Tsbc+Tswr) (k>1)
+
+There are still unbalanced values near the coasts for k=1 (large) and
+k=2 and 3 (smaller). After k=4 it seems to be all closed. 
+
+REASON: I was missing temp_rivermix. Started another run with this
+added to diagnostics. Also added end-of-month snapshots (hopefully
+this is end of month) of temp, salt, dzt and sea_level in
+ocean_snap. Also added rho_dzt to ocean_heat output and dzt to
+ocean.nc.
+To rerun did:
+- Removed reference to restart500 of Paul's runs in config.yaml
+- payu sweep
+- payu setup (checked restart paths correct - yes)
+- payu run
+
+The collate step takes ages. 9 hours for a 1:15 run. Ask Aidan?
+
+* 23-3-17 -------------------------------------------------
+
+Heat budget closes completely. Note that rho_dzt = 1035*dzt up to
+numerical errors, so it's not needed as an output next time.
+
+* 27-03-17 ------------------------------------------------
+
+Isopycnal/horizontal diffusion:
+- Is isopycnal diffusion included in temp_advection? May need more
+  terms in here. Look at the .out file to see what advection scheme
+  we're using. ocean_temp_advect.F90
+
+mom.out: "temp is using multi-dim piecewise parabolic for horz/vert advection."
+MDPPM
+
+Laplacian horizontal diffusion is off. If on then would be in
+"temp_h_diffuse".
+
+Looks like there is no explicit tracer horizontal mixing. Perhaps it
+all comes from the advection scheme. Might need to turn on:
+"temp_horz_advect"
+"temp_vert_advect"
+To separate horizontal and vertical components.
+
+"convect_heating" -> Convective heating isn't on, because it's likely
+done by KPP.
+
+"temp_submeso"
+"temp_subdiff" -> From submesoscale, diffusion part? This is off.
+
+
+
+
+
+* 16-05-17
+
+Added diagnostics for Temperature binning (see git MOM5). Had a number
+of problems with this, mainly with the frazil_2d_on_nrho. This is now
+done in ocean_tracer, rather than in ocean_frazil which doesn't have
+access to Dens at initialization.
+
+To compile run in MOM5/exp/:
+./MOM_compile.csh --type MOM_SIS --platform nci --use_netcdf4
+(note: Aidan's email had MOM_solo instead of MOM_SIS).
+
+This should create an executable in:
+exec/nci/MOM_SIS/fms_MOM_SIS.x
+
+which can be copied into mom/bin/ in my short. The model will then
+automatically find this when it runs.
+
+Note: to collate the restart files after run do (this saves a lot of space):
+payu collate --directory /short/e14/rmh561/mom/archive/MOM_HeatDiag/restart006/
+
+* 17-05-17 ------------------------------------------------
+
+Binning diagnostics seem to work, but I can't reproduce the change in
+volume from the snapshots... Why???
+
+Runnning a full year with the new diagnostics. Initializing from
+restart001, which is a january restart.
+
+Is there some error in payu where it deletes some restart folders?
+
+* 30-05-17 ------------------------------------------------
+
+Started a run that outputs every time step for 3 time steps
+(hopefully). This is output008.
+
+* 06-06-17 ------------------------------------------------
+
+Cleaned up online binning diagnostics code git history and prepared
+for distribution.
+
+Decided on a diagnostic strategy that uses the online binning for most
+terms. However, tendency is calculated using snapshots and then the
+implicit mixing term is calculated as the residual of the sum of the
+online binned tendency+advection and the snapshot tendency. See
+Diagnostic_Strategy.txt in the Data_Analysis/PacificHeatUptake folder
+for details.
+
+Setup for a new set of runs with the diagnostics decided on. Will
+start this from restart001 and run 5-years (payu run -n 5).
+
+* 07-06-17 ------------------------------------------------
+
+Started 5-years of runs with decided on diagnostics. The collate step
+on ice_daily takes forever (7 hours), but only produces a 2.6GB
+file. This is pretty annoying!
+
+output004 failed in November on first try (not sure why). Rerunning...
+
+* 08-06-17 ------------------------------------------------
+
+output006 failed as well on the very last day. Nic suggested adding
+the flag mpirun: --mca mtl mxm to config.yaml, which may fix it. Done
+and rerun.
+
+MOM01 setup:
+config files from Andy's home.
+input files from /short/v45/amh157/mom/input/
+restart files copied from /short/v45/amh157/mom/archive/mom01v5_kds75
+This is a restart that is 70 years into the spinup. There are later
+spinups (i.e. see restart425, which is 110 years into the spinup), but
+Andy suggested starting at year 70 because that's when their
+perturbation runs started (i.e. see cosima cookbook), and possibly
+because of problems with the North Atlantic overturning after this, or
+with a polyna?? Ask Andy.
+
+Running procedure: Same as MOM025
+
+* 09-06-17 ------------------------------------------------
+
+Wrote script Heat_Budget_Process_Production.m to analyse both MOM025
+and MOM01 output and save needed variables to .mat files. Tried
+running this in parallel but it doesn't work very well....
+
+
+
+* 20-06-17 ------------------------------------------------
+
+Added tx_trans_nrho and ty_trans_nrho to diagnostics to calculate
+transports in temperature space, including the latitude-temperature
+heat function of Ferrari and Ferriera (2011). Run for one year.
+
+* 26-06-17
+
+Thinking about running a decadal, trade-wind acceleration run.
+
+Data usage:        ~ 30GB / year (output 24GB, restart 5GB).
+SU usage:          ~ 3.3 kSU
+
+So for a 20-year trade-wind acceleration, then 20-year return:
+            ~ 1.2TB   / 40 years
+            ~ 132 kSU / 40 years
+
+Plus control:
+            ~ 2.4TB   / 40 years * 2
+            ~ 264 kSU / 40 years * 2
+
+That's pretty expensive, need to run it past Matt first.
+
+* 27-06-17
+
+Note: Nicola's experiments produced ~ 45 GB / year of output. I think
+the heat budget fields are quite economical because there are many
+zero's in the array that compress efficiently.
+
+Nicola's input files:
+/short/v45/nxm561/mom/input/gfdl_nyf_1080_clean - Standard 3-hourly CORE-NYF
+
+*/core2nyf2iaf_trends/ - 1991-2011 wind acceleration over Pacific, all variables.
+(_all outputs)
+*/core2nyf2iaf_fut/    - 2012-2031 wind deceleration over Pacific, all variables.
+(_allF outputs)
+*/core2nyf2iaf_tbase/  - 1991-2011 CORE-NYF control
+(_base outputs)
+*/core2nyf2iaf_tall/ - 1991-2011 trends over whole globe, all variables.
+(_full outputs)
+_windo/  outputs: _tbase with _trends winds: Wind only 1991-2011
+_windoF/ outputs: _tbaseF with _fut winds: Wind only 2012-2031
+
+Copied to my mom/input:
+gfdl_nyf_1080_clean/ - from Nicola, same as Paul's directory but not
+the same as gfdl_nyf_1080/ that was used as the inputs for
+MOM_HeatDiag. Although probably the files are the same, just
+gfdl_nyf_1080/ contains a lot of extra files for Paul's SO wind
+shifts/accelerations. 
+
+core2nyf2iaf_trends -> core2nyf2iaf_nipo_trends/ - -ve IPO 1991-2012
+wind accelerations over just Pacific.
+
+Actual input files used are in the data_table file. Changed these to
+_N for the acceleration phase.
+
+field_table doesn't need to change.
+
+Timing: I think everything should work if I put 1992 1 1 0 0 0 in the
+input.nml and set the option force_data_from_namelist=.true. MAKE SURE
+I change this back for the second year.
+
+Setup to restart from restart006/ of MOM_HeatDiag (i.e. the last
+production year).
+
+Everything is good to go now? Ask Matt tomorrow?
+
+* 04-07-17
+
+Reset age tracer to zero (replaced ocean_age.res.nc with
+ocean_age_zero.res.nc in the restart006, and changed the restart name
+in field_table.nml). Ran for one year to start.
+
+Halving the processor count actually only make ~30SU difference in the
+full year SU use, so have doubled the processor count again to make it
+run in half the time.
+
+Resource use:
+26GB / year (22GB output, 4.8GB restart)
+
+* 11-01-17
+
+Running another five-years with trans diagnostics to get better
+statistics on the implicit mixing spatial structure.
+
+* 22-01-17
+
+Ran MOM01 again with the new diagnostics (tx_trans etc.). 
+
+* 28-02-17
+
+ACCESS-OM2 1degree runs:
+Got restarts from Kial
+/short/v45/kxs157/access-om2/archive/1deg_jra55_ryf8485_kds50_s13p8_mushy/restart0*0
+
+511 years run with KDS50 at 1-degree.
+
+Ran one year with diathermal diagnostics (output051), then one year
+with KappaIW = 1e-5 (output052), then 20 years without diathermal
+diagnostics, in groups of 5 (output053-056). Then finally another year
+with diathermal diagnostics (output057).
+
+The diathermal diagnostics are expensive:
+ACCESS-OM2-1deg (DT diags on) = 400SU/year
+ACCESS-OM2-1deg (DT diags off) = 88SU/ year
+
+* 02-03-18
+Realised the maybe I need to change the background viscosity as well
+if I'm changing the background diffusivity? However, it looks like the
+tidal scheme already adds a background viscosity of 1e-4 even if
+diff_cbu_back = 0 - true
+
+* 08-03-18
+
+Realised that my use of diff_cbt_back using via_max was not consistent
+with the diff_cbt_iw setting in the KPP code. So rewrote the change of
+background diffusivity into the KPP code instead. 
+
+* 14-03-18
+
+Finally (i think) found problem with kppbl - I wasn't initializing it
+to zero each time step. So rectification (probably particularly over
+the diurnal cycle) was causing problems. This didn't affect any other
+terms since they were all overwritten at every grid cell every
+time-step, while kppbl is only updated within the BL. Trying again
+
+
+* Output table --------------------------------------------
+Run         | Restart      | Description
+------------------------------------------------------------------------------------
+output000   | restart500   | One-year run with Monthly heat budget diagnostics, missed rivermix.
+output001   | restart000   | One-year run with "", added dzt and snapshots.
+output002o1 | restart001   | One-month run with daily output.
+output003o1 | restart002o1 | One-month run with inbuilt neutral density water-mass diagnostics, tweaked.
+output004o1 | restart003o1 | One-month run with altered inbuilt neutral density water-mass diagnostics, tweaked.
+output005o1 | restart004o1 | One-month run with altered inbuilt neutral density water-mass diagnostics, tweaked.
+output006o1 | restart005o1 | one-month run with monthly ouput. Online binning of T diagnostics with new code.
+output007o1 | restart006o1 | one-year run with monthly output. Online binning DELETED!!
+output008o1 | restart007o1 | 3-dt run with dt output. Online binning DELETED!!
+output002o2 | restart001   | One-year run with daily heat budget diagnostics. No online diagnostics DELETED!!
+      Notes: output002o2 uncollated size was 2TB, restart002 was 107GB
+
+output002   | restart001   | One-year run, production diags
+output003   | restart002   | One-year run, production diags
+output004   | restart003   | One-year run, production diags
+output005   | restart004   | One-year run, production diags
+output006   | restart005   | One-year run, production diags
+output007   | restart006   | One-year run, production diags + trans_nrho
+---- ALL ABOVE WERE DELETED, 04-04-18 ------------------
+
+! New runs 2018 to get good statistics on Implicit mixing spatial structure
+output008   | restart007   | One-year run, production diags + trans_nrho + trans_submeso_nrho
+output009   | restart008   | One-year run, production diags + trans_nrho + trans_submeso_nrho
+output010   | restart009   | One-year run, production diags + trans_nrho + trans_submeso_nrho
+output011   | restart010   | One-year run, production diags + trans_nrho + trans_submeso_nrho
+output012   | restart011   | One-year run, production diags + trans_nrho + trans_submeso_nrho
+
+output013   | restart012   | One-year run, as before but with 1-degree binning instead of 0.5-degree binning.
+output014   | restart013   | One-year run, diathermal diags + separate mixing terms
+
+! MOM_HeatDiag_kb1em5: As for previous but with background diffusivity to 1e-5 m2s-1:
+output014-015 | restart013 | Two-year run, 0.5-degree binning but with background diffusivity to 1e-5 m2s-1
+output016+    | restart015 | Continuation with no diathermal diagnostics
+output028-063 |            | Continuation with only yearly saves of ocean.nc diagnostics
+output064     |            | 51st year with diathermal diagnostics
+output065-093 |            | Continuation with only yearly saves of ocean.nc diagnostics
+             -- Now have done 80 years of spinup --
+output094     | restart093 | One-year run, diathermal diags + separate mixing terms
+
+! MOM_HeatDiag_kb1em6: 1e-6 background diffusivity:
+output000-001 | restart013 | Two-year run, with background diffusivity to 1e-6 m2s-1 and diathermal diagnostics
+output002+    | restart015 | Continuation with no diathermal diagnostics
+output006-029 |            | Continuation with only yearly saves of ocean.nc diagnostics
+             -- Now have done 30 years of spinup --
+output030     | restart029 | One-year run, diathermal diags + separate mixing terms
+
+! MOM_HeatDiag_kb3seg: 
+! These simulations had a linearly scaled diff_cbt_back from 1e-5 to
+! 1e-6 between 15deg and 5deg using the code in HWF
+! (ocean_vert_mix.F90). 
+output000     | restart013 | with diathermal diagnostics first year
+output001-025 |            | no diathermal diagnostics, These first 22
+                           | years had the diff_back implemented with
+                           | vert_diff_back_via_max. But this is
+                           | not consistent with the diff_cbt_iw
+                           |  implemented in the KPP routine.
+output026-074 |            | no diathermal diagnostics. eqred_iw
+                             implemented (reduction of diff_cbt_iw
+                             done in kpp routine)
+             -- Now have done 26 years of spinup with hwf + 49 years
+                             with kppiw = 75 total --
+output075     | restart074 | One-year run, diathermal diags + separate mixing terms
+output076-079              | 4 more years with diathermal diagnostics + diff. mixing terms.
+output080-084 | restart079 | Five more years with same diags +
+                             Eulerian vertical mixing and heat flux
+                             diags for evaluation against chipod data.
+
+MOM01:
+output266   | restart265   | 3-month run, production diags
+output267   | restart266   | 3-month run, production diags
+output268   | restart267   | 3-month run, production diags
+output269   | restart268   | 3-month run, production diags
+
+output000   | restart269   | 3-month run, production diags + trans_nrho + trans_submeso_nrho
+output001   | restart000   | 3-month run, production diags + trans_nrho + trans_submeso_nrho
+output002   | restart001   | 3-month run, production diags + trans_nrho + trans_submeso_nrho
+output003   | restart002   | 3-month run, production diags + trans_nrho + trans_submeso_nrho
+
