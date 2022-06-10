@@ -4,10 +4,10 @@ import numpy as np
 import os
 import fileinput
 
-bname = 'PIPO_'
-outputs = [1,2,3,4,5,6]
+bname = 'MOM025_'
+outputs = [XXOUTPUTXX]
 
-reg = 2
+reg = 0
 
 if reg==0:
     # Global:

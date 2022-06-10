@@ -1,45 +1,33 @@
 % This script processes the heat budget and associated variables in
 % MOM025 or MOM01 simulations and save's into .mat files
 
-% $$$ baseL = '/scratch/e14/mv7494/access-om2/archive/';
-% $$$ baseL = '/short/e14/rmh561/mom/archive/';
-% $$$ baseL = '/g/data/e14/rmh561/access-om2/archive/';
-% $$$ baseL = '/g/data/e14/rmh561/mom/archive/';
-% $$$ baseL = '/short/e14/rmh561/access-om2/archive/';
-% $$$ baseL = '/srv/ccrc/data03/z3500785/';
-baseL = '/scratch/e14/rmh561/access-om2/archive/';
+baseL = '/g/data/e14/cy9864/access-om2/archive/';
 
-% MOM-SIS025:
-model = 'ACCESS-OM2_1deg_jra55_rdf';
-baseD = [baseL '1deg_jra55_rdf/']; %Data Directory.
-ICdir = [baseL '1deg_jra55_rdf/'];
-% $$$ % MOM-SIS01:
-% $$$ model = 'MOM01';
-% $$$ baseD = [baseL 'MOM01_HeatDiag/']; %Data Directory.
+model = 'ACCESS-OM2_025deg_jra55_ryf_norediGM';
+baseD = [baseL '025deg_jra55_ryf_norediGM/']; %Data Directory.
+ICdir = [baseL '025deg_jra55_ryf_norediGM/'];
 
 outD = [baseD 'mat_data/'];
-% $$$ outD = ['/g/data/e14/rmh561/access-om2/025deg_jra55_iaf/mat_data/'];
 rstbaseD = baseD;
 
 post = 'ocean/'; % For ACCESS-OM2 output coulpled;
-% $$$ post = ''; % For MOM-SIS.
 
 % term options:
-haveRedi = 1; % 1 = Redi diffusion is on, 0 = off
-haveGM = 1; % 1 = GM is on, 0 = off;
+haveRedi = 0; % 1 = Redi diffusion is on, 0 = off
+haveGM = 0; % 1 = GM is on, 0 = off;
 haveSUB = 1; % 1 = submeso is on, 0 = off;
-haveMDS = 1; % 1 = MDS is on, 0 = off;
-haveSIG = 1; % 1 = SIG is on, 0 = off;
+haveMDS = 0; % 1 = MDS is on, 0 = off;
+haveSIG = 0; % 1 = SIG is on, 0 = off;
 haveMIX = 0; % 1 = Do mixing components (vdiffuse_diff_cbt_*), 0 = don't. 
 
 % Processing options:
 doBASE     = 0; % 1 = save BaseVars.mat file
-dodVdtdHdt = 0; % 1 = calculate dVdt/dHdt and save into .nc file
+dodVdtdHdt = 1; % 1 = calculate dVdt/dHdt and save into .nc file
 doVHza     = 0; % 1 = save zonally-integrated V and H fields from
                 % average time slots in a .mat file.
 doVHzsp    = 0; % 1 = calculate globally-averaged V(z,t) and H(z,t)
 doVHzaSNAP = 0; % 1 = save zonally-integrated V and H fields from snaps.
-doNUMDIF   = 0; % 1 = calculate tempdiff x,y,T,t and save into .nc file
+doNUMDIF   = 1; % 1 = calculate tempdiff x,y,T,t and save into .nc file
 doSGMviac  = 0; % 1 = calculate SUB/GM influence via binned
                 % convergence (otherwise uses lateral flux). The
                 % better option is to use the lateral flux -> This
@@ -57,7 +45,7 @@ doZA       = 0; % 1 = calculate zonal average budget
 dotempZA   = 0; % 1 = calculate zonal average temp and isotherm depths.
 doHND      = 0; % 1 = calculate global online numdif
 doTENMON   = 0; % 1 = do monthly eulerian tendency binning
-doMON      = 1; % 1 = calculate monthly binned Eulerian global budget
+doMON      = 0; % 1 = calculate monthly binned Eulerian global budget
 doANN      = 0; % 1 = calculate annual binned Eulerian global budget
 doXYall    = 0; % 1 = do all XY calcs (most not used)
 doXYtran   = 0; % 1 = calculate vertically-integrated heat
@@ -445,7 +433,15 @@ if (not_there)
                         'to numerical mixing estimated from heat ' ...
                         'fluxes binned to neutral density']);
     netcdf.putAtt(ncid,ndifID,'units','Watts/m^2');
-    %    netcdf.putAtt(ncid,ndifID,'_FillValue',single(-1e20));
+
+    QIID = netcdf.defVar(ncid,varname,'NC_FLOAT',[xid yid zid tid]);
+    netcdf.putAtt(ncid,QIID,'long_name',['Convergence of lateral advective heat flux binned to neutral density']);
+    netcdf.putAtt(ncid,QIID,'units','Watts/m^2');
+
+    JIID = netcdf.defVar(ncid,varname,'NC_FLOAT',[xid yid zid tid]);
+    netcdf.putAtt(ncid,JIID,'long_name',['Convergence of lateral advective volume flux binned to neutral density']);
+    netcdf.putAtt(ncid,JIID,'units','ms-1');
+
     netcdf.endDef(ncid);
 else
     ndifID = netcdf.inqVarID(ncid,varname);
@@ -526,6 +522,8 @@ for ti=1:tL
         ndif = dHdt - (dVdt - JI - JS)*rho0*Cp*Te(Ti) - dift - QI;
     
         netcdf.putVar(ncid,ndifID,[0 0 Ti-1 ti-1],[xL yL 1 1],ndif);
+        netcdf.putVar(ncid,QIID,[0 0 Ti-1 ti-1],[xL yL 1 1],QI);
+        netcdf.putVar(ncid,JIID,[0 0 Ti-1 ti-1],[xL yL 1 1],JI);
     end
 end
 netcdf.close(ncid);

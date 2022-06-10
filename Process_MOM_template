@@ -6,12 +6,12 @@
 #PBS -l walltime=06:00:00
 #PBS -l wd
 #PBS -l software=matlab_unsw
+#PBS -l storage=gdata/hh5+gdata/ik11+gdata/e14
 #PBS -q express
-#PBS -M ryan.holmes@unsw.edu.au
 #PBS -m e
 
 module load netcdf
-module load matlab/R2017a
+module load matlab
 
 matlab -nodisplay -nodesktop -nosplash -r "output=XXOUTPUTXX;region='XXREGIONXX';Heat_Budget_Process_ProductionXXTYPEXX;exit;"
 
