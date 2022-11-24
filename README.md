@@ -10,8 +10,6 @@ used for the analysis described in the following papers:
 
 - [Holmes et al (2021) The geography of numerical mixing in a suite of global ocean models, Journal of Advances in Modeling Earth Systems, 13, e2020MS002333](https://doi.org/10.1029/2020MS002333) 
 
-- [Holmes et al. (2022) Adiabatic and diabatic signatures of ocean temperature variability, Journal of Climate, 35 (5), 1459-1477](https://doi.org/10.1175/JCLI-D-21-0695.1)
-
 ## Workflow
 
 The analysis routine `Heat_Budget_Process_Production.m` is run with
